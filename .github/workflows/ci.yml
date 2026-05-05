@@ -38,10 +38,5 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Check affected packages
-        if: github.event_name == 'pull_request'
-        run: pnpm check:affected
-
-      - name: Check all packages
-        if: github.event_name == 'push'
+      - name: Check packages
         run: pnpm check
