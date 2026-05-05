@@ -16,6 +16,7 @@ export async function bootstrap() {
   return app;
 }
 
+/* istanbul ignore next -- production bootstrap side effect is covered through bootstrap() tests. */
 if (process.env.NODE_ENV !== "test") {
   void bootstrap();
 }
