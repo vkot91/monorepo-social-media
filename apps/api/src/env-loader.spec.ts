@@ -24,6 +24,7 @@ describe("loadRootEnv", () => {
       [
         "# comment",
         "DATABASE_URL=postgresql://social_media:social_media_password@127.0.0.1:5432/social_media",
+        "INVALID_LINE",
         "JWT_ACCESS_SECRET=from-file",
         "JWT_REFRESH_SECRET=\"quoted-value\"",
         "",

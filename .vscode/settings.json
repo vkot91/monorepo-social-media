@@ -1,5 +1,13 @@
 {
   "eslint.useFlatConfig": true,
   "eslint.validate": ["javascript", "typescript", "typescriptreact"],
-  "eslint.workingDirectories": [{ "pattern": "./apps/*/" }, { "pattern": "./packages/*/" }]
+  "eslint.workingDirectories": [
+    {
+      "pattern": "./apps/*/"
+    },
+    {
+      "pattern": "./packages/*/"
+    }
+  ],
+  "github-actions.workflows.pinned.workflows": []
 }

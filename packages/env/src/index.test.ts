@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { ZodError } from "zod";
 
-import { parseApiEnv, parseWebEnv } from "./index";
+import { parseApiEnv, parseDatabaseEnv, parseWebEnv } from "./index";
 
 const validSecret = "a".repeat(32);
 
@@ -30,6 +30,17 @@ describe("parseApiEnv", () => {
       }),
     ).toThrow(ZodError);
   });
+
+  it("treats an empty PORT value as unset", () => {
+    const env = parseApiEnv({
+      PORT: "",
+      DATABASE_URL: "postgresql://social_media:social_media_password@127.0.0.1:5432/social_media",
+      JWT_ACCESS_SECRET: validSecret,
+      JWT_REFRESH_SECRET: validSecret,
+    });
+
+    expect(env.PORT).toBe(3001);
+  });
 });
 
 describe("parseWebEnv", () => {
@@ -37,6 +48,19 @@ describe("parseWebEnv", () => {
     expect(parseWebEnv({})).toEqual({
       NODE_ENV: "development",
       NEXT_PUBLIC_API_URL: "http://localhost:3001",
+    });
+  });
+});
+
+describe("parseDatabaseEnv", () => {
+  it("parses database environment variables", () => {
+    expect(
+      parseDatabaseEnv({
+        DATABASE_URL: "postgresql://social_media:social_media_password@127.0.0.1:5432/social_media",
+      }),
+    ).toEqual({
+      NODE_ENV: "development",
+      DATABASE_URL: "postgresql://social_media:social_media_password@127.0.0.1:5432/social_media",
     });
   });
 });
