@@ -1,0 +1,122 @@
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  engineType   = "client"
+  moduleFormat = "cjs"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum PostVisibility {
+  PUBLIC
+  FRIENDS
+}
+
+enum FriendshipStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  BLOCKED
+}
+
+model User {
+  id           String   @id @default(uuid()) @db.Uuid
+  email        String   @unique
+  username     String   @unique @db.VarChar(32)
+  passwordHash String   @map("password_hash")
+  displayName  String   @map("display_name") @db.VarChar(80)
+  bio          String?
+  avatarUrl    String?  @map("avatar_url")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  refreshTokens              RefreshToken[]
+  posts                      Post[]
+  comments                   Comment[]
+  postLikes                  PostLike[]
+  sentFriendshipRequests     Friendship[]   @relation("FriendshipRequester")
+  receivedFriendshipRequests Friendship[]   @relation("FriendshipAddressee")
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  tokenHash String    @map("token_hash")
+  expiresAt DateTime  @map("expires_at") @db.Timestamptz(6)
+  revokedAt DateTime? @map("revoked_at") @db.Timestamptz(6)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("refresh_tokens")
+}
+
+model Post {
+  id         String         @id @default(uuid()) @db.Uuid
+  authorId   String         @map("author_id") @db.Uuid
+  content    String
+  imageUrl   String?        @map("image_url")
+  visibility PostVisibility @default(PUBLIC)
+  createdAt  DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt  DateTime       @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  author   User       @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  comments Comment[]
+  likes    PostLike[]
+
+  @@index([authorId, createdAt])
+  @@index([visibility, createdAt])
+  @@map("posts")
+}
+
+model Comment {
+  id        String   @id @default(uuid()) @db.Uuid
+  postId    String   @map("post_id") @db.Uuid
+  authorId  String   @map("author_id") @db.Uuid
+  content   String
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  post   Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([postId, createdAt])
+  @@index([authorId])
+  @@map("comments")
+}
+
+model PostLike {
+  userId    String   @map("user_id") @db.Uuid
+  postId    String   @map("post_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@id([userId, postId])
+  @@index([postId])
+  @@map("post_likes")
+}
+
+model Friendship {
+  id          String           @id @default(uuid()) @db.Uuid
+  requesterId String           @map("requester_id") @db.Uuid
+  addresseeId String           @map("addressee_id") @db.Uuid
+  status      FriendshipStatus @default(PENDING)
+  createdAt   DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime         @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  requester User @relation("FriendshipRequester", fields: [requesterId], references: [id], onDelete: Cascade)
+  addressee User @relation("FriendshipAddressee", fields: [addresseeId], references: [id], onDelete: Cascade)
+
+  @@unique([requesterId, addresseeId])
+  @@index([addresseeId, status])
+  @@index([requesterId, status])
+  @@map("friendships")
+}

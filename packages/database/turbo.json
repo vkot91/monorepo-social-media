@@ -1,0 +1,20 @@
+{
+  "extends": ["//"],
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build", "db:generate"],
+      "outputs": ["dist/**"]
+    },
+    "test": {
+      "dependsOn": ["db:generate"],
+      "outputs": []
+    },
+    "typecheck": {
+      "dependsOn": ["db:generate"],
+      "outputs": []
+    },
+    "db:generate": {
+      "outputs": ["src/generated/prisma/**"]
+    }
+  }
+}

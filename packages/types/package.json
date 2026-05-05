@@ -1,0 +1,23 @@
+{
+  "name": "@social/types",
+  "private": true,
+  "version": "0.0.0",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "dev": "pnpm build --watch",
+    "build": "tsc -p tsconfig.build.json",
+    "lint": "eslint . --max-warnings=0",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@social/database": "workspace:*"
+  },
+  "devDependencies": {
+    "@social/eslint-config": "workspace:*",
+    "@types/node": "^22.5.4",
+    "typescript": "^5.5.4",
+    "vitest": "^2.0.5",
+    "eslint": "^9.31.0"
+  }
+}

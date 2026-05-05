@@ -1,0 +1,8 @@
+{
+  "name": "@social/prettier-config",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "main": "index.mjs",
+  "exports": "./index.mjs"
+}

@@ -1,0 +1,33 @@
+{
+  "name": "social-media-new",
+  "private": true,
+  "packageManager": "pnpm@9.12.0",
+  "scripts": {
+    "build": "turbo run build",
+    "build:affected": "turbo run build --affected",
+    "ci": "pnpm lint:affected && pnpm typecheck:affected && pnpm test:affected && pnpm build:affected",
+    "ci:full": "pnpm lint && pnpm typecheck && pnpm test && pnpm build",
+    "dev": "turbo run dev --parallel",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint": "turbo run lint",
+    "lint:affected": "turbo run lint --affected",
+    "prepare": "husky",
+    "test": "turbo run test",
+    "test:affected": "turbo run test --affected",
+    "test:coverage": "turbo run test:coverage",
+    "typecheck": "turbo run typecheck",
+    "typecheck:affected": "turbo run typecheck --affected"
+  },
+  "devDependencies": {
+    "@social/prettier-config": "workspace:*",
+    "husky": "^9.1.7",
+    "prettier": "^3.3.3",
+    "turbo": "^2.9.6",
+    "typescript": "^5.5.4"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ]
+}
