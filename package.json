@@ -5,8 +5,10 @@
   "scripts": {
     "build": "turbo run build",
     "build:affected": "turbo run build --affected",
-    "ci": "pnpm lint:affected && pnpm typecheck:affected && pnpm test:affected && pnpm build:affected",
-    "ci:full": "pnpm lint && pnpm typecheck && pnpm test && pnpm build",
+    "check": "pnpm lint && pnpm typecheck && pnpm test && pnpm build",
+    "check:affected": "pnpm lint:affected && pnpm typecheck:affected && pnpm test:affected && pnpm build:affected",
+    "ci": "pnpm check:affected",
+    "ci:full": "pnpm check",
     "dev": "turbo run dev --parallel",
     "format": "prettier --write .",
     "format:check": "prettier --check .",

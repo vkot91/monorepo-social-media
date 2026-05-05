@@ -6,7 +6,6 @@ const featureCards = [
 ];
 
 export default function HomePage() {
-  console.log("123");
   return (
     <main>
       <section>
