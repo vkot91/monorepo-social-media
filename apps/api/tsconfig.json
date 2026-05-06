@@ -5,7 +5,9 @@
     "strictNullChecks": true,
     "types": ["node", "jest"],
     "paths": {
-      "@/*": ["./src"]
+      "#modules/*": ["./src/modules/*"],
+      "#config/*": ["./src/config/*"],
+      "#common/*": ["./src/common/*"]
     }
   }
 }

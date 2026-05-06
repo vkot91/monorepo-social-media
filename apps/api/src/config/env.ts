@@ -1,9 +1,10 @@
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
-import { parseApiEnv } from "@social/env";
+import { parseApiEnv, type ApiEnv } from "@social/env";
 
-const ROOT_ENV_PATH = resolve(__dirname, "../../../.env");
+const ROOT_ENV_PATH = resolve(__dirname, "../../../../.env");
+let cachedApiEnv: ApiEnv | undefined;
 
 function parseEnvLine(line: string): [string, string] | null {
   const trimmedLine = line.trim();
@@ -45,6 +46,12 @@ export function loadRootEnv(envPath = ROOT_ENV_PATH) {
 }
 
 export function getApiEnv() {
+  if (cachedApiEnv) {
+    return cachedApiEnv;
+  }
+
   loadRootEnv();
-  return parseApiEnv();
+  cachedApiEnv = parseApiEnv();
+
+  return cachedApiEnv;
 }

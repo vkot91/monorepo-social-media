@@ -4,6 +4,18 @@ const nodeEnvSchema = z.enum(["development", "test", "production"]).default("dev
 
 const emptyStringToUndefined = (value: unknown) => (value === "" ? undefined : value);
 
+const stringBoolean = z.preprocess((value) => {
+  if (value === "true") {
+    return true;
+  }
+
+  if (value === "false") {
+    return false;
+  }
+
+  return value;
+}, z.boolean());
+
 const requiredSecret = z.string().min(32, "Secret must be at least 32 characters long");
 
 export const apiEnvSchema = z.object({
@@ -16,6 +28,12 @@ export const apiEnvSchema = z.object({
   JWT_ACCESS_EXPIRES_IN: z.string().default("15m"),
   JWT_REFRESH_EXPIRES_IN: z.string().default("30d"),
   CORS_ORIGIN: z.string().url().default("http://localhost:3000"),
+  MAIL_FROM: z.string().default("Social Media <no-reply@example.com>"),
+  SMTP_HOST: z.preprocess(emptyStringToUndefined, z.string()),
+  SMTP_PORT: z.preprocess(emptyStringToUndefined, z.coerce.number().int().positive().default(465)),
+  SMTP_SECURE: z.preprocess(emptyStringToUndefined, stringBoolean.default(false)),
+  SMTP_USER: z.preprocess(emptyStringToUndefined, z.string()),
+  SMTP_PASSWORD: z.preprocess(emptyStringToUndefined, z.string()),
 });
 
 export const webEnvSchema = z.object({
