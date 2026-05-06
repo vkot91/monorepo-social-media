@@ -6,6 +6,7 @@ packages/*/.env
 .next
 dist
 packages/*/dist
+packages/database/src/generated/prisma
 coverage
 .turbo
 package-lock.json
