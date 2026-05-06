@@ -9,7 +9,7 @@ jest.mock("@nestjs/core", () => ({
   },
 }));
 
-jest.mock("./env", () => ({
+jest.mock("./config/env", () => ({
   getApiEnv: jest.fn(() => ({
     PORT: 3001,
     CORS_ORIGIN: "http://localhost:3000",
@@ -20,13 +20,15 @@ describe("bootstrap", () => {
   it("creates the Nest app, enables CORS, and listens on the configured port", async () => {
     const enableCors = jest.fn();
     const listen = jest.fn().mockResolvedValue(undefined);
-    const app = { enableCors, listen };
+    const useGlobalFilters = jest.fn();
+    const app = { enableCors, listen, useGlobalFilters };
 
     jest.mocked(NestFactory.create).mockResolvedValue(app as never);
 
     const result = await bootstrap();
 
     expect(NestFactory.create).toHaveBeenCalledWith(AppModule);
+    expect(useGlobalFilters).toHaveBeenCalledTimes(1);
     expect(enableCors).toHaveBeenCalledWith({
       credentials: true,
       origin: "http://localhost:3000",

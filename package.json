@@ -5,6 +5,7 @@
   "scripts": {
     "build": "turbo run build",
     "check": "pnpm lint && pnpm typecheck && pnpm test:coverage && pnpm build",
+    "check:affected": "turbo run lint typecheck test:coverage build --affected",
     "ci": "pnpm check",
     "dev": "turbo run dev --parallel",
     "format": "prettier --write .",

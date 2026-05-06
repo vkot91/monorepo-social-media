@@ -8,6 +8,5 @@
     {
       "pattern": "./packages/*/"
     }
-  ],
-  "github-actions.workflows.pinned.workflows": []
+  ]
 }

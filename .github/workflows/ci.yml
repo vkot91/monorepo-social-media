@@ -49,5 +49,16 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Fetch pull request base branch
+        if: github.event_name == 'pull_request'
+        run: git fetch origin ${{ github.base_ref }}:refs/remotes/origin/${{ github.base_ref }}
+
+      - name: Check affected packages
+        if: github.event_name == 'pull_request'
+        env:
+          TURBO_SCM_BASE: origin/${{ github.base_ref }}
+        run: pnpm check:affected
+
       - name: Check packages
+        if: github.event_name != 'pull_request'
         run: pnpm check

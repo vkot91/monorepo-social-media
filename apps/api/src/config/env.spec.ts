@@ -17,6 +17,10 @@ jest.mock("node:fs", () => ({
   readFileSync: jest.fn(),
 }));
 
+import { existsSync } from "node:fs";
+
+import { parseApiEnv } from "@social/env";
+
 import { getApiEnv } from "./env";
 
 describe("getApiEnv", () => {
@@ -26,5 +30,14 @@ describe("getApiEnv", () => {
       PORT: 3001,
       CORS_ORIGIN: "http://localhost:3000",
     });
+  });
+
+  it("caches the parsed API environment", () => {
+    const firstEnv = getApiEnv();
+    const secondEnv = getApiEnv();
+
+    expect(secondEnv).toBe(firstEnv);
+    expect(parseApiEnv).toHaveBeenCalledTimes(1);
+    expect(existsSync).toHaveBeenCalledTimes(1);
   });
 });
