@@ -155,11 +155,79 @@ describe("PostsService", () => {
       where: {
         OR: [
           {
-            visibility: PostVisibility.PUBLIC,
-          },
-          {
             authorId: "user-1",
           },
+          {
+            AND: [
+              {
+                visibility: PostVisibility.PUBLIC,
+              },
+              {
+                author: {
+                  blockedUsers: {
+                    none: {
+                      blockedId: "user-1",
+                    },
+                  },
+                },
+              },
+            ],
+          },
+          {
+            AND: [
+              {
+                author: {
+                  OR: [
+                    {
+                      sentFriendshipRequests: {
+                        some: {
+                          addresseeId: "user-1",
+                          status: FriendshipStatus.ACCEPTED,
+                        },
+                      },
+                    },
+                    {
+                      receivedFriendshipRequests: {
+                        some: {
+                          requesterId: "user-1",
+                          status: FriendshipStatus.ACCEPTED,
+                        },
+                      },
+                    },
+                  ],
+                },
+                visibility: PostVisibility.FRIENDS,
+              },
+              {
+                author: {
+                  blockedUsers: {
+                    none: {
+                      blockedId: "user-1",
+                    },
+                  },
+                },
+              },
+            ],
+          },
+        ],
+      },
+    });
+  });
+
+  it("lists accepted friends' public and friends-only posts", async () => {
+    const { prisma, service } = createService();
+
+    await service.list("user-1", {
+      feed: "friends",
+    });
+
+    expect(prisma.post.findMany).toHaveBeenCalledWith({
+      include: expect.any(Object),
+      orderBy: {
+        createdAt: "desc",
+      },
+      where: {
+        AND: [
           {
             author: {
               OR: [
@@ -181,46 +249,17 @@ describe("PostsService", () => {
                 },
               ],
             },
-            visibility: PostVisibility.FRIENDS,
+          },
+          {
+            author: {
+              blockedUsers: {
+                none: {
+                  blockedId: "user-1",
+                },
+              },
+            },
           },
         ],
-      },
-    });
-  });
-
-  it("lists accepted friends' public and friends-only posts", async () => {
-    const { prisma, service } = createService();
-
-    await service.list("user-1", {
-      feed: "friends",
-    });
-
-    expect(prisma.post.findMany).toHaveBeenCalledWith({
-      include: expect.any(Object),
-      orderBy: {
-        createdAt: "desc",
-      },
-      where: {
-        author: {
-          OR: [
-            {
-              sentFriendshipRequests: {
-                some: {
-                  addresseeId: "user-1",
-                  status: FriendshipStatus.ACCEPTED,
-                },
-              },
-            },
-            {
-              receivedFriendshipRequests: {
-                some: {
-                  requesterId: "user-1",
-                  status: FriendshipStatus.ACCEPTED,
-                },
-              },
-            },
-          ],
-        },
         visibility: {
           in: [PostVisibility.PUBLIC, PostVisibility.FRIENDS],
         },
@@ -259,7 +298,20 @@ describe("PostsService", () => {
         createdAt: "desc",
       },
       where: {
-        authorId: "user-2",
+        AND: [
+          {
+            authorId: "user-2",
+          },
+          {
+            author: {
+              blockedUsers: {
+                none: {
+                  blockedId: "user-1",
+                },
+              },
+            },
+          },
+        ],
       },
     });
   });

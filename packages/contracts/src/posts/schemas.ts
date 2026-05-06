@@ -1,10 +1,7 @@
 import { z } from "zod";
 
 import type { CreatePostInput, ListPostsQueryInput, UpdatePostInput } from "./types";
-
-type SchemaShape<T> = {
-  [K in keyof T]-?: z.ZodType<T[K]>;
-};
+import { SchemaShape } from "../utils/schemaShape.type";
 
 export const postVisibilitySchema = z.enum(["PUBLIC", "FRIENDS"]);
 

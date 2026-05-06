@@ -56,7 +56,8 @@ export const ModelName = {
   Post: 'Post',
   Comment: 'Comment',
   PostLike: 'PostLike',
-  Friendship: 'Friendship'
+  Friendship: 'Friendship',
+  UserBlock: 'UserBlock'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -146,6 +147,15 @@ export const FriendshipScalarFieldEnum = {
 } as const
 
 export type FriendshipScalarFieldEnum = (typeof FriendshipScalarFieldEnum)[keyof typeof FriendshipScalarFieldEnum]
+
+
+export const UserBlockScalarFieldEnum = {
+  blockerId: 'blockerId',
+  blockedId: 'blockedId',
+  createdAt: 'createdAt'
+} as const
+
+export type UserBlockScalarFieldEnum = (typeof UserBlockScalarFieldEnum)[keyof typeof UserBlockScalarFieldEnum]
 
 
 export const SortOrder = {

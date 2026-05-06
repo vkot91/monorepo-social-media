@@ -220,6 +220,8 @@ export type UserWhereInput = {
   postLikes?: Prisma.PostLikeListRelationFilter
   sentFriendshipRequests?: Prisma.FriendshipListRelationFilter
   receivedFriendshipRequests?: Prisma.FriendshipListRelationFilter
+  blockedUsers?: Prisma.UserBlockListRelationFilter
+  blockedByUsers?: Prisma.UserBlockListRelationFilter
 }
 
 export type UserOrderByWithRelationInput = {
@@ -238,6 +240,8 @@ export type UserOrderByWithRelationInput = {
   postLikes?: Prisma.PostLikeOrderByRelationAggregateInput
   sentFriendshipRequests?: Prisma.FriendshipOrderByRelationAggregateInput
   receivedFriendshipRequests?: Prisma.FriendshipOrderByRelationAggregateInput
+  blockedUsers?: Prisma.UserBlockOrderByRelationAggregateInput
+  blockedByUsers?: Prisma.UserBlockOrderByRelationAggregateInput
 }
 
 export type UserWhereUniqueInput = Prisma.AtLeast<{
@@ -259,6 +263,8 @@ export type UserWhereUniqueInput = Prisma.AtLeast<{
   postLikes?: Prisma.PostLikeListRelationFilter
   sentFriendshipRequests?: Prisma.FriendshipListRelationFilter
   receivedFriendshipRequests?: Prisma.FriendshipListRelationFilter
+  blockedUsers?: Prisma.UserBlockListRelationFilter
+  blockedByUsers?: Prisma.UserBlockListRelationFilter
 }, "id" | "email" | "username">
 
 export type UserOrderByWithAggregationInput = {
@@ -307,6 +313,8 @@ export type UserCreateInput = {
   postLikes?: Prisma.PostLikeCreateNestedManyWithoutUserInput
   sentFriendshipRequests?: Prisma.FriendshipCreateNestedManyWithoutRequesterInput
   receivedFriendshipRequests?: Prisma.FriendshipCreateNestedManyWithoutAddresseeInput
+  blockedUsers?: Prisma.UserBlockCreateNestedManyWithoutBlockerInput
+  blockedByUsers?: Prisma.UserBlockCreateNestedManyWithoutBlockedInput
 }
 
 export type UserUncheckedCreateInput = {
@@ -325,6 +333,8 @@ export type UserUncheckedCreateInput = {
   postLikes?: Prisma.PostLikeUncheckedCreateNestedManyWithoutUserInput
   sentFriendshipRequests?: Prisma.FriendshipUncheckedCreateNestedManyWithoutRequesterInput
   receivedFriendshipRequests?: Prisma.FriendshipUncheckedCreateNestedManyWithoutAddresseeInput
+  blockedUsers?: Prisma.UserBlockUncheckedCreateNestedManyWithoutBlockerInput
+  blockedByUsers?: Prisma.UserBlockUncheckedCreateNestedManyWithoutBlockedInput
 }
 
 export type UserUpdateInput = {
@@ -343,6 +353,8 @@ export type UserUpdateInput = {
   postLikes?: Prisma.PostLikeUpdateManyWithoutUserNestedInput
   sentFriendshipRequests?: Prisma.FriendshipUpdateManyWithoutRequesterNestedInput
   receivedFriendshipRequests?: Prisma.FriendshipUpdateManyWithoutAddresseeNestedInput
+  blockedUsers?: Prisma.UserBlockUpdateManyWithoutBlockerNestedInput
+  blockedByUsers?: Prisma.UserBlockUpdateManyWithoutBlockedNestedInput
 }
 
 export type UserUncheckedUpdateInput = {
@@ -361,6 +373,8 @@ export type UserUncheckedUpdateInput = {
   postLikes?: Prisma.PostLikeUncheckedUpdateManyWithoutUserNestedInput
   sentFriendshipRequests?: Prisma.FriendshipUncheckedUpdateManyWithoutRequesterNestedInput
   receivedFriendshipRequests?: Prisma.FriendshipUncheckedUpdateManyWithoutAddresseeNestedInput
+  blockedUsers?: Prisma.UserBlockUncheckedUpdateManyWithoutBlockerNestedInput
+  blockedByUsers?: Prisma.UserBlockUncheckedUpdateManyWithoutBlockedNestedInput
 }
 
 export type UserCreateManyInput = {
@@ -536,6 +550,34 @@ export type UserUpdateOneRequiredWithoutReceivedFriendshipRequestsNestedInput = 
   update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutReceivedFriendshipRequestsInput, Prisma.UserUpdateWithoutReceivedFriendshipRequestsInput>, Prisma.UserUncheckedUpdateWithoutReceivedFriendshipRequestsInput>
 }
 
+export type UserCreateNestedOneWithoutBlockedUsersInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutBlockedUsersInput, Prisma.UserUncheckedCreateWithoutBlockedUsersInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutBlockedUsersInput
+  connect?: Prisma.UserWhereUniqueInput
+}
+
+export type UserCreateNestedOneWithoutBlockedByUsersInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutBlockedByUsersInput, Prisma.UserUncheckedCreateWithoutBlockedByUsersInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutBlockedByUsersInput
+  connect?: Prisma.UserWhereUniqueInput
+}
+
+export type UserUpdateOneRequiredWithoutBlockedUsersNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutBlockedUsersInput, Prisma.UserUncheckedCreateWithoutBlockedUsersInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutBlockedUsersInput
+  upsert?: Prisma.UserUpsertWithoutBlockedUsersInput
+  connect?: Prisma.UserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutBlockedUsersInput, Prisma.UserUpdateWithoutBlockedUsersInput>, Prisma.UserUncheckedUpdateWithoutBlockedUsersInput>
+}
+
+export type UserUpdateOneRequiredWithoutBlockedByUsersNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutBlockedByUsersInput, Prisma.UserUncheckedCreateWithoutBlockedByUsersInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutBlockedByUsersInput
+  upsert?: Prisma.UserUpsertWithoutBlockedByUsersInput
+  connect?: Prisma.UserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutBlockedByUsersInput, Prisma.UserUpdateWithoutBlockedByUsersInput>, Prisma.UserUncheckedUpdateWithoutBlockedByUsersInput>
+}
+
 export type UserCreateWithoutRefreshTokensInput = {
   id?: string
   email: string
@@ -551,6 +593,8 @@ export type UserCreateWithoutRefreshTokensInput = {
   postLikes?: Prisma.PostLikeCreateNestedManyWithoutUserInput
   sentFriendshipRequests?: Prisma.FriendshipCreateNestedManyWithoutRequesterInput
   receivedFriendshipRequests?: Prisma.FriendshipCreateNestedManyWithoutAddresseeInput
+  blockedUsers?: Prisma.UserBlockCreateNestedManyWithoutBlockerInput
+  blockedByUsers?: Prisma.UserBlockCreateNestedManyWithoutBlockedInput
 }
 
 export type UserUncheckedCreateWithoutRefreshTokensInput = {
@@ -568,6 +612,8 @@ export type UserUncheckedCreateWithoutRefreshTokensInput = {
   postLikes?: Prisma.PostLikeUncheckedCreateNestedManyWithoutUserInput
   sentFriendshipRequests?: Prisma.FriendshipUncheckedCreateNestedManyWithoutRequesterInput
   receivedFriendshipRequests?: Prisma.FriendshipUncheckedCreateNestedManyWithoutAddresseeInput
+  blockedUsers?: Prisma.UserBlockUncheckedCreateNestedManyWithoutBlockerInput
+  blockedByUsers?: Prisma.UserBlockUncheckedCreateNestedManyWithoutBlockedInput
 }
 
 export type UserCreateOrConnectWithoutRefreshTokensInput = {
@@ -601,6 +647,8 @@ export type UserUpdateWithoutRefreshTokensInput = {
   postLikes?: Prisma.PostLikeUpdateManyWithoutUserNestedInput
   sentFriendshipRequests?: Prisma.FriendshipUpdateManyWithoutRequesterNestedInput
   receivedFriendshipRequests?: Prisma.FriendshipUpdateManyWithoutAddresseeNestedInput
+  blockedUsers?: Prisma.UserBlockUpdateManyWithoutBlockerNestedInput
+  blockedByUsers?: Prisma.UserBlockUpdateManyWithoutBlockedNestedInput
 }
 
 export type UserUncheckedUpdateWithoutRefreshTokensInput = {
@@ -618,6 +666,8 @@ export type UserUncheckedUpdateWithoutRefreshTokensInput = {
   postLikes?: Prisma.PostLikeUncheckedUpdateManyWithoutUserNestedInput
   sentFriendshipRequests?: Prisma.FriendshipUncheckedUpdateManyWithoutRequesterNestedInput
   receivedFriendshipRequests?: Prisma.FriendshipUncheckedUpdateManyWithoutAddresseeNestedInput
+  blockedUsers?: Prisma.UserBlockUncheckedUpdateManyWithoutBlockerNestedInput
+  blockedByUsers?: Prisma.UserBlockUncheckedUpdateManyWithoutBlockedNestedInput
 }
 
 export type UserCreateWithoutPostsInput = {
@@ -635,6 +685,8 @@ export type UserCreateWithoutPostsInput = {
   postLikes?: Prisma.PostLikeCreateNestedManyWithoutUserInput
   sentFriendshipRequests?: Prisma.FriendshipCreateNestedManyWithoutRequesterInput
   receivedFriendshipRequests?: Prisma.FriendshipCreateNestedManyWithoutAddresseeInput
+  blockedUsers?: Prisma.UserBlockCreateNestedManyWithoutBlockerInput
+  blockedByUsers?: Prisma.UserBlockCreateNestedManyWithoutBlockedInput
 }
 
 export type UserUncheckedCreateWithoutPostsInput = {
@@ -652,6 +704,8 @@ export type UserUncheckedCreateWithoutPostsInput = {
   postLikes?: Prisma.PostLikeUncheckedCreateNestedManyWithoutUserInput
   sentFriendshipRequests?: Prisma.FriendshipUncheckedCreateNestedManyWithoutRequesterInput
   receivedFriendshipRequests?: Prisma.FriendshipUncheckedCreateNestedManyWithoutAddresseeInput
+  blockedUsers?: Prisma.UserBlockUncheckedCreateNestedManyWithoutBlockerInput
+  blockedByUsers?: Prisma.UserBlockUncheckedCreateNestedManyWithoutBlockedInput
 }
 
 export type UserCreateOrConnectWithoutPostsInput = {
@@ -685,6 +739,8 @@ export type UserUpdateWithoutPostsInput = {
   postLikes?: Prisma.PostLikeUpdateManyWithoutUserNestedInput
   sentFriendshipRequests?: Prisma.FriendshipUpdateManyWithoutRequesterNestedInput
   receivedFriendshipRequests?: Prisma.FriendshipUpdateManyWithoutAddresseeNestedInput
+  blockedUsers?: Prisma.UserBlockUpdateManyWithoutBlockerNestedInput
+  blockedByUsers?: Prisma.UserBlockUpdateManyWithoutBlockedNestedInput
 }
 
 export type UserUncheckedUpdateWithoutPostsInput = {
@@ -702,6 +758,8 @@ export type UserUncheckedUpdateWithoutPostsInput = {
   postLikes?: Prisma.PostLikeUncheckedUpdateManyWithoutUserNestedInput
   sentFriendshipRequests?: Prisma.FriendshipUncheckedUpdateManyWithoutRequesterNestedInput
   receivedFriendshipRequests?: Prisma.FriendshipUncheckedUpdateManyWithoutAddresseeNestedInput
+  blockedUsers?: Prisma.UserBlockUncheckedUpdateManyWithoutBlockerNestedInput
+  blockedByUsers?: Prisma.UserBlockUncheckedUpdateManyWithoutBlockedNestedInput
 }
 
 export type UserCreateWithoutCommentsInput = {
@@ -719,6 +777,8 @@ export type UserCreateWithoutCommentsInput = {
   postLikes?: Prisma.PostLikeCreateNestedManyWithoutUserInput
   sentFriendshipRequests?: Prisma.FriendshipCreateNestedManyWithoutRequesterInput
   receivedFriendshipRequests?: Prisma.FriendshipCreateNestedManyWithoutAddresseeInput
+  blockedUsers?: Prisma.UserBlockCreateNestedManyWithoutBlockerInput
+  blockedByUsers?: Prisma.UserBlockCreateNestedManyWithoutBlockedInput
 }
 
 export type UserUncheckedCreateWithoutCommentsInput = {
@@ -736,6 +796,8 @@ export type UserUncheckedCreateWithoutCommentsInput = {
   postLikes?: Prisma.PostLikeUncheckedCreateNestedManyWithoutUserInput
   sentFriendshipRequests?: Prisma.FriendshipUncheckedCreateNestedManyWithoutRequesterInput
   receivedFriendshipRequests?: Prisma.FriendshipUncheckedCreateNestedManyWithoutAddresseeInput
+  blockedUsers?: Prisma.UserBlockUncheckedCreateNestedManyWithoutBlockerInput
+  blockedByUsers?: Prisma.UserBlockUncheckedCreateNestedManyWithoutBlockedInput
 }
 
 export type UserCreateOrConnectWithoutCommentsInput = {
@@ -769,6 +831,8 @@ export type UserUpdateWithoutCommentsInput = {
   postLikes?: Prisma.PostLikeUpdateManyWithoutUserNestedInput
   sentFriendshipRequests?: Prisma.FriendshipUpdateManyWithoutRequesterNestedInput
   receivedFriendshipRequests?: Prisma.FriendshipUpdateManyWithoutAddresseeNestedInput
+  blockedUsers?: Prisma.UserBlockUpdateManyWithoutBlockerNestedInput
+  blockedByUsers?: Prisma.UserBlockUpdateManyWithoutBlockedNestedInput
 }
 
 export type UserUncheckedUpdateWithoutCommentsInput = {
@@ -786,6 +850,8 @@ export type UserUncheckedUpdateWithoutCommentsInput = {
   postLikes?: Prisma.PostLikeUncheckedUpdateManyWithoutUserNestedInput
   sentFriendshipRequests?: Prisma.FriendshipUncheckedUpdateManyWithoutRequesterNestedInput
   receivedFriendshipRequests?: Prisma.FriendshipUncheckedUpdateManyWithoutAddresseeNestedInput
+  blockedUsers?: Prisma.UserBlockUncheckedUpdateManyWithoutBlockerNestedInput
+  blockedByUsers?: Prisma.UserBlockUncheckedUpdateManyWithoutBlockedNestedInput
 }
 
 export type UserCreateWithoutPostLikesInput = {
@@ -803,6 +869,8 @@ export type UserCreateWithoutPostLikesInput = {
   comments?: Prisma.CommentCreateNestedManyWithoutAuthorInput
   sentFriendshipRequests?: Prisma.FriendshipCreateNestedManyWithoutRequesterInput
   receivedFriendshipRequests?: Prisma.FriendshipCreateNestedManyWithoutAddresseeInput
+  blockedUsers?: Prisma.UserBlockCreateNestedManyWithoutBlockerInput
+  blockedByUsers?: Prisma.UserBlockCreateNestedManyWithoutBlockedInput
 }
 
 export type UserUncheckedCreateWithoutPostLikesInput = {
@@ -820,6 +888,8 @@ export type UserUncheckedCreateWithoutPostLikesInput = {
   comments?: Prisma.CommentUncheckedCreateNestedManyWithoutAuthorInput
   sentFriendshipRequests?: Prisma.FriendshipUncheckedCreateNestedManyWithoutRequesterInput
   receivedFriendshipRequests?: Prisma.FriendshipUncheckedCreateNestedManyWithoutAddresseeInput
+  blockedUsers?: Prisma.UserBlockUncheckedCreateNestedManyWithoutBlockerInput
+  blockedByUsers?: Prisma.UserBlockUncheckedCreateNestedManyWithoutBlockedInput
 }
 
 export type UserCreateOrConnectWithoutPostLikesInput = {
@@ -853,6 +923,8 @@ export type UserUpdateWithoutPostLikesInput = {
   comments?: Prisma.CommentUpdateManyWithoutAuthorNestedInput
   sentFriendshipRequests?: Prisma.FriendshipUpdateManyWithoutRequesterNestedInput
   receivedFriendshipRequests?: Prisma.FriendshipUpdateManyWithoutAddresseeNestedInput
+  blockedUsers?: Prisma.UserBlockUpdateManyWithoutBlockerNestedInput
+  blockedByUsers?: Prisma.UserBlockUpdateManyWithoutBlockedNestedInput
 }
 
 export type UserUncheckedUpdateWithoutPostLikesInput = {
@@ -870,6 +942,8 @@ export type UserUncheckedUpdateWithoutPostLikesInput = {
   comments?: Prisma.CommentUncheckedUpdateManyWithoutAuthorNestedInput
   sentFriendshipRequests?: Prisma.FriendshipUncheckedUpdateManyWithoutRequesterNestedInput
   receivedFriendshipRequests?: Prisma.FriendshipUncheckedUpdateManyWithoutAddresseeNestedInput
+  blockedUsers?: Prisma.UserBlockUncheckedUpdateManyWithoutBlockerNestedInput
+  blockedByUsers?: Prisma.UserBlockUncheckedUpdateManyWithoutBlockedNestedInput
 }
 
 export type UserCreateWithoutSentFriendshipRequestsInput = {
@@ -887,6 +961,8 @@ export type UserCreateWithoutSentFriendshipRequestsInput = {
   comments?: Prisma.CommentCreateNestedManyWithoutAuthorInput
   postLikes?: Prisma.PostLikeCreateNestedManyWithoutUserInput
   receivedFriendshipRequests?: Prisma.FriendshipCreateNestedManyWithoutAddresseeInput
+  blockedUsers?: Prisma.UserBlockCreateNestedManyWithoutBlockerInput
+  blockedByUsers?: Prisma.UserBlockCreateNestedManyWithoutBlockedInput
 }
 
 export type UserUncheckedCreateWithoutSentFriendshipRequestsInput = {
@@ -904,6 +980,8 @@ export type UserUncheckedCreateWithoutSentFriendshipRequestsInput = {
   comments?: Prisma.CommentUncheckedCreateNestedManyWithoutAuthorInput
   postLikes?: Prisma.PostLikeUncheckedCreateNestedManyWithoutUserInput
   receivedFriendshipRequests?: Prisma.FriendshipUncheckedCreateNestedManyWithoutAddresseeInput
+  blockedUsers?: Prisma.UserBlockUncheckedCreateNestedManyWithoutBlockerInput
+  blockedByUsers?: Prisma.UserBlockUncheckedCreateNestedManyWithoutBlockedInput
 }
 
 export type UserCreateOrConnectWithoutSentFriendshipRequestsInput = {
@@ -926,6 +1004,8 @@ export type UserCreateWithoutReceivedFriendshipRequestsInput = {
   comments?: Prisma.CommentCreateNestedManyWithoutAuthorInput
   postLikes?: Prisma.PostLikeCreateNestedManyWithoutUserInput
   sentFriendshipRequests?: Prisma.FriendshipCreateNestedManyWithoutRequesterInput
+  blockedUsers?: Prisma.UserBlockCreateNestedManyWithoutBlockerInput
+  blockedByUsers?: Prisma.UserBlockCreateNestedManyWithoutBlockedInput
 }
 
 export type UserUncheckedCreateWithoutReceivedFriendshipRequestsInput = {
@@ -943,6 +1023,8 @@ export type UserUncheckedCreateWithoutReceivedFriendshipRequestsInput = {
   comments?: Prisma.CommentUncheckedCreateNestedManyWithoutAuthorInput
   postLikes?: Prisma.PostLikeUncheckedCreateNestedManyWithoutUserInput
   sentFriendshipRequests?: Prisma.FriendshipUncheckedCreateNestedManyWithoutRequesterInput
+  blockedUsers?: Prisma.UserBlockUncheckedCreateNestedManyWithoutBlockerInput
+  blockedByUsers?: Prisma.UserBlockUncheckedCreateNestedManyWithoutBlockedInput
 }
 
 export type UserCreateOrConnectWithoutReceivedFriendshipRequestsInput = {
@@ -976,6 +1058,8 @@ export type UserUpdateWithoutSentFriendshipRequestsInput = {
   comments?: Prisma.CommentUpdateManyWithoutAuthorNestedInput
   postLikes?: Prisma.PostLikeUpdateManyWithoutUserNestedInput
   receivedFriendshipRequests?: Prisma.FriendshipUpdateManyWithoutAddresseeNestedInput
+  blockedUsers?: Prisma.UserBlockUpdateManyWithoutBlockerNestedInput
+  blockedByUsers?: Prisma.UserBlockUpdateManyWithoutBlockedNestedInput
 }
 
 export type UserUncheckedUpdateWithoutSentFriendshipRequestsInput = {
@@ -993,6 +1077,8 @@ export type UserUncheckedUpdateWithoutSentFriendshipRequestsInput = {
   comments?: Prisma.CommentUncheckedUpdateManyWithoutAuthorNestedInput
   postLikes?: Prisma.PostLikeUncheckedUpdateManyWithoutUserNestedInput
   receivedFriendshipRequests?: Prisma.FriendshipUncheckedUpdateManyWithoutAddresseeNestedInput
+  blockedUsers?: Prisma.UserBlockUncheckedUpdateManyWithoutBlockerNestedInput
+  blockedByUsers?: Prisma.UserBlockUncheckedUpdateManyWithoutBlockedNestedInput
 }
 
 export type UserUpsertWithoutReceivedFriendshipRequestsInput = {
@@ -1021,6 +1107,8 @@ export type UserUpdateWithoutReceivedFriendshipRequestsInput = {
   comments?: Prisma.CommentUpdateManyWithoutAuthorNestedInput
   postLikes?: Prisma.PostLikeUpdateManyWithoutUserNestedInput
   sentFriendshipRequests?: Prisma.FriendshipUpdateManyWithoutRequesterNestedInput
+  blockedUsers?: Prisma.UserBlockUpdateManyWithoutBlockerNestedInput
+  blockedByUsers?: Prisma.UserBlockUpdateManyWithoutBlockedNestedInput
 }
 
 export type UserUncheckedUpdateWithoutReceivedFriendshipRequestsInput = {
@@ -1038,6 +1126,192 @@ export type UserUncheckedUpdateWithoutReceivedFriendshipRequestsInput = {
   comments?: Prisma.CommentUncheckedUpdateManyWithoutAuthorNestedInput
   postLikes?: Prisma.PostLikeUncheckedUpdateManyWithoutUserNestedInput
   sentFriendshipRequests?: Prisma.FriendshipUncheckedUpdateManyWithoutRequesterNestedInput
+  blockedUsers?: Prisma.UserBlockUncheckedUpdateManyWithoutBlockerNestedInput
+  blockedByUsers?: Prisma.UserBlockUncheckedUpdateManyWithoutBlockedNestedInput
+}
+
+export type UserCreateWithoutBlockedUsersInput = {
+  id?: string
+  email: string
+  username: string
+  passwordHash: string
+  displayName: string
+  bio?: string | null
+  avatarUrl?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  refreshTokens?: Prisma.RefreshTokenCreateNestedManyWithoutUserInput
+  posts?: Prisma.PostCreateNestedManyWithoutAuthorInput
+  comments?: Prisma.CommentCreateNestedManyWithoutAuthorInput
+  postLikes?: Prisma.PostLikeCreateNestedManyWithoutUserInput
+  sentFriendshipRequests?: Prisma.FriendshipCreateNestedManyWithoutRequesterInput
+  receivedFriendshipRequests?: Prisma.FriendshipCreateNestedManyWithoutAddresseeInput
+  blockedByUsers?: Prisma.UserBlockCreateNestedManyWithoutBlockedInput
+}
+
+export type UserUncheckedCreateWithoutBlockedUsersInput = {
+  id?: string
+  email: string
+  username: string
+  passwordHash: string
+  displayName: string
+  bio?: string | null
+  avatarUrl?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  refreshTokens?: Prisma.RefreshTokenUncheckedCreateNestedManyWithoutUserInput
+  posts?: Prisma.PostUncheckedCreateNestedManyWithoutAuthorInput
+  comments?: Prisma.CommentUncheckedCreateNestedManyWithoutAuthorInput
+  postLikes?: Prisma.PostLikeUncheckedCreateNestedManyWithoutUserInput
+  sentFriendshipRequests?: Prisma.FriendshipUncheckedCreateNestedManyWithoutRequesterInput
+  receivedFriendshipRequests?: Prisma.FriendshipUncheckedCreateNestedManyWithoutAddresseeInput
+  blockedByUsers?: Prisma.UserBlockUncheckedCreateNestedManyWithoutBlockedInput
+}
+
+export type UserCreateOrConnectWithoutBlockedUsersInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutBlockedUsersInput, Prisma.UserUncheckedCreateWithoutBlockedUsersInput>
+}
+
+export type UserCreateWithoutBlockedByUsersInput = {
+  id?: string
+  email: string
+  username: string
+  passwordHash: string
+  displayName: string
+  bio?: string | null
+  avatarUrl?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  refreshTokens?: Prisma.RefreshTokenCreateNestedManyWithoutUserInput
+  posts?: Prisma.PostCreateNestedManyWithoutAuthorInput
+  comments?: Prisma.CommentCreateNestedManyWithoutAuthorInput
+  postLikes?: Prisma.PostLikeCreateNestedManyWithoutUserInput
+  sentFriendshipRequests?: Prisma.FriendshipCreateNestedManyWithoutRequesterInput
+  receivedFriendshipRequests?: Prisma.FriendshipCreateNestedManyWithoutAddresseeInput
+  blockedUsers?: Prisma.UserBlockCreateNestedManyWithoutBlockerInput
+}
+
+export type UserUncheckedCreateWithoutBlockedByUsersInput = {
+  id?: string
+  email: string
+  username: string
+  passwordHash: string
+  displayName: string
+  bio?: string | null
+  avatarUrl?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  refreshTokens?: Prisma.RefreshTokenUncheckedCreateNestedManyWithoutUserInput
+  posts?: Prisma.PostUncheckedCreateNestedManyWithoutAuthorInput
+  comments?: Prisma.CommentUncheckedCreateNestedManyWithoutAuthorInput
+  postLikes?: Prisma.PostLikeUncheckedCreateNestedManyWithoutUserInput
+  sentFriendshipRequests?: Prisma.FriendshipUncheckedCreateNestedManyWithoutRequesterInput
+  receivedFriendshipRequests?: Prisma.FriendshipUncheckedCreateNestedManyWithoutAddresseeInput
+  blockedUsers?: Prisma.UserBlockUncheckedCreateNestedManyWithoutBlockerInput
+}
+
+export type UserCreateOrConnectWithoutBlockedByUsersInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutBlockedByUsersInput, Prisma.UserUncheckedCreateWithoutBlockedByUsersInput>
+}
+
+export type UserUpsertWithoutBlockedUsersInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutBlockedUsersInput, Prisma.UserUncheckedUpdateWithoutBlockedUsersInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutBlockedUsersInput, Prisma.UserUncheckedCreateWithoutBlockedUsersInput>
+  where?: Prisma.UserWhereInput
+}
+
+export type UserUpdateToOneWithWhereWithoutBlockedUsersInput = {
+  where?: Prisma.UserWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutBlockedUsersInput, Prisma.UserUncheckedUpdateWithoutBlockedUsersInput>
+}
+
+export type UserUpdateWithoutBlockedUsersInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  username?: Prisma.StringFieldUpdateOperationsInput | string
+  passwordHash?: Prisma.StringFieldUpdateOperationsInput | string
+  displayName?: Prisma.StringFieldUpdateOperationsInput | string
+  bio?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  avatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  refreshTokens?: Prisma.RefreshTokenUpdateManyWithoutUserNestedInput
+  posts?: Prisma.PostUpdateManyWithoutAuthorNestedInput
+  comments?: Prisma.CommentUpdateManyWithoutAuthorNestedInput
+  postLikes?: Prisma.PostLikeUpdateManyWithoutUserNestedInput
+  sentFriendshipRequests?: Prisma.FriendshipUpdateManyWithoutRequesterNestedInput
+  receivedFriendshipRequests?: Prisma.FriendshipUpdateManyWithoutAddresseeNestedInput
+  blockedByUsers?: Prisma.UserBlockUpdateManyWithoutBlockedNestedInput
+}
+
+export type UserUncheckedUpdateWithoutBlockedUsersInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  username?: Prisma.StringFieldUpdateOperationsInput | string
+  passwordHash?: Prisma.StringFieldUpdateOperationsInput | string
+  displayName?: Prisma.StringFieldUpdateOperationsInput | string
+  bio?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  avatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  refreshTokens?: Prisma.RefreshTokenUncheckedUpdateManyWithoutUserNestedInput
+  posts?: Prisma.PostUncheckedUpdateManyWithoutAuthorNestedInput
+  comments?: Prisma.CommentUncheckedUpdateManyWithoutAuthorNestedInput
+  postLikes?: Prisma.PostLikeUncheckedUpdateManyWithoutUserNestedInput
+  sentFriendshipRequests?: Prisma.FriendshipUncheckedUpdateManyWithoutRequesterNestedInput
+  receivedFriendshipRequests?: Prisma.FriendshipUncheckedUpdateManyWithoutAddresseeNestedInput
+  blockedByUsers?: Prisma.UserBlockUncheckedUpdateManyWithoutBlockedNestedInput
+}
+
+export type UserUpsertWithoutBlockedByUsersInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutBlockedByUsersInput, Prisma.UserUncheckedUpdateWithoutBlockedByUsersInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutBlockedByUsersInput, Prisma.UserUncheckedCreateWithoutBlockedByUsersInput>
+  where?: Prisma.UserWhereInput
+}
+
+export type UserUpdateToOneWithWhereWithoutBlockedByUsersInput = {
+  where?: Prisma.UserWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutBlockedByUsersInput, Prisma.UserUncheckedUpdateWithoutBlockedByUsersInput>
+}
+
+export type UserUpdateWithoutBlockedByUsersInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  username?: Prisma.StringFieldUpdateOperationsInput | string
+  passwordHash?: Prisma.StringFieldUpdateOperationsInput | string
+  displayName?: Prisma.StringFieldUpdateOperationsInput | string
+  bio?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  avatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  refreshTokens?: Prisma.RefreshTokenUpdateManyWithoutUserNestedInput
+  posts?: Prisma.PostUpdateManyWithoutAuthorNestedInput
+  comments?: Prisma.CommentUpdateManyWithoutAuthorNestedInput
+  postLikes?: Prisma.PostLikeUpdateManyWithoutUserNestedInput
+  sentFriendshipRequests?: Prisma.FriendshipUpdateManyWithoutRequesterNestedInput
+  receivedFriendshipRequests?: Prisma.FriendshipUpdateManyWithoutAddresseeNestedInput
+  blockedUsers?: Prisma.UserBlockUpdateManyWithoutBlockerNestedInput
+}
+
+export type UserUncheckedUpdateWithoutBlockedByUsersInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  username?: Prisma.StringFieldUpdateOperationsInput | string
+  passwordHash?: Prisma.StringFieldUpdateOperationsInput | string
+  displayName?: Prisma.StringFieldUpdateOperationsInput | string
+  bio?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  avatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  refreshTokens?: Prisma.RefreshTokenUncheckedUpdateManyWithoutUserNestedInput
+  posts?: Prisma.PostUncheckedUpdateManyWithoutAuthorNestedInput
+  comments?: Prisma.CommentUncheckedUpdateManyWithoutAuthorNestedInput
+  postLikes?: Prisma.PostLikeUncheckedUpdateManyWithoutUserNestedInput
+  sentFriendshipRequests?: Prisma.FriendshipUncheckedUpdateManyWithoutRequesterNestedInput
+  receivedFriendshipRequests?: Prisma.FriendshipUncheckedUpdateManyWithoutAddresseeNestedInput
+  blockedUsers?: Prisma.UserBlockUncheckedUpdateManyWithoutBlockerNestedInput
 }
 
 
@@ -1052,6 +1326,8 @@ export type UserCountOutputType = {
   postLikes: number
   sentFriendshipRequests: number
   receivedFriendshipRequests: number
+  blockedUsers: number
+  blockedByUsers: number
 }
 
 export type UserCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1061,6 +1337,8 @@ export type UserCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.I
   postLikes?: boolean | UserCountOutputTypeCountPostLikesArgs
   sentFriendshipRequests?: boolean | UserCountOutputTypeCountSentFriendshipRequestsArgs
   receivedFriendshipRequests?: boolean | UserCountOutputTypeCountReceivedFriendshipRequestsArgs
+  blockedUsers?: boolean | UserCountOutputTypeCountBlockedUsersArgs
+  blockedByUsers?: boolean | UserCountOutputTypeCountBlockedByUsersArgs
 }
 
 /**
@@ -1115,6 +1393,20 @@ export type UserCountOutputTypeCountReceivedFriendshipRequestsArgs<ExtArgs exten
   where?: Prisma.FriendshipWhereInput
 }
 
+/**
+ * UserCountOutputType without action
+ */
+export type UserCountOutputTypeCountBlockedUsersArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.UserBlockWhereInput
+}
+
+/**
+ * UserCountOutputType without action
+ */
+export type UserCountOutputTypeCountBlockedByUsersArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.UserBlockWhereInput
+}
+
 
 export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -1132,6 +1424,8 @@ export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   postLikes?: boolean | Prisma.User$postLikesArgs<ExtArgs>
   sentFriendshipRequests?: boolean | Prisma.User$sentFriendshipRequestsArgs<ExtArgs>
   receivedFriendshipRequests?: boolean | Prisma.User$receivedFriendshipRequestsArgs<ExtArgs>
+  blockedUsers?: boolean | Prisma.User$blockedUsersArgs<ExtArgs>
+  blockedByUsers?: boolean | Prisma.User$blockedByUsersArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["user"]>
 
@@ -1179,6 +1473,8 @@ export type UserInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   postLikes?: boolean | Prisma.User$postLikesArgs<ExtArgs>
   sentFriendshipRequests?: boolean | Prisma.User$sentFriendshipRequestsArgs<ExtArgs>
   receivedFriendshipRequests?: boolean | Prisma.User$receivedFriendshipRequestsArgs<ExtArgs>
+  blockedUsers?: boolean | Prisma.User$blockedUsersArgs<ExtArgs>
+  blockedByUsers?: boolean | Prisma.User$blockedByUsersArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type UserIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
@@ -1193,6 +1489,8 @@ export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     postLikes: Prisma.$PostLikePayload<ExtArgs>[]
     sentFriendshipRequests: Prisma.$FriendshipPayload<ExtArgs>[]
     receivedFriendshipRequests: Prisma.$FriendshipPayload<ExtArgs>[]
+    blockedUsers: Prisma.$UserBlockPayload<ExtArgs>[]
+    blockedByUsers: Prisma.$UserBlockPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -1604,6 +1902,8 @@ export interface Prisma__UserClient<T, Null = never, ExtArgs extends runtime.Typ
   postLikes<T extends Prisma.User$postLikesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$postLikesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$PostLikePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   sentFriendshipRequests<T extends Prisma.User$sentFriendshipRequestsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$sentFriendshipRequestsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$FriendshipPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   receivedFriendshipRequests<T extends Prisma.User$receivedFriendshipRequestsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$receivedFriendshipRequestsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$FriendshipPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  blockedUsers<T extends Prisma.User$blockedUsersArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$blockedUsersArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$UserBlockPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  blockedByUsers<T extends Prisma.User$blockedByUsersArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$blockedByUsersArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$UserBlockPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -2176,6 +2476,54 @@ export type User$receivedFriendshipRequestsArgs<ExtArgs extends runtime.Types.Ex
   take?: number
   skip?: number
   distinct?: Prisma.FriendshipScalarFieldEnum | Prisma.FriendshipScalarFieldEnum[]
+}
+
+/**
+ * User.blockedUsers
+ */
+export type User$blockedUsersArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the UserBlock
+   */
+  select?: Prisma.UserBlockSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the UserBlock
+   */
+  omit?: Prisma.UserBlockOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.UserBlockInclude<ExtArgs> | null
+  where?: Prisma.UserBlockWhereInput
+  orderBy?: Prisma.UserBlockOrderByWithRelationInput | Prisma.UserBlockOrderByWithRelationInput[]
+  cursor?: Prisma.UserBlockWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.UserBlockScalarFieldEnum | Prisma.UserBlockScalarFieldEnum[]
+}
+
+/**
+ * User.blockedByUsers
+ */
+export type User$blockedByUsersArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the UserBlock
+   */
+  select?: Prisma.UserBlockSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the UserBlock
+   */
+  omit?: Prisma.UserBlockOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.UserBlockInclude<ExtArgs> | null
+  where?: Prisma.UserBlockWhereInput
+  orderBy?: Prisma.UserBlockOrderByWithRelationInput | Prisma.UserBlockOrderByWithRelationInput[]
+  cursor?: Prisma.UserBlockWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.UserBlockScalarFieldEnum | Prisma.UserBlockScalarFieldEnum[]
 }
 
 /**

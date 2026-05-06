@@ -69,3 +69,8 @@ export type PostLike = Prisma.PostLikeModel
  * 
  */
 export type Friendship = Prisma.FriendshipModel
+/**
+ * Model UserBlock
+ * 
+ */
+export type UserBlock = Prisma.UserBlockModel

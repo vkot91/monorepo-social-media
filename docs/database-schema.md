@@ -73,11 +73,25 @@ Composite primary key: `user_id + post_id`
 | `id` | `uuid` | Primary key |
 | `requester_id` | `uuid` | FK -> `users.id` |
 | `addressee_id` | `uuid` | FK -> `users.id` |
-| `status` | `varchar(16)` | `pending`, `accepted`, `rejected`, `blocked` |
+| `status` | `varchar(16)` | `pending`, `accepted`, `rejected` |
 | `created_at` | `timestamptz` | Default now |
 | `updated_at` | `timestamptz` | Default now |
 
 Unique index: `requester_id + addressee_id`
+
+Manual unique index: unordered pair using `LEAST(requester_id, addressee_id)` and `GREATEST(requester_id, addressee_id)` to prevent duplicate reverse friendship rows.
+
+### user_blocks
+
+| Column | Type | Notes |
+| --- | --- | --- |
+| `blocker_id` | `uuid` | FK -> `users.id`; user who created the block |
+| `blocked_id` | `uuid` | FK -> `users.id`; user who is blocked |
+| `created_at` | `timestamptz` | Default now |
+
+Composite primary key: `blocker_id + blocked_id`
+
+Blocking is directional and independent from friendship status.
 
 ## Query notes
 
@@ -93,6 +107,7 @@ Unique index: `requester_id + addressee_id`
 4. `Comment`
 5. `PostLike`
 6. `Friendship`
+7. `UserBlock`
 
 ## Current package scripts
 

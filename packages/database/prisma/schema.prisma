@@ -18,7 +18,6 @@ enum FriendshipStatus {
   PENDING
   ACCEPTED
   REJECTED
-  BLOCKED
 }
 
 model User {
@@ -38,6 +37,8 @@ model User {
   postLikes                  PostLike[]
   sentFriendshipRequests     Friendship[]   @relation("FriendshipRequester")
   receivedFriendshipRequests Friendship[]   @relation("FriendshipAddressee")
+  blockedUsers               UserBlock[]    @relation("UserBlockBlocker")
+  blockedByUsers             UserBlock[]    @relation("UserBlockBlocked")
 
   @@map("users")
 }
@@ -119,4 +120,17 @@ model Friendship {
   @@index([addresseeId, status])
   @@index([requesterId, status])
   @@map("friendships")
+}
+
+model UserBlock {
+  blockerId String   @map("blocker_id") @db.Uuid
+  blockedId String   @map("blocked_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  blocker User @relation("UserBlockBlocker", fields: [blockerId], references: [id], onDelete: Cascade)
+  blocked User @relation("UserBlockBlocked", fields: [blockedId], references: [id], onDelete: Cascade)
+
+  @@id([blockerId, blockedId])
+  @@index([blockedId])
+  @@map("user_blocks")
 }
