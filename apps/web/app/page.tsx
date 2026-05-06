@@ -15,7 +15,6 @@ export default function HomePage() {
           This repository starts with architecture, schema, and test strategy before feature
           implementation.
         </p>
-        <p>TBD</p>
       </section>
 
       <section aria-label="Planned features">
