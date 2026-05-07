@@ -1,21 +1,7 @@
 import { Logger } from "@nestjs/common";
-import { prisma } from "@social/database";
 
+import { mockedPrisma } from "#test/prisma.mock";
 import { RefreshTokenCleanupService } from "./refresh-token-cleanup.service";
-
-jest.mock("@social/database", () => ({
-  prisma: {
-    refreshToken: {
-      deleteMany: jest.fn(),
-    },
-  },
-}));
-
-type MockedPrisma = {
-  refreshToken: {
-    deleteMany: jest.Mock;
-  };
-};
 
 describe("RefreshTokenCleanupService", () => {
   beforeEach(() => {
@@ -23,7 +9,6 @@ describe("RefreshTokenCleanupService", () => {
   });
 
   it("deletes expired and revoked refresh tokens", async () => {
-    const mockedPrisma = prisma as unknown as MockedPrisma;
     const now = new Date("2026-05-05T12:00:00.000Z");
 
     mockedPrisma.refreshToken.deleteMany.mockResolvedValue({ count: 3 });
@@ -51,7 +36,6 @@ describe("RefreshTokenCleanupService", () => {
   });
 
   it("runs cleanup on application bootstrap and cron execution", async () => {
-    const mockedPrisma = prisma as unknown as MockedPrisma;
     mockedPrisma.refreshToken.deleteMany.mockResolvedValue({ count: 0 });
 
     const service = new RefreshTokenCleanupService();

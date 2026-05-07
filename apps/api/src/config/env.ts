@@ -32,7 +32,6 @@ export function loadRootEnv(envPath = ROOT_ENV_PATH) {
   }
 
   const fileContent = readFileSync(envPath, "utf8");
-
   for (const line of fileContent.split(/\r?\n/)) {
     const parsedLine = parseEnvLine(line);
 

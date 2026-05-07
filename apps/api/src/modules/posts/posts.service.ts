@@ -5,24 +5,10 @@ import type {
   PostDto,
   UpdatePostInput,
 } from "@social/contracts";
-import { PostVisibility, prisma, type Prisma } from "@social/database";
+import { PostVisibility, prisma } from "@social/database";
 
 import { visiblePostsWhere } from "./post.where";
-
-const postWithAuthor = {
-  include: {
-    author: {
-      select: {
-        avatarUrl: true,
-        displayName: true,
-        id: true,
-        username: true,
-      },
-    },
-  },
-} satisfies Prisma.PostDefaultArgs;
-
-type PostWithAuthor = Prisma.PostGetPayload<typeof postWithAuthor>;
+import { postWithAuthor, serializePost } from "./posts.serializer";
 
 @Injectable()
 export class PostsService {
@@ -112,16 +98,4 @@ export class PostsService {
       throw new ForbiddenException("You cannot modify this post");
     }
   }
-}
-
-function serializePost(post: PostWithAuthor): PostDto {
-  return {
-    author: post.author,
-    content: post.content,
-    createdAt: post.createdAt.toISOString(),
-    id: post.id,
-    imageUrl: post.imageUrl,
-    updatedAt: post.updatedAt.toISOString(),
-    visibility: post.visibility,
-  };
 }

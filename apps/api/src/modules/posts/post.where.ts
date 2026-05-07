@@ -7,7 +7,7 @@ export function visiblePostsWhere(
   query: ListPostsQueryInput,
 ): Prisma.PostWhereInput {
   if (query.authorId) {
-    return authorPagePosts(query.authorId);
+    return authorPagePostsForViewer(viewerId, query.authorId);
   }
 
   if (query.feed === "friends") {
@@ -17,10 +17,20 @@ export function visiblePostsWhere(
   return feedPagePosts(viewerId);
 }
 
-// Author pages are scoped only by author. The caller decides which author page is being viewed.
+// Author pages are scoped by author and block state, except for the viewer's own page.
 function authorPagePosts(authorId: string): Prisma.PostWhereInput {
   return {
     authorId,
+  };
+}
+
+function authorPagePostsForViewer(viewerId: string, authorId: string): Prisma.PostWhereInput {
+  if (viewerId === authorId) {
+    return authorPagePosts(authorId);
+  }
+
+  return {
+    AND: [authorPagePosts(authorId), notBlockedByAuthor(viewerId)],
   };
 }
 
@@ -28,11 +38,18 @@ function authorPagePosts(authorId: string): Prisma.PostWhereInput {
 function feedPagePosts(viewerId: string): Prisma.PostWhereInput {
   return {
     OR: [
-      publicPosts(),
       postsByAuthor(viewerId),
       {
-        author: acceptedFriendOf(viewerId),
-        visibility: PostVisibility.FRIENDS,
+        AND: [publicPosts(), notBlockedByAuthor(viewerId)],
+      },
+      {
+        AND: [
+          {
+            author: acceptedFriendOf(viewerId),
+            visibility: PostVisibility.FRIENDS,
+          },
+          notBlockedByAuthor(viewerId),
+        ],
       },
     ],
   };
@@ -41,7 +58,12 @@ function feedPagePosts(viewerId: string): Prisma.PostWhereInput {
 // The friends page contains posts authored by accepted friends, including public and friends-only visibility.
 function friendsPagePosts(viewerId: string): Prisma.PostWhereInput {
   return {
-    author: acceptedFriendOf(viewerId),
+    AND: [
+      {
+        author: acceptedFriendOf(viewerId),
+      },
+      notBlockedByAuthor(viewerId),
+    ],
     visibility: {
       in: [PostVisibility.PUBLIC, PostVisibility.FRIENDS],
     },
@@ -59,6 +81,19 @@ function postsByAuthor(authorId: string): Prisma.PostWhereInput {
 function publicPosts(): Prisma.PostWhereInput {
   return {
     visibility: PostVisibility.PUBLIC,
+  };
+}
+
+// Excludes posts from authors who blocked the viewer. The viewer's own posts are handled separately.
+function notBlockedByAuthor(viewerId: string): Prisma.PostWhereInput {
+  return {
+    author: {
+      blockedUsers: {
+        none: {
+          blockedId: viewerId,
+        },
+      },
+    },
   };
 }
 

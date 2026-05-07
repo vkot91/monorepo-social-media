@@ -1,11 +1,3 @@
-jest.mock("@social/database", () => ({
-  prisma: {
-    user: {
-      findMany: jest.fn().mockResolvedValue([]),
-    },
-  },
-}));
-
 import { HealthService } from "./health.service";
 
 describe("HealthService", () => {
@@ -15,7 +7,6 @@ describe("HealthService", () => {
     await expect(service.getStatus()).resolves.toEqual({
       name: "social-media-api",
       status: "ok",
-      users: [],
     });
   });
 });

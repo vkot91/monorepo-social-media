@@ -1,23 +1,12 @@
 import { ConflictException, UnauthorizedException } from "@nestjs/common";
-import { prisma } from "@social/database";
 
+import {
+  buildAuthUserRecord,
+  buildRefreshPayload,
+  buildStoredRefreshTokenRecord,
+} from "#test/factories/auth.factory";
+import { mockedPrisma } from "#test/prisma.mock";
 import { AuthService } from "./auth.service";
-
-jest.mock("@social/database", () => ({
-  prisma: {
-    $transaction: jest.fn().mockResolvedValue([]),
-    refreshToken: {
-      create: jest.fn().mockResolvedValue({}),
-      findUnique: jest.fn(),
-      update: jest.fn().mockResolvedValue({}),
-      updateMany: jest.fn().mockResolvedValue({ count: 1 }),
-    },
-    user: {
-      create: jest.fn(),
-      findUnique: jest.fn(),
-    },
-  },
-}));
 
 jest.mock("../../config/env", () => ({
   getApiEnv: jest.fn(() => ({
@@ -28,38 +17,10 @@ jest.mock("../../config/env", () => ({
   })),
 }));
 
-const persistedUser = {
-  avatarUrl: null,
-  bio: null,
-  createdAt: new Date("2026-05-05T10:00:00.000Z"),
-  displayName: "Ada Lovelace",
-  email: "ada@example.com",
-  id: "user-1",
-  passwordHash: "hashed-password",
-  updatedAt: new Date("2026-05-05T10:00:00.000Z"),
-  username: "ada",
-};
-
-type MockedPrisma = {
-  $transaction: jest.Mock;
-  refreshToken: {
-    create: jest.Mock;
-    findUnique: jest.Mock;
-    update: jest.Mock;
-    updateMany: jest.Mock;
-  };
-  user: {
-    create: jest.Mock;
-    findUnique: jest.Mock;
-  };
-};
+const persistedUser = buildAuthUserRecord();
 
 function createService() {
-  const mockedPrisma = prisma as unknown as MockedPrisma;
-
   mockedPrisma.user.create.mockResolvedValue(persistedUser);
-  mockedPrisma.refreshToken.create.mockResolvedValue({});
-  mockedPrisma.refreshToken.update.mockResolvedValue({});
   mockedPrisma.refreshToken.updateMany.mockResolvedValue({ count: 1 });
   mockedPrisma.$transaction.mockResolvedValue([]);
 
@@ -237,21 +198,12 @@ describe("AuthService", () => {
   it("rotates refresh tokens", async () => {
     jest.useFakeTimers().setSystemTime(new Date("2026-05-05T12:00:00.000Z"));
     const { hashService, jwtService, prisma, service } = createService();
-    jwtService.verifyAsync.mockResolvedValue({
-      email: "ada@example.com",
-      jti: "refresh-token-1",
-      sub: "user-1",
-      type: "refresh",
-      username: "ada",
-    });
-    prisma.refreshToken.findUnique.mockResolvedValue({
-      expiresAt: new Date("2026-05-06T12:00:00.000Z"),
-      id: "refresh-token-1",
-      revokedAt: null,
-      tokenHash: "stored-hash",
-      user: persistedUser,
-      userId: "user-1",
-    });
+    jwtService.verifyAsync.mockResolvedValue(buildRefreshPayload());
+    prisma.refreshToken.findUnique.mockResolvedValue(
+      buildStoredRefreshTokenRecord({
+        user: persistedUser,
+      }),
+    );
     hashService.compare.mockResolvedValue(true);
 
     const result = await service.refresh("old-refresh-token");
@@ -294,16 +246,10 @@ describe("AuthService", () => {
 
   it("rejects revoked refresh tokens", async () => {
     const { jwtService, prisma, service } = createService();
-    jwtService.verifyAsync.mockResolvedValue({
-      jti: "refresh-token-1",
-      sub: "user-1",
-      type: "refresh",
-    });
+    jwtService.verifyAsync.mockResolvedValue(buildRefreshPayload());
     prisma.refreshToken.findUnique.mockResolvedValue({
-      expiresAt: new Date("2026-05-06T12:00:00.000Z"),
-      id: "refresh-token-1",
+      ...buildStoredRefreshTokenRecord(),
       revokedAt: new Date("2026-05-05T12:00:00.000Z"),
-      tokenHash: "stored-hash",
     });
 
     await expect(service.refresh("old-refresh-token")).rejects.toBeInstanceOf(
@@ -313,21 +259,14 @@ describe("AuthService", () => {
 
   it("rejects refresh tokens without a token id", async () => {
     const { jwtService, service } = createService();
-    jwtService.verifyAsync.mockResolvedValue({
-      sub: "user-1",
-      type: "refresh",
-    });
+    jwtService.verifyAsync.mockResolvedValue(buildRefreshPayload({ jti: undefined }));
 
     await expect(service.refresh("refresh-token")).rejects.toBeInstanceOf(UnauthorizedException);
   });
 
   it("rejects refresh tokens that are missing from storage", async () => {
     const { jwtService, prisma, service } = createService();
-    jwtService.verifyAsync.mockResolvedValue({
-      jti: "refresh-token-1",
-      sub: "user-1",
-      type: "refresh",
-    });
+    jwtService.verifyAsync.mockResolvedValue(buildRefreshPayload());
     prisma.refreshToken.findUnique.mockResolvedValue(null);
 
     await expect(service.refresh("refresh-token")).rejects.toBeInstanceOf(UnauthorizedException);
@@ -336,34 +275,20 @@ describe("AuthService", () => {
   it("rejects expired refresh tokens", async () => {
     const { jwtService, prisma, service } = createService();
     jest.useFakeTimers().setSystemTime(new Date("2026-05-05T12:00:00.000Z"));
-    jwtService.verifyAsync.mockResolvedValue({
-      jti: "refresh-token-1",
-      sub: "user-1",
-      type: "refresh",
-    });
-    prisma.refreshToken.findUnique.mockResolvedValue({
-      expiresAt: new Date("2026-05-05T11:59:59.000Z"),
-      id: "refresh-token-1",
-      revokedAt: null,
-      tokenHash: "stored-hash",
-    });
+    jwtService.verifyAsync.mockResolvedValue(buildRefreshPayload());
+    prisma.refreshToken.findUnique.mockResolvedValue(
+      buildStoredRefreshTokenRecord({
+        expiresAt: new Date("2026-05-05T11:59:59.000Z"),
+      }),
+    );
 
     await expect(service.refresh("refresh-token")).rejects.toBeInstanceOf(UnauthorizedException);
   });
 
   it("rejects refresh tokens when the stored hash does not match", async () => {
     const { hashService, jwtService, prisma, service } = createService();
-    jwtService.verifyAsync.mockResolvedValue({
-      jti: "refresh-token-1",
-      sub: "user-1",
-      type: "refresh",
-    });
-    prisma.refreshToken.findUnique.mockResolvedValue({
-      expiresAt: new Date("2026-05-06T12:00:00.000Z"),
-      id: "refresh-token-1",
-      revokedAt: null,
-      tokenHash: "stored-hash",
-    });
+    jwtService.verifyAsync.mockResolvedValue(buildRefreshPayload());
+    prisma.refreshToken.findUnique.mockResolvedValue(buildStoredRefreshTokenRecord());
     hashService.compare.mockResolvedValue(false);
 
     await expect(service.refresh("refresh-token")).rejects.toBeInstanceOf(UnauthorizedException);
@@ -371,11 +296,12 @@ describe("AuthService", () => {
 
   it("rejects non-refresh JWTs in refresh-only flows", async () => {
     const { jwtService, service } = createService();
-    jwtService.verifyAsync.mockResolvedValue({
-      jti: "token-1",
-      sub: "user-1",
-      type: "access",
-    });
+    jwtService.verifyAsync.mockResolvedValue(
+      buildRefreshPayload({
+        jti: "token-1",
+        type: "access",
+      }),
+    );
 
     await expect(service.refresh("access-token")).rejects.toBeInstanceOf(UnauthorizedException);
   });
@@ -389,11 +315,7 @@ describe("AuthService", () => {
 
   it("revokes a refresh token on logout", async () => {
     const { jwtService, prisma, service } = createService();
-    jwtService.verifyAsync.mockResolvedValue({
-      jti: "refresh-token-1",
-      sub: "user-1",
-      type: "refresh",
-    });
+    jwtService.verifyAsync.mockResolvedValue(buildRefreshPayload());
 
     await service.logout("refresh-token");
 
@@ -410,10 +332,7 @@ describe("AuthService", () => {
 
   it("does nothing on logout when the token has no id", async () => {
     const { jwtService, prisma, service } = createService();
-    jwtService.verifyAsync.mockResolvedValue({
-      sub: "user-1",
-      type: "refresh",
-    });
+    jwtService.verifyAsync.mockResolvedValue(buildRefreshPayload({ jti: undefined }));
 
     await service.logout("refresh-token");
 

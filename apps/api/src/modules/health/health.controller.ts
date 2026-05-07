@@ -1,14 +1,15 @@
 import { Controller, Get } from "@nestjs/common";
 
-import type { HealthStatus } from "./health.service";
 import { HealthService } from "./health.service";
+import { PublicRoute } from "#modules/auth/decorators/auth-route-type.decorator";
 
 @Controller("health")
 export class HealthController {
   constructor(private readonly healthService: HealthService) {}
 
+  @PublicRoute()
   @Get()
-  getHealth(): Promise<HealthStatus> {
+  getHealth() {
     return this.healthService.getStatus();
   }
 }

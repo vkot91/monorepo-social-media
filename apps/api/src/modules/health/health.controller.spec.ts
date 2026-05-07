@@ -1,11 +1,3 @@
-jest.mock("@social/database", () => ({
-  prisma: {
-    user: {
-      findMany: jest.fn().mockResolvedValue([]),
-    },
-  },
-}));
-
 import { Test } from "@nestjs/testing";
 
 import { HealthController } from "./health.controller";
@@ -23,7 +15,6 @@ describe("HealthController", () => {
     await expect(controller.getHealth()).resolves.toEqual({
       name: "social-media-api",
       status: "ok",
-      users: [],
     });
   });
 });

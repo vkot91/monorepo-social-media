@@ -1,7 +1,7 @@
 node_modules
 .next
 dist
+packages/database/src/generated/prisma
 coverage
 .turbo
 pnpm-lock.yaml
-

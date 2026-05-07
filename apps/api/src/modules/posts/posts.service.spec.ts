@@ -1,58 +1,13 @@
 import { ForbiddenException, NotFoundException } from "@nestjs/common";
-import { FriendshipStatus, PostVisibility, prisma } from "@social/database";
+import { FriendshipStatus, PostVisibility } from "@social/database";
 
+import { buildPersistedPost, buildPostDto } from "#test/factories/post.factory";
+import { mockedPrisma } from "#test/prisma.mock";
 import { PostsService } from "./posts.service";
 
-jest.mock("@social/database", () => ({
-  PostVisibility: {
-    FRIENDS: "FRIENDS",
-    PUBLIC: "PUBLIC",
-  },
-  FriendshipStatus: {
-    ACCEPTED: "ACCEPTED",
-  },
-  prisma: {
-    post: {
-      create: jest.fn(),
-      delete: jest.fn(),
-      findFirst: jest.fn(),
-      findMany: jest.fn(),
-      findUnique: jest.fn(),
-      update: jest.fn(),
-    },
-  },
-}));
-
-const persistedPost = {
-  author: {
-    avatarUrl: null,
-    displayName: "Ada Lovelace",
-    id: "user-1",
-    username: "ada",
-  },
-  authorId: "user-1",
-  content: "Hello world",
-  createdAt: new Date("2026-05-05T10:00:00.000Z"),
-  id: "post-1",
-  imageUrl: null,
-  updatedAt: new Date("2026-05-05T10:30:00.000Z"),
-  visibility: PostVisibility.PUBLIC,
-};
-
-type MockedPrisma = {
-  post: {
-    create: jest.Mock;
-    delete: jest.Mock;
-    findFirst: jest.Mock;
-    findMany: jest.Mock;
-    findUnique: jest.Mock;
-    update: jest.Mock;
-  };
-};
+const persistedPost = buildPersistedPost();
 
 function createService() {
-  const mockedPrisma = prisma as unknown as MockedPrisma;
-
   mockedPrisma.post.create.mockResolvedValue(persistedPost);
   mockedPrisma.post.findMany.mockResolvedValue([persistedPost]);
   mockedPrisma.post.findFirst.mockResolvedValue(persistedPost);
@@ -93,20 +48,7 @@ describe("PostsService", () => {
       },
       include: expect.any(Object),
     });
-    expect(result).toEqual({
-      author: {
-        avatarUrl: null,
-        displayName: "Ada Lovelace",
-        id: "user-1",
-        username: "ada",
-      },
-      content: "Hello world",
-      createdAt: "2026-05-05T10:00:00.000Z",
-      id: "post-1",
-      imageUrl: null,
-      updatedAt: "2026-05-05T10:30:00.000Z",
-      visibility: "PUBLIC",
-    });
+    expect(result).toEqual(buildPostDto());
   });
 
   it("defaults new posts to public visibility", async () => {
@@ -130,22 +72,7 @@ describe("PostsService", () => {
   it("lists public posts, own posts, and friends-only posts from accepted friends by default", async () => {
     const { prisma, service } = createService();
 
-    await expect(service.list("user-1", {})).resolves.toEqual([
-      {
-        author: {
-          avatarUrl: null,
-          displayName: "Ada Lovelace",
-          id: "user-1",
-          username: "ada",
-        },
-        content: "Hello world",
-        createdAt: "2026-05-05T10:00:00.000Z",
-        id: "post-1",
-        imageUrl: null,
-        updatedAt: "2026-05-05T10:30:00.000Z",
-        visibility: "PUBLIC",
-      },
-    ]);
+    await expect(service.list("user-1", {})).resolves.toEqual([buildPostDto()]);
 
     expect(prisma.post.findMany).toHaveBeenCalledWith({
       include: expect.any(Object),
@@ -155,11 +82,79 @@ describe("PostsService", () => {
       where: {
         OR: [
           {
-            visibility: PostVisibility.PUBLIC,
-          },
-          {
             authorId: "user-1",
           },
+          {
+            AND: [
+              {
+                visibility: PostVisibility.PUBLIC,
+              },
+              {
+                author: {
+                  blockedUsers: {
+                    none: {
+                      blockedId: "user-1",
+                    },
+                  },
+                },
+              },
+            ],
+          },
+          {
+            AND: [
+              {
+                author: {
+                  OR: [
+                    {
+                      sentFriendshipRequests: {
+                        some: {
+                          addresseeId: "user-1",
+                          status: FriendshipStatus.ACCEPTED,
+                        },
+                      },
+                    },
+                    {
+                      receivedFriendshipRequests: {
+                        some: {
+                          requesterId: "user-1",
+                          status: FriendshipStatus.ACCEPTED,
+                        },
+                      },
+                    },
+                  ],
+                },
+                visibility: PostVisibility.FRIENDS,
+              },
+              {
+                author: {
+                  blockedUsers: {
+                    none: {
+                      blockedId: "user-1",
+                    },
+                  },
+                },
+              },
+            ],
+          },
+        ],
+      },
+    });
+  });
+
+  it("lists accepted friends' public and friends-only posts", async () => {
+    const { prisma, service } = createService();
+
+    await service.list("user-1", {
+      feed: "friends",
+    });
+
+    expect(prisma.post.findMany).toHaveBeenCalledWith({
+      include: expect.any(Object),
+      orderBy: {
+        createdAt: "desc",
+      },
+      where: {
+        AND: [
           {
             author: {
               OR: [
@@ -181,46 +176,17 @@ describe("PostsService", () => {
                 },
               ],
             },
-            visibility: PostVisibility.FRIENDS,
+          },
+          {
+            author: {
+              blockedUsers: {
+                none: {
+                  blockedId: "user-1",
+                },
+              },
+            },
           },
         ],
-      },
-    });
-  });
-
-  it("lists accepted friends' public and friends-only posts", async () => {
-    const { prisma, service } = createService();
-
-    await service.list("user-1", {
-      feed: "friends",
-    });
-
-    expect(prisma.post.findMany).toHaveBeenCalledWith({
-      include: expect.any(Object),
-      orderBy: {
-        createdAt: "desc",
-      },
-      where: {
-        author: {
-          OR: [
-            {
-              sentFriendshipRequests: {
-                some: {
-                  addresseeId: "user-1",
-                  status: FriendshipStatus.ACCEPTED,
-                },
-              },
-            },
-            {
-              receivedFriendshipRequests: {
-                some: {
-                  requesterId: "user-1",
-                  status: FriendshipStatus.ACCEPTED,
-                },
-              },
-            },
-          ],
-        },
         visibility: {
           in: [PostVisibility.PUBLIC, PostVisibility.FRIENDS],
         },
@@ -259,7 +225,20 @@ describe("PostsService", () => {
         createdAt: "desc",
       },
       where: {
-        authorId: "user-2",
+        AND: [
+          {
+            authorId: "user-2",
+          },
+          {
+            author: {
+              blockedUsers: {
+                none: {
+                  blockedId: "user-1",
+                },
+              },
+            },
+          },
+        ],
       },
     });
   });

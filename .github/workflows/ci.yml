@@ -53,6 +53,9 @@ jobs:
         if: github.event_name == 'pull_request'
         run: git fetch origin ${{ github.base_ref }}:refs/remotes/origin/${{ github.base_ref }}
 
+      - name: Generate Prisma client
+        run: pnpm --filter @social/database db:generate
+
       - name: Check affected packages
         if: github.event_name == 'pull_request'
         env:
