@@ -1,77 +1,27 @@
 import { BadRequestException, ForbiddenException, NotFoundException } from "@nestjs/common";
-import { FriendshipStatus, prisma } from "@social/database";
+import { FriendshipStatus } from "@social/database";
 
+import {
+  buildFriendshipDto,
+  buildFriendshipRecord,
+  buildUserBlockDto,
+  buildUserBlockRecord,
+} from "#test/factories/friendship.factory";
+import { mockedPrisma } from "#test/prisma.mock";
 import { FriendshipsService } from "./friendships.service";
+import { buildAuthUserRecord } from "#test/factories/auth.factory";
 
-jest.mock("@social/database", () => ({
-  FriendshipStatus: {
-    ACCEPTED: "ACCEPTED",
-    PENDING: "PENDING",
-    REJECTED: "REJECTED",
-  },
-  prisma: {
-    friendship: {
-      create: jest.fn(),
-      delete: jest.fn(),
-      findFirst: jest.fn(),
-      findUnique: jest.fn(),
-      update: jest.fn(),
-    },
-    user: {
-      findUnique: jest.fn(),
-    },
-    userBlock: {
-      deleteMany: jest.fn(),
-      upsert: jest.fn(),
-    },
-  },
-}));
-
-const persistedFriendship = {
-  addresseeId: "user-2",
-  createdAt: new Date("2026-05-06T10:00:00.000Z"),
-  id: "friendship-1",
-  requesterId: "user-1",
-  status: FriendshipStatus.PENDING,
-  updatedAt: new Date("2026-05-06T10:00:00.000Z"),
-};
-
-const persistedBlock = {
-  blockedId: "user-2",
-  blockerId: "user-1",
-  createdAt: new Date("2026-05-06T11:00:00.000Z"),
-};
-
-type MockedPrisma = {
-  friendship: {
-    create: jest.Mock;
-    delete: jest.Mock;
-    findFirst: jest.Mock;
-    findUnique: jest.Mock;
-    update: jest.Mock;
-  };
-  user: {
-    findUnique: jest.Mock;
-  };
-  userBlock: {
-    deleteMany: jest.Mock;
-    upsert: jest.Mock;
-  };
-};
+const persistedFriendship = buildFriendshipRecord();
+const persistedBlock = buildUserBlockRecord();
 
 function createService() {
-  const mockedPrisma = prisma as unknown as MockedPrisma;
-
-  mockedPrisma.user.findUnique.mockResolvedValue({
-    id: "user-2",
-  });
+  mockedPrisma.user.findUnique.mockResolvedValue(buildAuthUserRecord({ id: "user-2" }));
   mockedPrisma.friendship.findFirst.mockResolvedValue(null);
   mockedPrisma.friendship.findUnique.mockResolvedValue(persistedFriendship);
   mockedPrisma.friendship.create.mockResolvedValue(persistedFriendship);
-  mockedPrisma.friendship.update.mockImplementation(({ data }: { data: Record<string, unknown> }) =>
-    Promise.resolve({
-      ...persistedFriendship,
-      ...data,
+  mockedPrisma.friendship.update.mockResolvedValue(
+    buildFriendshipRecord({
+      status: FriendshipStatus.ACCEPTED,
       updatedAt: new Date("2026-05-06T12:00:00.000Z"),
     }),
   );
@@ -99,14 +49,7 @@ describe("FriendshipsService", () => {
       service.sendRequest("user-1", {
         targetUserId: "user-2",
       }),
-    ).resolves.toEqual({
-      addresseeId: "user-2",
-      createdAt: "2026-05-06T10:00:00.000Z",
-      id: "friendship-1",
-      requesterId: "user-1",
-      status: "PENDING",
-      updatedAt: "2026-05-06T10:00:00.000Z",
-    });
+    ).resolves.toEqual(buildFriendshipDto());
 
     expect(prisma.friendship.create).toHaveBeenCalledWith({
       data: {
@@ -260,6 +203,70 @@ describe("FriendshipsService", () => {
     expect(prisma.friendship.delete).not.toHaveBeenCalled();
   });
 
+  it("removes an accepted friendship by the requester", async () => {
+    const { prisma, service } = createService();
+    prisma.friendship.findUnique.mockResolvedValue({
+      ...persistedFriendship,
+      status: FriendshipStatus.ACCEPTED,
+    });
+
+    await service.removeFriendship("user-1", "friendship-1");
+
+    expect(prisma.friendship.delete).toHaveBeenCalledWith({
+      where: {
+        id: "friendship-1",
+      },
+    });
+  });
+
+  it("removes an accepted friendship by the addressee", async () => {
+    const { prisma, service } = createService();
+    prisma.friendship.findUnique.mockResolvedValue({
+      ...persistedFriendship,
+      status: FriendshipStatus.ACCEPTED,
+    });
+
+    await service.removeFriendship("user-2", "friendship-1");
+
+    expect(prisma.friendship.delete).toHaveBeenCalledWith({
+      where: {
+        id: "friendship-1",
+      },
+    });
+  });
+
+  it("rejects friendship removal by non-participants", async () => {
+    const { prisma, service } = createService();
+    prisma.friendship.findUnique.mockResolvedValue({
+      ...persistedFriendship,
+      status: FriendshipStatus.ACCEPTED,
+    });
+
+    await expect(service.removeFriendship("user-3", "friendship-1")).rejects.toBeInstanceOf(
+      ForbiddenException,
+    );
+    expect(prisma.friendship.delete).not.toHaveBeenCalled();
+  });
+
+  it("rejects friendship removal when the friendship does not exist", async () => {
+    const { prisma, service } = createService();
+    prisma.friendship.findUnique.mockResolvedValue(null);
+
+    await expect(service.removeFriendship("user-1", "friendship-1")).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
+    expect(prisma.friendship.delete).not.toHaveBeenCalled();
+  });
+
+  it("rejects friendship removal for non-accepted friendships", async () => {
+    const { prisma, service } = createService();
+
+    await expect(service.removeFriendship("user-1", "friendship-1")).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
+    expect(prisma.friendship.delete).not.toHaveBeenCalled();
+  });
+
   it("creates a directional user block", async () => {
     const { prisma, service } = createService();
 
@@ -267,11 +274,7 @@ describe("FriendshipsService", () => {
       service.blockUser("user-1", {
         targetUserId: "user-2",
       }),
-    ).resolves.toEqual({
-      blockedId: "user-2",
-      blockerId: "user-1",
-      createdAt: "2026-05-06T11:00:00.000Z",
-    });
+    ).resolves.toEqual(buildUserBlockDto());
 
     expect(prisma.userBlock.upsert).toHaveBeenCalledWith({
       create: {

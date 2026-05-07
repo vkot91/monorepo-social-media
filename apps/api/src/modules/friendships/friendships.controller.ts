@@ -1,14 +1,4 @@
-import {
-  Body,
-  Controller,
-  Delete,
-  HttpCode,
-  HttpStatus,
-  Param,
-  Patch,
-  Post,
-  Query,
-} from "@nestjs/common";
+import { Body, Controller, Delete, HttpCode, HttpStatus, Param, Patch, Post } from "@nestjs/common";
 import {
   friendshipRequestStatusSchema,
   targetUserSchema,
@@ -37,10 +27,15 @@ export class FriendshipsController {
   updateRequest(
     @CurrentUser() user: AuthTokenPayload,
     @Param("id") friendshipId: string,
-    @Query(new ZodValidationPipe(friendshipRequestStatusSchema))
-    query: FriendshipRequestStatusInput,
+    @Body(new ZodValidationPipe(friendshipRequestStatusSchema)) input: FriendshipRequestStatusInput,
   ) {
-    return this.friendshipsService.updateRequest(user.sub, friendshipId, query.status);
+    return this.friendshipsService.updateRequest(user.sub, friendshipId, input.status);
+  }
+
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @Delete(":id")
+  removeFriendship(@CurrentUser() user: AuthTokenPayload, @Param("id") friendshipId: string) {
+    return this.friendshipsService.removeFriendship(user.sub, friendshipId);
   }
 
   @Post("blocks")

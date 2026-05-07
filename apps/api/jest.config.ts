@@ -6,7 +6,9 @@ const config: Config = {
     "^#common/(.*)$": "<rootDir>/src/common/$1",
     "^#config/(.*)$": "<rootDir>/src/config/$1",
     "^#modules/(.*)$": "<rootDir>/src/modules/$1",
+    "^#test/(.*)$": "<rootDir>/src/test/$1",
   },
+  setupFilesAfterEnv: ["<rootDir>/jest.setup.ts"],
   rootDir: ".",
   testRegex: ".*\\.spec\\.ts$",
   transform: {
@@ -37,6 +39,7 @@ const config: Config = {
   testEnvironment: "node",
   coveragePathIgnorePatterns: [
     "/node_modules/",
+    "src/test/",
     "main\\.ts$", // bootstrap
     "app\\.module\\.ts$", // same as other module files
   ],

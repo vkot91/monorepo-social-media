@@ -1,16 +1,15 @@
 import { ConflictException, Injectable, UnauthorizedException } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
-import type {
-  AuthResponse,
-  AuthTokens,
-  AuthUserDto,
-  LoginInput,
-  RegisterInput,
-} from "@social/contracts";
-import { prisma, type Prisma } from "@social/database";
+import type { AuthResponse, AuthTokens, LoginInput, RegisterInput } from "@social/contracts";
+import { prisma } from "@social/database";
 import { randomUUID } from "node:crypto";
 import { getApiEnv } from "#config/env";
 
+import {
+  authUserSelect,
+  serializeAuthUser,
+  type AuthUserRecord,
+} from "./auth.serializer";
 import { HashService } from "./services/hash.service";
 import type { AuthTokenPayload } from "./types/auth-token-payload";
 import { durationToMilliseconds } from "#common/utils/token-duration";
@@ -19,20 +18,6 @@ import { EmailQueueService } from "../email/email-queue.service";
 type InternalAuthTokens = AuthTokens & {
   refreshTokenId: string;
 };
-
-const authUserSelect = {
-  avatarUrl: true,
-  bio: true,
-  createdAt: true,
-  displayName: true,
-  email: true,
-  id: true,
-  username: true,
-} as const satisfies Prisma.UserSelect;
-
-type AuthPersistedUser = Prisma.UserGetPayload<{
-  select: typeof authUserSelect;
-}>;
 
 function isUniqueConstraintError(error: unknown) {
   return typeof error === "object" && error !== null && "code" in error && error.code === "P2002";
@@ -166,7 +151,7 @@ export class AuthService {
     });
   }
 
-  private async createAuthResponse(user: AuthPersistedUser): Promise<AuthResponse> {
+  private async createAuthResponse(user: AuthUserRecord): Promise<AuthResponse> {
     const tokens = await this.buildTokens(user);
     const refreshTokenHash = await this.hashService.hash(tokens.refreshToken);
 
@@ -181,11 +166,11 @@ export class AuthService {
 
     return {
       ...stripRefreshTokenId(tokens),
-      user: serializeUser(user),
+      user: serializeAuthUser(user),
     };
   }
 
-  private async buildTokens(user: AuthPersistedUser): Promise<InternalAuthTokens> {
+  private async buildTokens(user: AuthUserRecord): Promise<InternalAuthTokens> {
     const refreshTokenId = randomUUID();
 
     const [accessToken, refreshToken] = await Promise.all([
@@ -242,18 +227,6 @@ export class AuthService {
       throw new UnauthorizedException("Invalid refresh token");
     }
   }
-}
-
-function serializeUser(user: AuthPersistedUser): AuthUserDto {
-  return {
-    avatarUrl: user.avatarUrl,
-    bio: user.bio,
-    createdAt: user.createdAt.toISOString(),
-    displayName: user.displayName,
-    email: user.email,
-    id: user.id,
-    username: user.username,
-  };
 }
 
 function stripRefreshTokenId(tokens: InternalAuthTokens): AuthTokens {

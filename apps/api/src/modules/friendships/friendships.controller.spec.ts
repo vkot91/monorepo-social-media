@@ -6,6 +6,7 @@ import type { FriendshipsService } from "./friendships.service";
 describe("FriendshipsController", () => {
   const friendshipsService = {
     blockUser: jest.fn(),
+    removeFriendship: jest.fn(),
     sendRequest: jest.fn(),
     unblockUser: jest.fn(),
     updateRequest: jest.fn(),
@@ -43,6 +44,12 @@ describe("FriendshipsController", () => {
       "friendship-1",
       "ACCEPTED",
     );
+  });
+
+  it("delegates friendship removal for the authenticated user", async () => {
+    await controller.removeFriendship(user, "friendship-1");
+
+    expect(friendshipsService.removeFriendship).toHaveBeenCalledWith("user-1", "friendship-1");
   });
 
   it("delegates blocking for the authenticated user", async () => {

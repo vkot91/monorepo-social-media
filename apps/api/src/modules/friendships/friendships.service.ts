@@ -10,7 +10,8 @@ import type {
   TargetUserInput,
   UserBlockDto,
 } from "@social/contracts";
-import { FriendshipStatus, prisma, type Friendship, type UserBlock } from "@social/database";
+import { FriendshipStatus, prisma, type Friendship } from "@social/database";
+import { serializeFriendship, serializeUserBlock } from "./friendships.serializer";
 
 @Injectable()
 export class FriendshipsService {
@@ -79,16 +80,42 @@ export class FriendshipsService {
       throw new ForbiddenException("Only the addressee can update this friend request");
     }
 
-    return serializeFriendship(
-      await prisma.friendship.update({
-        data: {
-          status: status === "ACCEPTED" ? FriendshipStatus.ACCEPTED : FriendshipStatus.REJECTED,
-        },
-        where: {
-          id: friendshipId,
-        },
-      }),
-    );
+    const updated = await prisma.friendship.update({
+      data: {
+        status: status === "ACCEPTED" ? FriendshipStatus.ACCEPTED : FriendshipStatus.REJECTED,
+      },
+      where: {
+        id: friendshipId,
+      },
+    });
+
+    return serializeFriendship(updated);
+  }
+
+  async removeFriendship(userId: string, friendshipId: string): Promise<void> {
+    const friendship = await prisma.friendship.findUnique({
+      where: {
+        id: friendshipId,
+      },
+    });
+
+    if (!friendship) {
+      throw new NotFoundException("Friendship not found");
+    }
+
+    if (friendship.requesterId !== userId && friendship.addresseeId !== userId) {
+      throw new ForbiddenException("Only friendship participants can remove this friendship");
+    }
+
+    if (friendship.status !== FriendshipStatus.ACCEPTED) {
+      throw new BadRequestException("Friendship is not accepted");
+    }
+
+    await prisma.friendship.delete({
+      where: {
+        id: friendshipId,
+      },
+    });
   }
 
   async blockUser(blockerId: string, input: TargetUserInput): Promise<UserBlockDto> {
@@ -145,7 +172,10 @@ export class FriendshipsService {
     }
   }
 
-  private async findFriendshipBetween(userId: string, otherUserId: string): Promise<Friendship | null> {
+  private async findFriendshipBetween(
+    userId: string,
+    otherUserId: string,
+  ): Promise<Friendship | null> {
     return prisma.friendship.findFirst({
       where: {
         OR: [
@@ -179,23 +209,4 @@ export class FriendshipsService {
 
     return friendship;
   }
-}
-
-function serializeFriendship(friendship: Friendship): FriendshipDto {
-  return {
-    addresseeId: friendship.addresseeId,
-    createdAt: friendship.createdAt.toISOString(),
-    id: friendship.id,
-    requesterId: friendship.requesterId,
-    status: friendship.status,
-    updatedAt: friendship.updatedAt.toISOString(),
-  };
-}
-
-function serializeUserBlock(userBlock: UserBlock): UserBlockDto {
-  return {
-    blockedId: userBlock.blockedId,
-    blockerId: userBlock.blockerId,
-    createdAt: userBlock.createdAt.toISOString(),
-  };
 }
