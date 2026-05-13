@@ -24,6 +24,7 @@ import { CurrentUser } from "#modules/auth/decorators/current-user.decorator";
 import type { AuthTokenPayload } from "#modules/auth/types/auth-token-payload";
 import { PostsService } from "./posts.service";
 
+const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 @Controller("posts")
 export class PostsController {
   constructor(private readonly postsService: PostsService) {}
@@ -37,10 +38,11 @@ export class PostsController {
   }
 
   @Get()
-  list(
+  async list(
     @CurrentUser() user: AuthTokenPayload,
     @Query(new ZodValidationPipe(listPostsQuerySchema)) query: ListPostsQueryInput,
   ) {
+    await wait(3000);
     return this.postsService.list(user.sub, query);
   }
 

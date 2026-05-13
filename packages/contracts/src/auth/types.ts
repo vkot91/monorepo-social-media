@@ -1,7 +1,3 @@
-import type { z } from "zod";
-
-import type { loginSchema, logoutSchema, refreshTokenSchema, registerSchema } from "./schemas";
-
 export type AuthUserDto = {
   avatarUrl: string | null;
   bio: string | null;
@@ -21,7 +17,20 @@ export type AuthResponse = AuthTokens & {
   user: AuthUserDto;
 };
 
-export type RegisterInput = z.infer<typeof registerSchema>;
-export type LoginInput = z.infer<typeof loginSchema>;
-export type RefreshTokenInput = z.infer<typeof refreshTokenSchema>;
-export type LogoutInput = z.infer<typeof logoutSchema>;
+export type RegisterInput = {
+  displayName: string;
+  email: string;
+  password: string;
+  username: string;
+};
+
+export type LoginInput = {
+  email: string;
+  password: string;
+};
+
+export type RefreshTokenInput = {
+  refreshToken: string;
+};
+
+export type LogoutInput = RefreshTokenInput;

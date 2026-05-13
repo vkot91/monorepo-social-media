@@ -55,18 +55,23 @@ function feedPagePosts(viewerId: string): Prisma.PostWhereInput {
   };
 }
 
-// The friends page contains posts authored by accepted friends, including public and friends-only visibility.
+// The friends page contains the viewer's own posts and accepted friends' public/friends-only posts.
 function friendsPagePosts(viewerId: string): Prisma.PostWhereInput {
   return {
-    AND: [
+    OR: [
+      postsByAuthor(viewerId),
       {
-        author: acceptedFriendOf(viewerId),
+        AND: [
+          {
+            author: acceptedFriendOf(viewerId),
+            visibility: {
+              in: [PostVisibility.PUBLIC, PostVisibility.FRIENDS],
+            },
+          },
+          notBlockedByAuthor(viewerId),
+        ],
       },
-      notBlockedByAuthor(viewerId),
     ],
-    visibility: {
-      in: [PostVisibility.PUBLIC, PostVisibility.FRIENDS],
-    },
   };
 }
 

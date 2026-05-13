@@ -56,6 +56,9 @@ jobs:
       - name: Generate Prisma client
         run: pnpm --filter @social/database db:generate
 
+      - name: Install Playwright browser
+        run: pnpm --filter @social/web exec playwright install --with-deps chromium
+
       - name: Check affected packages
         if: github.event_name == 'pull_request'
         env:
@@ -65,3 +68,6 @@ jobs:
       - name: Check packages
         if: github.event_name != 'pull_request'
         run: pnpm check
+
+      - name: Check E2E tests
+        run: pnpm test:e2e
