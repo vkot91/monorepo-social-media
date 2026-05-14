@@ -8,6 +8,8 @@ dist
 packages/*/dist
 packages/database/src/generated/prisma
 coverage
+playwright-report
+test-results
 .turbo
 package-lock.json
 yarn.lock

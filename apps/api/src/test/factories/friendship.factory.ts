@@ -1,5 +1,5 @@
 import type { FriendshipDto, UserBlockDto } from "@social/contracts";
-import { FriendshipStatus, type Friendship, type UserBlock } from "@social/database";
+import { type Friendship, FriendshipStatus, type UserBlock } from "@social/database";
 
 import {
   serializeFriendship,

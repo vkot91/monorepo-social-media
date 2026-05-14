@@ -1,9 +1,10 @@
 import { ForbiddenException, NotFoundException } from "@nestjs/common";
 import { FriendshipStatus, PostVisibility } from "@social/database";
 
+import { PostsService } from "./posts.service";
+
 import { buildPersistedPost, buildPostDto } from "#test/factories/post.factory";
 import { mockedPrisma } from "#test/prisma.mock";
-import { PostsService } from "./posts.service";
 
 const persistedPost = buildPersistedPost();
 
@@ -141,7 +142,7 @@ describe("PostsService", () => {
     });
   });
 
-  it("lists accepted friends' public and friends-only posts", async () => {
+  it("lists own posts and accepted friends' public and friends-only posts in the friends feed", async () => {
     const { prisma, service } = createService();
 
     await service.list("user-1", {
@@ -154,42 +155,49 @@ describe("PostsService", () => {
         createdAt: "desc",
       },
       where: {
-        AND: [
+        OR: [
           {
-            author: {
-              OR: [
-                {
-                  sentFriendshipRequests: {
-                    some: {
-                      addresseeId: "user-1",
-                      status: FriendshipStatus.ACCEPTED,
-                    },
-                  },
-                },
-                {
-                  receivedFriendshipRequests: {
-                    some: {
-                      requesterId: "user-1",
-                      status: FriendshipStatus.ACCEPTED,
-                    },
-                  },
-                },
-              ],
-            },
+            authorId: "user-1",
           },
           {
-            author: {
-              blockedUsers: {
-                none: {
-                  blockedId: "user-1",
+            AND: [
+              {
+                author: {
+                  OR: [
+                    {
+                      sentFriendshipRequests: {
+                        some: {
+                          addresseeId: "user-1",
+                          status: FriendshipStatus.ACCEPTED,
+                        },
+                      },
+                    },
+                    {
+                      receivedFriendshipRequests: {
+                        some: {
+                          requesterId: "user-1",
+                          status: FriendshipStatus.ACCEPTED,
+                        },
+                      },
+                    },
+                  ],
+                },
+                visibility: {
+                  in: [PostVisibility.PUBLIC, PostVisibility.FRIENDS],
                 },
               },
-            },
+              {
+                author: {
+                  blockedUsers: {
+                    none: {
+                      blockedId: "user-1",
+                    },
+                  },
+                },
+              },
+            ],
           },
         ],
-        visibility: {
-          in: [PostVisibility.PUBLIC, PostVisibility.FRIENDS],
-        },
       },
     });
   });

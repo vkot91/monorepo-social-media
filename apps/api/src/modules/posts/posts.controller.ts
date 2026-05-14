@@ -11,19 +11,21 @@ import {
   Query,
 } from "@nestjs/common";
 import {
-  createPostSchema,
-  listPostsQuerySchema,
-  updatePostSchema,
   type CreatePostInput,
+  createPostSchema,
   type ListPostsQueryInput,
+  listPostsQuerySchema,
   type UpdatePostInput,
+  updatePostSchema,
 } from "@social/contracts";
+
+import { PostsService } from "./posts.service";
 
 import { ZodValidationPipe } from "#common/pipes/zod-validation.pipe";
 import { CurrentUser } from "#modules/auth/decorators/current-user.decorator";
 import type { AuthTokenPayload } from "#modules/auth/types/auth-token-payload";
-import { PostsService } from "./posts.service";
 
+const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 @Controller("posts")
 export class PostsController {
   constructor(private readonly postsService: PostsService) {}
@@ -37,10 +39,11 @@ export class PostsController {
   }
 
   @Get()
-  list(
+  async list(
     @CurrentUser() user: AuthTokenPayload,
     @Query(new ZodValidationPipe(listPostsQuerySchema)) query: ListPostsQueryInput,
   ) {
+    await wait(3000);
     return this.postsService.list(user.sub, query);
   }
 

@@ -10,7 +10,8 @@ import type {
   TargetUserInput,
   UserBlockDto,
 } from "@social/contracts";
-import { FriendshipStatus, prisma, type Friendship } from "@social/database";
+import { type Friendship,FriendshipStatus, prisma } from "@social/database";
+
 import { serializeFriendship, serializeUserBlock } from "./friendships.serializer";
 
 @Injectable()

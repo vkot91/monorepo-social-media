@@ -1,6 +1,9 @@
 import { BadRequestException, ForbiddenException, NotFoundException } from "@nestjs/common";
 import { FriendshipStatus } from "@social/database";
 
+import { FriendshipsService } from "./friendships.service";
+
+import { buildAuthUserRecord } from "#test/factories/auth.factory";
 import {
   buildFriendshipDto,
   buildFriendshipRecord,
@@ -8,8 +11,6 @@ import {
   buildUserBlockRecord,
 } from "#test/factories/friendship.factory";
 import { mockedPrisma } from "#test/prisma.mock";
-import { FriendshipsService } from "./friendships.service";
-import { buildAuthUserRecord } from "#test/factories/auth.factory";
 
 const persistedFriendship = buildFriendshipRecord();
 const persistedBlock = buildUserBlockRecord();

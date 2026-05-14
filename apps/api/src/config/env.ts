@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
-import { parseApiEnv, type ApiEnv } from "@social/env";
+import { type ApiEnv,parseApiEnv } from "@social/env";
 
 const ROOT_ENV_PATH = resolve(__dirname, "../../../../.env");
 let cachedApiEnv: ApiEnv | undefined;

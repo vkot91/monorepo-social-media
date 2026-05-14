@@ -1,6 +1,14 @@
 {
   "$schema": "https://turbo.build/schema.json",
-  "globalEnv": ["NODE_ENV", "DATABASE_URL", "JWT_ACCESS_SECRET", "JWT_REFRESH_SECRET"],
+  "globalEnv": [
+    "CI",
+    "DATABASE_URL",
+    "JWT_ACCESS_SECRET",
+    "JWT_REFRESH_SECRET",
+    "NODE_ENV",
+    "PLAYWRIGHT_API_PORT",
+    "PLAYWRIGHT_PORT"
+  ],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
@@ -25,6 +33,10 @@
     "test:coverage": {
       "dependsOn": ["^build", "^test:coverage"],
       "outputs": ["coverage/**"]
+    },
+    "test:e2e": {
+      "cache": false,
+      "outputs": ["test-results/**", "playwright-report/**"]
     },
     "typecheck": {
       "dependsOn": ["^build"],

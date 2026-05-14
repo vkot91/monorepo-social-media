@@ -1,19 +1,21 @@
+import { randomUUID } from "node:crypto";
+
 import { ConflictException, Injectable, UnauthorizedException } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import type { AuthResponse, AuthTokens, LoginInput, RegisterInput } from "@social/contracts";
 import { prisma } from "@social/database";
-import { randomUUID } from "node:crypto";
-import { getApiEnv } from "#config/env";
 
+import { EmailQueueService } from "../email/email-queue.service";
 import {
+  type AuthUserRecord,
   authUserSelect,
   serializeAuthUser,
-  type AuthUserRecord,
 } from "./auth.serializer";
 import { HashService } from "./services/hash.service";
 import type { AuthTokenPayload } from "./types/auth-token-payload";
+
 import { durationToMilliseconds } from "#common/utils/token-duration";
-import { EmailQueueService } from "../email/email-queue.service";
+import { getApiEnv } from "#config/env";
 
 type InternalAuthTokens = AuthTokens & {
   refreshTokenId: string;

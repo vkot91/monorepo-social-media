@@ -1,11 +1,17 @@
 import { z } from "zod";
 
-import type { CreatePostInput, ListPostsQueryInput, UpdatePostInput } from "./types";
 import { SchemaShape } from "../utils/schemaShape.type";
+import type { CreatePostInput, ListPostsQueryInput, UpdatePostInput } from "./types";
 
 export const postVisibilitySchema = z.enum(["PUBLIC", "FRIENDS"]);
 
-const postContentSchema = z.string().trim().min(1).max(5000);
+const postContentSchema = z
+  .string()
+  .trim()
+  .min(1, {
+    message: "Please provide a content",
+  })
+  .max(5000);
 const postImageUrlSchema = z.string().url().nullable();
 
 export const createPostSchema = z.object({

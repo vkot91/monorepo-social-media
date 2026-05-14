@@ -1,15 +1,16 @@
 import { Body, Controller, Delete, HttpCode, HttpStatus, Param, Patch, Post } from "@nestjs/common";
 import {
-  friendshipRequestStatusSchema,
-  targetUserSchema,
   type FriendshipRequestStatusInput,
+  friendshipRequestStatusSchema,
   type TargetUserInput,
+  targetUserSchema,
 } from "@social/contracts";
+
+import { FriendshipsService } from "./friendships.service";
 
 import { ZodValidationPipe } from "#common/pipes/zod-validation.pipe";
 import { CurrentUser } from "#modules/auth/decorators/current-user.decorator";
 import type { AuthTokenPayload } from "#modules/auth/types/auth-token-payload";
-import { FriendshipsService } from "./friendships.service";
 
 @Controller("friendships")
 export class FriendshipsController {

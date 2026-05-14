@@ -1,8 +1,7 @@
 import { PrismaPg } from "@prisma/adapter-pg";
 
-import { PrismaClient } from "./generated/prisma/client";
-
 import { getDatabaseUrl } from "./env";
+import { PrismaClient } from "./generated/prisma/client";
 
 type GlobalWithPrisma = typeof globalThis & {
   socialPrisma?: PrismaClient;

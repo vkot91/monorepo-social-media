@@ -1,5 +1,5 @@
-import { EMAIL_JOB_NAMES } from "./email-queue.constants";
 import { EmailProcessor } from "./email.processor";
+import { EMAIL_JOB_NAMES } from "./email-queue.constants";
 
 describe("EmailProcessor", () => {
   it("sends welcome email jobs", async () => {
