@@ -1,6 +1,8 @@
-import { describe, expect, it, vi } from "vitest";
 import type { AuthResponse } from "@social/contracts";
+import { describe, expect, it, vi } from "vitest";
+
 import { setAuthCookies } from "#/lib/api/auth/cookies";
+
 import { persistAuthSession } from "./session";
 
 vi.mock("#/lib/api/auth/cookies", () => ({

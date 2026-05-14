@@ -1,9 +1,10 @@
 import { cva, type VariantProps } from "class-variance-authority";
-import { forwardRef, type ButtonHTMLAttributes } from "react";
+import { type ButtonHTMLAttributes, forwardRef } from "react";
+
 import { cn } from "#/lib/utils";
 
 export const buttonVariants = cva(
-  "inline-flex min-h-11 items-center justify-center rounded-lg px-5 text-sm font-extrabold no-underline transition-colors focus-visible:outline-none focus-visible:ring-4 disabled:cursor-not-allowed disabled:opacity-65",
+  "inline-flex  items-center justify-center rounded-lg text-sm font-extrabold no-underline transition-colors focus-visible:outline-none focus-visible:ring-4 disabled:cursor-not-allowed disabled:opacity-65",
   {
     defaultVariants: {
       size: "default",
@@ -12,7 +13,7 @@ export const buttonVariants = cva(
     variants: {
       size: {
         default: "min-h-11 px-5",
-        sm: "min-h-9 px-4",
+        sm: "min-h-9 px-3",
         lg: "min-h-12 px-6 text-base",
       },
       variant: {

@@ -1,5 +1,6 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import { ApiRequestError, AuthRequiredError } from "../errors";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+import { ApiRequestError, AuthRequiredError } from "../utils/errors";
 import { appendQueryParams, createRequest, parseJsonResponse } from "./base-request";
 
 vi.mock("#/env", () => ({
@@ -45,6 +46,22 @@ describe("parseJsonResponse", () => {
     });
   });
 
+  it("falls back when the API error message is not a string", async () => {
+    await expect(
+      parseJsonResponse(
+        jsonResponse(
+          {
+            errors: {
+              email: ["Enter a valid email."],
+            },
+            message: ["email: Enter a valid email."],
+          },
+          { status: 400 },
+        ),
+      ),
+    ).rejects.toEqual(new ApiRequestError("Request failed", 400));
+  });
+
   it("falls back to the status text when the error body is not JSON", async () => {
     await expect(
       parseJsonResponse(new Response("not-json", { status: 503, statusText: "Unavailable" })),
@@ -54,7 +71,12 @@ describe("parseJsonResponse", () => {
 
 describe("createRequest", () => {
   beforeEach(() => {
+    vi.useRealTimers();
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse({ id: "post-1" })));
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it("builds authenticated server requests against the API origin", async () => {
@@ -142,7 +164,11 @@ describe("createRequest", () => {
   });
 
   it("uses relative URLs and same-origin credentials for web paths", async () => {
-    const request = createRequest();
+    const request = createRequest() as (
+      path: "/api/auth/logout",
+      method: "POST",
+      options: Record<string, never>,
+    ) => Promise<unknown>;
 
     await request("/api/auth/logout", "POST", {});
 
@@ -183,5 +209,234 @@ describe("createRequest", () => {
         retryOnUnauthorized: false,
       }),
     ).rejects.toEqual(new ApiRequestError("Unauthorized", 401));
+  });
+
+  it("retries GET requests after a network error", async () => {
+    vi.useFakeTimers();
+    const fetchMock = vi
+      .fn()
+      .mockRejectedValueOnce(new TypeError("network unavailable"))
+      .mockResolvedValueOnce(jsonResponse({ id: "post-1" }));
+    vi.stubGlobal("fetch", fetchMock);
+    const request = createRequest({
+      resolveAccessToken: vi.fn().mockResolvedValue("access-token"),
+    });
+
+    const response = request("/posts", "GET", {
+      queryParams: {},
+    });
+
+    await vi.advanceTimersByTimeAsync(0);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    await vi.advanceTimersByTimeAsync(250);
+    await expect(response).resolves.toEqual({ id: "post-1" });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("retries GET requests after a retryable server response", async () => {
+    vi.useFakeTimers();
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(new Response(null, { status: 503, statusText: "Unavailable" }))
+      .mockResolvedValueOnce(jsonResponse({ id: "post-1" }));
+    vi.stubGlobal("fetch", fetchMock);
+    const request = createRequest({
+      resolveAccessToken: vi.fn().mockResolvedValue("access-token"),
+    });
+
+    const response = request("/posts", "GET", {
+      queryParams: {},
+    });
+
+    await vi.advanceTimersByTimeAsync(0);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    await vi.advanceTimersByTimeAsync(250);
+    await expect(response).resolves.toEqual({ id: "post-1" });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("retries rate-limited responses using Retry-After capped by maxDelayMs", async () => {
+    vi.useFakeTimers();
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        jsonResponse(
+          { message: "Too many requests" },
+          {
+            headers: {
+              "retry-after": "10",
+            },
+            status: 429,
+          },
+        ),
+      )
+      .mockResolvedValueOnce(jsonResponse({ id: "post-1" }));
+    vi.stubGlobal("fetch", fetchMock);
+    const request = createRequest({
+      resolveAccessToken: vi.fn().mockResolvedValue("access-token"),
+    });
+
+    const response = request("/posts", "GET", {
+      queryParams: {},
+      retry: {
+        attempts: 1,
+        maxDelayMs: 100,
+      },
+    });
+
+    await vi.advanceTimersByTimeAsync(0);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    await vi.advanceTimersByTimeAsync(99);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    await vi.advanceTimersByTimeAsync(1);
+    await expect(response).resolves.toEqual({ id: "post-1" });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not retry GET requests when retry is disabled", async () => {
+    vi.useFakeTimers();
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(new Response(null, { status: 503, statusText: "Unavailable" }));
+    vi.stubGlobal("fetch", fetchMock);
+    const request = createRequest({
+      resolveAccessToken: vi.fn().mockResolvedValue("access-token"),
+    });
+
+    await expect(
+      request("/posts", "GET", {
+        queryParams: {},
+        retry: false,
+      }),
+    ).rejects.toEqual(new ApiRequestError("Unavailable", 503));
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not retry POST requests by default", async () => {
+    vi.useFakeTimers();
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(new Response(null, { status: 503, statusText: "Unavailable" }));
+    vi.stubGlobal("fetch", fetchMock);
+    const request = createRequest({
+      resolveAccessToken: vi.fn().mockResolvedValue("access-token"),
+    });
+
+    await expect(
+      request("/posts", "POST", {
+        body: {
+          content: "Hello",
+          imageUrl: null,
+          visibility: "PUBLIC",
+        },
+      }),
+    ).rejects.toEqual(new ApiRequestError("Unavailable", 503));
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("retries POST requests when retry is enabled", async () => {
+    vi.useFakeTimers();
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(new Response(null, { status: 503, statusText: "Unavailable" }))
+      .mockResolvedValueOnce(jsonResponse({ id: "post-1" }));
+    vi.stubGlobal("fetch", fetchMock);
+    const request = createRequest({
+      resolveAccessToken: vi.fn().mockResolvedValue("access-token"),
+    });
+
+    const response = request("/posts", "POST", {
+      body: {
+        content: "Hello",
+        imageUrl: null,
+        visibility: "PUBLIC",
+      },
+      retry: true,
+    });
+
+    await vi.advanceTimersByTimeAsync(0);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    await vi.advanceTimersByTimeAsync(250);
+    await expect(response).resolves.toEqual({ id: "post-1" });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not retry unauthorized responses", async () => {
+    vi.useFakeTimers();
+    const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 401 }));
+    vi.stubGlobal("fetch", fetchMock);
+    const request = createRequest({
+      resolveAccessToken: vi.fn().mockResolvedValue("expired-token"),
+    });
+
+    await expect(
+      request("/posts", "GET", {
+        queryParams: {},
+      }),
+    ).rejects.toBeInstanceOf(AuthRequiredError);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not retry validation responses", async () => {
+    vi.useFakeTimers();
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(jsonResponse({ message: "Invalid content" }, { status: 400 }));
+    vi.stubGlobal("fetch", fetchMock);
+    const request = createRequest({
+      resolveAccessToken: vi.fn().mockResolvedValue("access-token"),
+    });
+
+    await expect(
+      request("/posts", "POST", {
+        body: {
+          content: "",
+          imageUrl: null,
+          visibility: "PUBLIC",
+        },
+        retry: true,
+      }),
+    ).rejects.toEqual(new ApiRequestError("Invalid content", 400));
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not retry aborted requests", async () => {
+    vi.useFakeTimers();
+    const abortError = new DOMException("The operation was aborted.", "AbortError");
+    const fetchMock = vi.fn().mockRejectedValue(abortError);
+    vi.stubGlobal("fetch", fetchMock);
+    const request = createRequest({
+      resolveAccessToken: vi.fn().mockResolvedValue("access-token"),
+    });
+
+    await expect(
+      request("/posts", "GET", {
+        queryParams: {},
+      }),
+    ).rejects.toBe(abortError);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("stops after configured retry attempts and parses the final failed response", async () => {
+    vi.useFakeTimers();
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(new Response(null, { status: 503, statusText: "Unavailable" }))
+      .mockResolvedValueOnce(new Response(null, { status: 503, statusText: "Unavailable" }))
+      .mockResolvedValueOnce(new Response(null, { status: 503, statusText: "Unavailable" }));
+    vi.stubGlobal("fetch", fetchMock);
+    const request = createRequest({
+      resolveAccessToken: vi.fn().mockResolvedValue("access-token"),
+    });
+
+    const response = request("/posts", "GET", {
+      queryParams: {},
+    });
+    const assertion = expect(response).rejects.toEqual(new ApiRequestError("Unavailable", 503));
+
+    await vi.advanceTimersByTimeAsync(250);
+    await vi.advanceTimersByTimeAsync(500);
+    await assertion;
+    expect(fetchMock).toHaveBeenCalledTimes(3);
   });
 });

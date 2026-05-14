@@ -1,7 +1,7 @@
 import { z } from "zod";
 
-import type { FriendshipRequestStatusInput, TargetUserInput } from "./types";
 import { SchemaShape } from "../utils/schemaShape.type";
+import type { FriendshipRequestStatusInput, TargetUserInput } from "./types";
 
 export const targetUserSchema = z.object({
   targetUserId: z.string().uuid(),

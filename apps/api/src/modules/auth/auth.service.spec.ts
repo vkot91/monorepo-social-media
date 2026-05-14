@@ -1,12 +1,13 @@
 import { ConflictException, UnauthorizedException } from "@nestjs/common";
 
+import { AuthService } from "./auth.service";
+
 import {
   buildAuthUserRecord,
   buildRefreshPayload,
   buildStoredRefreshTokenRecord,
 } from "#test/factories/auth.factory";
 import { mockedPrisma } from "#test/prisma.mock";
-import { AuthService } from "./auth.service";
 
 jest.mock("../../config/env", () => ({
   getApiEnv: jest.fn(() => ({

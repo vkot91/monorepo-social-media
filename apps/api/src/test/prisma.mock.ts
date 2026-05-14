@@ -1,5 +1,5 @@
 import type { PrismaClient } from "@social/database";
-import { mockDeep, type DeepMockProxy } from "jest-mock-extended";
+import { type DeepMockProxy, mockDeep } from "jest-mock-extended";
 
 export type PrismaMock = DeepMockProxy<PrismaClient>;
 

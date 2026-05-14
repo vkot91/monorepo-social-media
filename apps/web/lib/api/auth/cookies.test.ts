@@ -1,4 +1,6 @@
+import { cookies } from "next/headers";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+
 import {
   accessTokenCookieName,
   clearAuthCookies,
@@ -7,7 +9,6 @@ import {
   refreshTokenCookieName,
   setAuthCookies,
 } from "./cookies";
-import { cookies } from "next/headers";
 
 vi.mock("next/headers", () => ({
   cookies: vi.fn(),

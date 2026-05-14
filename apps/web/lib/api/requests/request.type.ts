@@ -1,4 +1,4 @@
-import { AuthApiRoutes } from "../auth/actions.type";
+import { AuthApiRoutes } from "../auth";
 import { PostsApiRoutes } from "../posts";
 import { ApiRoute, RequestType } from "../types";
 
@@ -16,8 +16,17 @@ export type RouteConfig<
   TMethod extends MethodFor<TPath>,
 > = ApiRoutes[TPath][TMethod];
 
+export type RetryOptions = {
+  attempts?: number;
+  delayMs?: number;
+  maxDelayMs?: number;
+  retryMethods?: ApiMethod[];
+  retryStatuses?: number[];
+};
+
 export type BaseRequestOptions = {
   cache?: RequestCache;
+  retry?: boolean | RetryOptions;
   retryOnUnauthorized?: boolean;
 };
 

@@ -1,7 +1,7 @@
 import type { PostAuthorDto, PostDto } from "@social/contracts";
 import { PostVisibility } from "@social/database";
 
-import { serializePost, type PostWithAuthorRecord } from "#modules/posts/posts.serializer";
+import { type PostWithAuthorRecord,serializePost } from "#modules/posts/posts.serializer";
 
 export function buildPostAuthorDto(overrides: Partial<PostAuthorDto> = {}): PostAuthorDto {
   return {

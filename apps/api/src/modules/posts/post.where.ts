@@ -1,6 +1,5 @@
 import type { ListPostsQueryInput } from "@social/contracts";
-import type { Prisma } from "@social/database";
-import { FriendshipStatus, PostVisibility } from "@social/database";
+import { FriendshipStatus, PostVisibility,type Prisma  } from "@social/database";
 
 export function visiblePostsWhere(
   viewerId: string,

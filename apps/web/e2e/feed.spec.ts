@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+
 import { authenticate } from "./support/auth";
 
 test.describe("feed page", () => {

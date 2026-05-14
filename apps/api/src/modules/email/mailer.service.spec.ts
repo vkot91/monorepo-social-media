@@ -1,3 +1,9 @@
+import { createTransport } from "nodemailer";
+
+import { MailerService } from "./mailer.service";
+
+import { getApiEnv } from "#config/env";
+
 const mockSendMail = jest.fn();
 
 jest.mock("nodemailer", () => ({
@@ -16,12 +22,6 @@ jest.mock("#config/env", () => ({
     SMTP_USER: undefined,
   })),
 }));
-
-import { createTransport } from "nodemailer";
-
-import { getApiEnv } from "#config/env";
-
-import { MailerService } from "./mailer.service";
 
 describe("MailerService", () => {
   beforeEach(() => {

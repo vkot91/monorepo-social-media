@@ -1,13 +1,21 @@
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
+
 import { Card } from "#/components/ui/card";
-import { AuthRequiredError } from "#/lib/api/errors";
-import { PostsLoadingPlaceholder } from "#/components/posts/loading-placeholder";
-import { postsApi } from "#/lib/api/posts/actions";
+import { CreatePostForm, PostsLoadingPlaceholder } from "#/features/posts/components";
+import { serverRequest } from "#/lib/api/requests/server-request";
+import { AuthRequiredError } from "#/lib/api/utils/errors";
 
 async function getPosts() {
   try {
-    return await postsApi.list({ feed: "friends" });
+    return await serverRequest("/posts", "GET", {
+      queryParams: {
+        feed: "friends",
+      },
+      retry: {
+        attempts: 10,
+      },
+    });
   } catch (error) {
     if (error instanceof AuthRequiredError) {
       redirect("/login");
@@ -26,11 +34,9 @@ export default function FeedPage() {
           <h1 className="m-0 text-4xl font-extrabold tracking-normal">Your feed</h1>
         </div>
       </header>
-
-      <Card className="mb-5 text-slate-500" aria-label="Create post">
-        <p>What would you like to share?</p>
-      </Card>
-
+      <div className="mb-4">
+        <CreatePostForm />
+      </div>
       <Suspense fallback={<PostsLoadingPlaceholder />}>
         <FeedPosts />
       </Suspense>

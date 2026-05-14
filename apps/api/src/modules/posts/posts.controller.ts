@@ -11,18 +11,19 @@ import {
   Query,
 } from "@nestjs/common";
 import {
-  createPostSchema,
-  listPostsQuerySchema,
-  updatePostSchema,
   type CreatePostInput,
+  createPostSchema,
   type ListPostsQueryInput,
+  listPostsQuerySchema,
   type UpdatePostInput,
+  updatePostSchema,
 } from "@social/contracts";
+
+import { PostsService } from "./posts.service";
 
 import { ZodValidationPipe } from "#common/pipes/zod-validation.pipe";
 import { CurrentUser } from "#modules/auth/decorators/current-user.decorator";
 import type { AuthTokenPayload } from "#modules/auth/types/auth-token-payload";
-import { PostsService } from "./posts.service";
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 @Controller("posts")

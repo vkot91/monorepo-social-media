@@ -1,4 +1,5 @@
 import { CreatePostInput, ListPostsQueryInput, PostDto } from "@social/contracts";
+
 import { ApiRoute } from "../types";
 
 export type PostsApiRoutes = {

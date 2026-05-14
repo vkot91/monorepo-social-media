@@ -1,6 +1,7 @@
 /* global Buffer, process */
 
 import { createServer, IncomingMessage, ServerResponse } from "node:http";
+
 import { authErrors, authResponse, authTokens } from "./fixtures/auth.js";
 import { getPostScenario } from "./fixtures/posts.js";
 

@@ -1,4 +1,5 @@
 import type { AuthResponse } from "@social/contracts";
+
 import { setAuthCookies } from "#/lib/api/auth/cookies";
 
 export async function persistAuthSession(response: AuthResponse) {

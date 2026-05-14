@@ -1,6 +1,6 @@
 import { Module } from "@nestjs/common";
-import { JwtModule } from "@nestjs/jwt";
 import { APP_GUARD } from "@nestjs/core";
+import { JwtModule } from "@nestjs/jwt";
 
 import { EmailModule } from "../email/email.module";
 import { AuthController } from "./auth.controller";

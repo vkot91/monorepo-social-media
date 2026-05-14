@@ -1,18 +1,19 @@
 import { Body, Controller, HttpCode, HttpStatus, Post } from "@nestjs/common";
 import {
-  loginSchema,
-  logoutSchema,
-  refreshTokenSchema,
-  registerSchema,
   type LoginInput,
+  loginSchema,
   type LogoutInput,
+  logoutSchema,
   type RefreshTokenInput,
+  refreshTokenSchema,
   type RegisterInput,
+  registerSchema,
 } from "@social/contracts";
 
-import { ZodValidationPipe } from "#common/pipes/zod-validation.pipe";
 import { AuthService } from "./auth.service";
 import { PublicRoute, RefreshTokenRoute } from "./decorators/auth-route-type.decorator";
+
+import { ZodValidationPipe } from "#common/pipes/zod-validation.pipe";
 
 @Controller("auth")
 export class AuthController {

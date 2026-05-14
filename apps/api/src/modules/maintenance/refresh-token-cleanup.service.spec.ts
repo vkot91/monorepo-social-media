@@ -1,7 +1,8 @@
 import { Logger } from "@nestjs/common";
 
-import { mockedPrisma } from "#test/prisma.mock";
 import { RefreshTokenCleanupService } from "./refresh-token-cleanup.service";
+
+import { mockedPrisma } from "#test/prisma.mock";
 
 describe("RefreshTokenCleanupService", () => {
   beforeEach(() => {

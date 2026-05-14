@@ -1,16 +1,15 @@
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { PostsLoadingPlaceholder } from "#/components/posts/loading-placeholder";
-import { AuthRequiredError } from "#/lib/api/errors";
-import { postsApi } from "#/lib/api/posts/actions";
-import FeedPage, { FeedPosts } from "./page";
-import ProtectedLayout from "../layout";
+import { PostsLoadingPlaceholder } from "#/features/posts/components";
+import { serverRequest } from "#/lib/api/requests/server-request";
+import { AuthRequiredError } from "#/lib/api/utils/errors";
 
-vi.mock("#/lib/api/posts/actions", () => ({
-  postsApi: {
-    list: vi.fn(),
-  },
+import ProtectedLayout from "../layout";
+import FeedPage, { FeedPosts } from "./page";
+
+vi.mock("#/lib/api/requests/server-request", () => ({
+  serverRequest: vi.fn(),
 }));
 
 vi.mock("next/navigation", () => ({
@@ -33,12 +32,17 @@ describe("FeedPage", () => {
   });
 
   it("renders an empty protected feed", async () => {
-    vi.mocked(postsApi.list).mockResolvedValueOnce([]);
+    vi.mocked(serverRequest).mockResolvedValueOnce([]);
 
     render(await FeedPosts());
 
     expect(screen.getByRole("heading", { name: /no posts yet/i })).toBeInTheDocument();
-    expect(postsApi.list).toHaveBeenCalledWith({ feed: "friends" });
+    expect(serverRequest).toHaveBeenCalledWith("/posts", "GET", {
+      queryParams: {
+        feed: "friends",
+      },
+      retry: { attempts: 10 },
+    });
   });
 
   it("renders the posts loading state", () => {
@@ -60,7 +64,7 @@ describe("FeedPage", () => {
   });
 
   it("renders posts returned by the API", async () => {
-    vi.mocked(postsApi.list).mockResolvedValueOnce([
+    vi.mocked(serverRequest).mockResolvedValueOnce([
       {
         author: {
           avatarUrl: null,
@@ -84,7 +88,7 @@ describe("FeedPage", () => {
   });
 
   it("renders a temporary unavailable state when the API fails", async () => {
-    vi.mocked(postsApi.list).mockRejectedValueOnce(new Error("API unavailable"));
+    vi.mocked(serverRequest).mockRejectedValueOnce(new Error("API unavailable"));
 
     render(await FeedPosts());
 
@@ -92,7 +96,7 @@ describe("FeedPage", () => {
   });
 
   it("redirects to login when auth is required", async () => {
-    vi.mocked(postsApi.list).mockRejectedValueOnce(new AuthRequiredError());
+    vi.mocked(serverRequest).mockRejectedValueOnce(new AuthRequiredError());
 
     await expect(FeedPosts()).rejects.toThrow("redirect:/login");
   });

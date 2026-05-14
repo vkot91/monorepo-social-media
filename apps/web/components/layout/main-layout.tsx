@@ -1,6 +1,7 @@
-import type { ReactNode } from "react";
 import Link from "next/link";
-import { LogoutButton } from "#/components/auth/logout-button";
+import type { ReactNode } from "react";
+
+import { LogoutButton } from "#/features/auth/components/logout-button";
 
 type MainLayoutProps = {
   children: ReactNode;
@@ -28,4 +29,4 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
       <main className="mx-auto w-full max-w-5xl p-5 sm:p-8">{children}</main>
     </div>
   );
-}
+};

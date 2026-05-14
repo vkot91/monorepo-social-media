@@ -1,17 +1,13 @@
 import {
   AuthResponse,
   AuthTokens,
-  AuthUserDto,
   LoginInput,
   LogoutInput,
   RefreshTokenInput,
   RegisterInput,
 } from "@social/contracts";
-import { ApiRoute } from "../types";
 
-type AuthedUserResponse = {
-  user: AuthUserDto;
-};
+import { ApiRoute } from "../types";
 
 export type AuthApiRoutes = {
   "/auth/login": {
@@ -40,30 +36,6 @@ export type AuthApiRoutes = {
       auth: false;
       body: RegisterInput;
       response: AuthResponse;
-    }>;
-  };
-
-  "/api/auth/login": {
-    POST: ApiRoute<{
-      auth: false;
-      body: LoginInput;
-      requestType: "web";
-      response: AuthedUserResponse;
-    }>;
-  };
-  "/api/auth/logout": {
-    POST: ApiRoute<{
-      auth: false;
-      requestType: "web";
-      response: { ok: true };
-    }>;
-  };
-  "/api/auth/register": {
-    POST: ApiRoute<{
-      auth: false;
-      body: RegisterInput;
-      requestType: "web";
-      response: AuthedUserResponse;
     }>;
   };
 };

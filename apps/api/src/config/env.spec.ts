@@ -1,3 +1,9 @@
+import { existsSync } from "node:fs";
+
+import { parseApiEnv } from "@social/env";
+
+import { getApiEnv } from "./env";
+
 jest.mock("@social/env", () => ({
   parseApiEnv: jest.fn(() => ({
     NODE_ENV: "test",
@@ -16,12 +22,6 @@ jest.mock("node:fs", () => ({
   existsSync: jest.fn(() => false),
   readFileSync: jest.fn(),
 }));
-
-import { existsSync } from "node:fs";
-
-import { parseApiEnv } from "@social/env";
-
-import { getApiEnv } from "./env";
 
 describe("getApiEnv", () => {
   it("returns the parsed API environment", () => {

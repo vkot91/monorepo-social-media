@@ -1,7 +1,6 @@
 import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from "@nestjs/common";
-import { JwtService } from "@nestjs/jwt";
 import { Reflector } from "@nestjs/core";
-import { getApiEnv } from "#config/env";
+import { JwtService } from "@nestjs/jwt";
 
 import {
   AUTH_ROUTE_TYPE_METADATA_KEY,
@@ -9,6 +8,8 @@ import {
 } from "../decorators/auth-route-type.decorator";
 import type { AuthTokenPayload } from "../types/auth-token-payload";
 import type { AuthenticatedRequest } from "../types/authenticated-request";
+
+import { getApiEnv } from "#config/env";
 
 @Injectable()
 export class AccessTokenGuard implements CanActivate {

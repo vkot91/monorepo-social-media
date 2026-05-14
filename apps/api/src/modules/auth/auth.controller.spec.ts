@@ -1,7 +1,7 @@
-import { RefreshTokenGuard } from "./guards/refresh-token.guard";
 import { AuthController } from "./auth.controller";
 import type { AuthService } from "./auth.service";
 import { AUTH_ROUTE_TYPE_METADATA_KEY } from "./decorators/auth-route-type.decorator";
+import { RefreshTokenGuard } from "./guards/refresh-token.guard";
 
 describe("AuthController", () => {
   const authService = {

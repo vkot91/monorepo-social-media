@@ -1,4 +1,5 @@
 import Link from "next/link";
+
 import { buttonVariants } from "#/components/ui/button";
 import { cn } from "#/lib/utils";
 
@@ -7,13 +8,15 @@ export default function HomePage() {
     <main className="grid min-h-screen place-items-center p-5 sm:p-8">
       <section className="grid w-full max-w-6xl items-center gap-7 md:grid-cols-[minmax(0,1fr)_minmax(320px,480px)] md:gap-12">
         <div>
-          <p className="mb-3 text-xs font-extrabold uppercase tracking-[0.12em] text-emerald-700">Social Media</p>
+          <p className="mb-3 text-xs font-extrabold uppercase tracking-[0.12em] text-emerald-700">
+            Social Media
+          </p>
           <h1 className="max-w-3xl text-[44px] font-extrabold leading-[0.95] tracking-normal sm:text-6xl lg:text-[86px]">
             Share the day with people who matter.
           </h1>
           <p className="mt-5 max-w-xl text-lg leading-8 text-slate-500">
-            A focused social feed for posts, friendships, and everyday updates. Create an account to start building your
-            circle.
+            A focused social feed for posts, friendships, and everyday updates. Create an account to
+            start building your circle.
           </p>
           <div className="mt-7 flex flex-wrap gap-3">
             <Link className={buttonVariants()} href="/register">

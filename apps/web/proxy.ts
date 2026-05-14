@@ -1,13 +1,7 @@
-import { NextResponse, type NextRequest } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 
-const accessTokenCookieName = "social_access_token";
-const refreshTokenCookieName = "social_refresh_token";
-const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
-
-type RefreshResponse = {
-  accessToken: string;
-  refreshToken: string;
-};
+import { accessTokenCookieName, refreshTokenCookieName } from "./lib/api/auth/cookies";
+import { serverRequest } from "./lib/api/requests/server-request";
 
 function isJwtExpired(token: string) {
   const [, payload] = token.split(".");
@@ -63,19 +57,17 @@ export async function proxy(request: NextRequest) {
     return isRequestForAuthPage ? redirectToFeed(request) : NextResponse.next();
   }
 
-  const refreshResponse = await fetch(new URL("/auth/refresh", apiUrl), {
-    body: JSON.stringify({ refreshToken }),
-    headers: {
-      "content-type": "application/json",
+  const refreshResponse = await serverRequest("/auth/refresh", "POST", {
+    body: {
+      refreshToken,
     },
-    method: "POST",
-  }).catch(() => null);
+  });
 
-  if (!refreshResponse?.ok) {
+  if (!refreshResponse?.accessToken) {
     return isRequestForAuthPage ? NextResponse.next() : redirectToLogin(request);
   }
 
-  const tokens = (await refreshResponse.json()) as RefreshResponse;
+  const tokens = refreshResponse;
   const response = isRequestForAuthPage ? redirectToFeed(request) : NextResponse.next();
 
   response.cookies.set(accessTokenCookieName, tokens.accessToken, {

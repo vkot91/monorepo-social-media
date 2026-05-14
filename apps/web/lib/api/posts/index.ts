@@ -1,2 +1,2 @@
-export * from "./actions.type";
 export * from "./actions";
+export * from "./actions.types";
