@@ -9,14 +9,14 @@ import {
 type InputProps = InputHTMLAttributes<HTMLInputElement> & FieldControlProps;
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(
-  ({ className, invalid, ...props }, ref) => {
+  ({ className, invalid, radius, variant, ...props }, ref) => {
     const ariaInvalid = props["aria-invalid"];
 
     return (
       <input
         {...props}
         aria-invalid={getFieldControlAriaInvalid(invalid, ariaInvalid)}
-        className={fieldControlClassName({ ariaInvalid, className, invalid })}
+        className={fieldControlClassName({ ariaInvalid, className, invalid, radius, variant })}
         ref={ref}
       />
     );

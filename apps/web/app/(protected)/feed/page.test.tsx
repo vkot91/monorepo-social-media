@@ -20,6 +20,7 @@ vi.mock("next/navigation", () => ({
     refresh: vi.fn(),
     replace: vi.fn(),
   }),
+  usePathname: () => "/feed",
 }));
 
 describe("FeedPage", () => {
@@ -58,8 +59,24 @@ describe("FeedPage", () => {
       </ProtectedLayout>,
     );
 
-    expect(screen.getByRole("link", { name: /feed/i })).toHaveAttribute("href", "/feed");
-    expect(screen.getByRole("button", { name: /sign out/i })).toBeInTheDocument();
+    expect(screen.getAllByRole("link", { name: /home/i })[0]).toHaveAttribute("href", "/feed");
+    expect(screen.getAllByRole("link", { name: /friends/i })[0]).toHaveAttribute(
+      "href",
+      "/friends",
+    );
+    expect(screen.getAllByRole("link", { name: /messages/i })[0]).toHaveAttribute(
+      "href",
+      "/messages",
+    );
+    expect(screen.getAllByRole("link", { name: /profile/i })[0]).toHaveAttribute(
+      "href",
+      "/profile",
+    );
+    expect(screen.getAllByRole("link", { name: /settings/i })[0]).toHaveAttribute(
+      "href",
+      "/settings",
+    );
+    expect(screen.getAllByRole("button", { name: /sign out/i })[0]).toBeInTheDocument();
     expect(screen.getByText(/protected child/i)).toBeInTheDocument();
   });
 

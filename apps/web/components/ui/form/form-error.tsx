@@ -6,7 +6,7 @@ export const FormError = ({ children }: { children?: ReactNode }) => {
   }
 
   return (
-    <p className="m-0 font-bold text-red-700" role="alert">
+    <p className="m-0 font-bold text-danger" role="alert">
       {children}
     </p>
   );

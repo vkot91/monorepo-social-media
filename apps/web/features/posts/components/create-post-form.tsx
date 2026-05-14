@@ -16,10 +16,18 @@ export const CreatePostForm = () => {
 
   return (
     <FormCard action={formAction} className="max-w-full">
-      <TextArea invalid={!!contentError} minRows={4} name="content" aria-label="Create post" placeholder="What are you building today?" />
+      <TextArea
+        invalid={!!contentError}
+        minRows={2}
+        name="content"
+        aria-label="Create post"
+        placeholder="What are you building today?"
+        variant="borderless"
+        radius="2xl"
+      />
       <FieldError message={contentError} />
       <div className="text-right">
-        <Button size="sm" disabled={pending} type="submit">
+        <Button size="sm" loading={pending} type="submit">
           Post
         </Button>
       </div>

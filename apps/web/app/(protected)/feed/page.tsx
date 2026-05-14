@@ -30,7 +30,7 @@ export default function FeedPage() {
     <>
       <header className="mb-6 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
         <div>
-          <p className="mb-3 text-xs font-extrabold uppercase tracking-[0.12em] text-emerald-700">Protected feed</p>
+          <p className="mb-3 text-xs font-extrabold uppercase tracking-[0.12em] text-success">Protected feed</p>
           <h1 className="m-0 text-4xl font-extrabold tracking-normal">Your feed</h1>
         </div>
       </header>
@@ -52,16 +52,16 @@ export async function FeedPosts() {
       {posts === null ? (
         <Card>
           <h2 className="mb-2 mt-0 text-xl font-extrabold">Feed is temporarily unavailable</h2>
-          <p className="m-0 text-slate-500">The API could not be reached. Your session is still protected.</p>
+          <p className="m-0 text-muted-text">The API could not be reached. Your session is still protected.</p>
         </Card>
       ) : posts.length > 0 ? (
         posts.map((post) => (
           <Card className="grid gap-4" key={post.id}>
             <div className="flex items-center gap-3.5">
-              <div className="h-11 w-11 shrink-0 rounded-full bg-orange-300" />
+              <div className="h-11 w-11 shrink-0 rounded-full bg-warning" />
               <div>
                 <strong>{post.author.displayName}</strong>
-                <p className="mt-1 text-slate-500">@{post.author.username}</p>
+                <p className="mt-1 text-muted-text">@{post.author.username}</p>
               </div>
             </div>
             <p>{post.content}</p>
@@ -70,7 +70,7 @@ export async function FeedPosts() {
       ) : (
         <Card>
           <h2 className="mb-2 mt-0 text-xl font-extrabold">No posts yet</h2>
-          <p className="m-0 text-slate-500">
+          <p className="m-0 text-muted-text">
             This placeholder is ready for the feed once post creation UI is connected.
           </p>
         </Card>

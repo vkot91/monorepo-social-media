@@ -16,7 +16,7 @@ test.describe("feed page", () => {
     await page.goto("/feed");
 
     await expect(page.getByRole("heading", { name: "Your feed" })).toBeVisible();
-    await expect(page.getByRole("link", { name: "Feed" })).toHaveAttribute("href", "/feed");
+    await expect(page.getByRole("link", { name: "Home" })).toHaveAttribute("href", "/feed");
     await expect(page.getByRole("button", { name: "Sign out" })).toBeVisible();
     await expect(page.getByLabel("Create post")).toHaveAttribute("placeholder", "What are you building today?");
     await expect(page.getByLabel("Posts")).toContainText("Maya Johnson");

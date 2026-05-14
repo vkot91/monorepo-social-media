@@ -11,7 +11,7 @@ type FieldProps = LabelHTMLAttributes<HTMLLabelElement> & {
 
 export const Field = ({ children, className, error, label, ...props }: FieldProps) => {
   return (
-    <label className={cn("grid gap-2 font-bold text-slate-800", className)} {...props}>
+    <label className={cn("grid gap-2 font-bold text-text", className)} {...props}>
       <span>{label}</span>
       {children}
       <FieldError message={error} />

@@ -1,8 +1,31 @@
+import { cva, type VariantProps } from "class-variance-authority";
 import type { AriaAttributes } from "react";
 
 import { cn } from "#/lib/utils";
 
-export type FieldControlProps = {
+export const fieldControlVariants = cva(
+  "min-h-11 w-full px-3.5 text-sm text-text outline-none transition-colors placeholder:text-muted-text focus:border-primary focus:ring-4 focus:ring-primary/15 disabled:cursor-not-allowed disabled:bg-background disabled:opacity-70",
+  {
+    defaultVariants: {
+      radius: "lg",
+      variant: "borderless",
+    },
+    variants: {
+      radius: {
+        "2xl": "rounded-2xl",
+        lg: "rounded-lg",
+        md: "rounded-md",
+        xl: "rounded-xl",
+      },
+      variant: {
+        bordered: "border bg-surface",
+        borderless: "border bg-subtle-surface",
+      },
+    },
+  },
+);
+
+export type FieldControlProps = VariantProps<typeof fieldControlVariants> & {
   invalid?: boolean;
 };
 
@@ -30,13 +53,16 @@ export const fieldControlClassName = ({
   className,
   invalid,
   multiline,
+  radius,
+  variant,
 }: FieldControlClassNameOptions) => {
   const isInvalid = getFieldControlInvalidState(invalid, ariaInvalid);
+  const resolvedVariant = variant ?? "bordered";
 
   return cn(
-    "min-h-11 w-full rounded-lg border bg-white px-3.5 text-sm text-slate-900 outline-none transition-colors placeholder:text-slate-400 focus:border-blue-700 focus:ring-4 focus:ring-blue-700/15 disabled:cursor-not-allowed disabled:bg-stone-100 disabled:opacity-70",
-    multiline && "py-2",
-    isInvalid ? "border-red-600" : "border-stone-300",
+    fieldControlVariants({ radius, variant }),
+    multiline && "resize-none py-4 placeholder:text-base placeholder:font-bold placeholder:text-muted-text/75",
+    isInvalid ? "border-danger" : resolvedVariant === "bordered" ? "border-line" : "border-transparent",
     className,
   );
 };
