@@ -61,6 +61,7 @@ export async function proxy(request: NextRequest) {
     body: {
       refreshToken,
     },
+    auth: false,
   });
 
   if (!refreshResponse?.accessToken) {

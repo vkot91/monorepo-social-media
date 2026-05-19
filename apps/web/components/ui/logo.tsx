@@ -4,13 +4,13 @@ import Link from "next/link";
 
 import { cn } from "#/lib/utils";
 
-type AppLogoProps = {
+type LogoProps = {
   className?: string;
   href?: Route;
   size?: "default" | "sm";
 };
 
-export function AppLogo({ className, href, size = "default" }: AppLogoProps) {
+export function Logo({ className, href, size = "default" }: LogoProps) {
   const logo = (
     <span className={cn("inline-flex items-center gap-2.5 text-text", className)}>
       <span

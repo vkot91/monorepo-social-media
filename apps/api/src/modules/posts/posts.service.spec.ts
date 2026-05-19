@@ -1,10 +1,10 @@
 import { ForbiddenException, NotFoundException } from "@nestjs/common";
 import { FriendshipStatus, PostVisibility } from "@social/database";
 
-import { PostsService } from "./posts.service";
-
 import { buildPersistedPost, buildPostDto } from "#test/factories/post.factory";
 import { mockedPrisma } from "#test/prisma.mock";
+
+import { PostsService } from "./posts.service";
 
 const persistedPost = buildPersistedPost();
 

@@ -5,6 +5,7 @@ import { useState } from "react";
 
 import { Button } from "#/components/ui/button";
 import { logout } from "#/lib/api/auth/actions";
+import { useAuthStore } from "#/lib/store/auth";
 import { cn } from "#/lib/utils";
 
 type LogoutButtonProps = {
@@ -14,8 +15,11 @@ type LogoutButtonProps = {
 export const LogoutButton = ({ className }: LogoutButtonProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const { clearUser } = useAuthStore();
+
   async function handleLogout() {
     setIsSubmitting(true);
+    clearUser();
     await logout();
   }
 

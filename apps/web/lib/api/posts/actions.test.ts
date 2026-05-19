@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ApiRequestError, AuthRequiredError } from "#/lib/api/utils/errors";
 
-import { createIdleResponse } from "../requests/responses";
+import { createIdleActionResult } from "../requests/responses";
 import { serverRequest } from "../requests/server-request";
 import { createPost, type CreatePostState } from "./actions";
 
@@ -31,7 +31,7 @@ const createFormData = (values: Record<string, string>) => {
   return formData;
 };
 
-const createPostInitialState = createIdleResponse() satisfies CreatePostState;
+const createPostInitialState = createIdleActionResult() satisfies CreatePostState;
 
 describe("createPost", () => {
   beforeEach(() => {

@@ -3,14 +3,17 @@
 import { type CreatePostInput, createPostSchema, type PostDto } from "@social/contracts";
 import { revalidatePath } from "next/cache";
 
-import { createErrorResponse, createSuccessResponse } from "../requests/responses";
+import {
+  createErrorActionResult,
+  createSuccessActionResult,
+} from "../requests/responses";
 import { serverRequest } from "../requests/server-request";
-import { ApiErrorResponse } from "../types";
-import { generateCommonError } from "../utils/errors";
+import { ActionResult } from "../types";
+import { createCommonActionError } from "../utils/errors";
 
 type CreatePostField = Extract<keyof CreatePostInput, string>;
 
-export type CreatePostState = ApiErrorResponse<CreatePostField, PostDto>;
+export type CreatePostState = ActionResult<CreatePostField, PostDto>;
 
 // Example of server action with form data and useActionState hook
 const getStringValue = (formData: FormData, name: string) => {
@@ -30,7 +33,7 @@ export async function createPost(_prevState: CreatePostState, formData: FormData
   });
 
   if (!input.success) {
-    return createErrorResponse("Please check your post and try again.", input.error.flatten().fieldErrors);
+    return createErrorActionResult("Please check your post and try again.", input.error.flatten().fieldErrors);
   }
 
   try {
@@ -39,8 +42,8 @@ export async function createPost(_prevState: CreatePostState, formData: FormData
     });
     revalidatePath("/feed");
 
-    return createSuccessResponse("Post created.", post);
+    return createSuccessActionResult("Post created.", post);
   } catch (error) {
-    return generateCommonError(error, "Post creation is unavailable right now.");
+    return createCommonActionError(error, "Post creation is unavailable right now.");
   }
 }

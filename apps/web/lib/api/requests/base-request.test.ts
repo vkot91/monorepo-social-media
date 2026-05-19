@@ -1,13 +1,23 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { logger } from "#/lib/logger";
+
 import { ApiRequestError, AuthRequiredError } from "../utils/errors";
 import { appendQueryParams, createRequest, parseJsonResponse } from "./base-request";
 
 vi.mock("#/env", () => ({
   getWebEnv: vi.fn(() => ({
-    NEXT_PUBLIC_API_URL: "http://api.local",
+    NEXT_PUBLIC_API_URL: "http://localhost:3001",
     NODE_ENV: "test",
   })),
+}));
+
+vi.mock("#/lib/logger", () => ({
+  logger: {
+    error: vi.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+  },
 }));
 
 const jsonResponse = (body: unknown, init?: ResponseInit) =>
@@ -20,7 +30,7 @@ const jsonResponse = (body: unknown, init?: ResponseInit) =>
 
 describe("appendQueryParams", () => {
   it("serializes defined values and skips nullish values", () => {
-    const url = appendQueryParams(new URL("http://api.local/posts"), {
+    const url = appendQueryParams(new URL("http://localhost:3001/posts"), {
       authorId: null,
       feed: "friends",
       includeDrafts: false,
@@ -28,7 +38,7 @@ describe("appendQueryParams", () => {
       search: undefined,
     });
 
-    expect(url.toString()).toBe("http://api.local/posts?feed=friends&includeDrafts=false&page=2");
+    expect(url.toString()).toBe("http://localhost:3001/posts?feed=friends&includeDrafts=false&page=2");
   });
 });
 
@@ -38,9 +48,7 @@ describe("parseJsonResponse", () => {
   });
 
   it("throws API errors using the response message when available", async () => {
-    await expect(
-      parseJsonResponse(jsonResponse({ message: "Nope" }, { status: 422 })),
-    ).rejects.toMatchObject({
+    await expect(parseJsonResponse(jsonResponse({ message: "Nope" }, { status: 422 }))).rejects.toMatchObject({
       message: "Nope",
       status: 422,
     });
@@ -77,6 +85,7 @@ describe("createRequest", () => {
 
   afterEach(() => {
     vi.useRealTimers();
+    vi.clearAllMocks();
   });
 
   it("builds authenticated server requests against the API origin", async () => {
@@ -93,7 +102,7 @@ describe("createRequest", () => {
       cache: "no-store",
     });
 
-    expect(fetch).toHaveBeenCalledWith("http://api.local/posts", {
+    expect(fetch).toHaveBeenCalledWith("http://localhost:3001/posts", {
       body: JSON.stringify({
         content: "Hello",
         imageUrl: null,
@@ -104,9 +113,29 @@ describe("createRequest", () => {
       headers: {
         authorization: "Bearer access-token",
         "content-type": "application/json",
+        "x-request-id": expect.any(String),
       },
       method: "POST",
     });
+  });
+
+  it("adds one request id to outbound requests", async () => {
+    const request = createRequest({
+      resolveAccessToken: vi.fn().mockResolvedValue("access-token"),
+    });
+
+    await request("/posts", "GET", {
+      queryParams: {},
+    });
+
+    expect(fetch).toHaveBeenCalledWith(
+      "http://localhost:3001/posts",
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          "x-request-id": expect.any(String),
+        }),
+      }),
+    );
   });
 
   it("adds query params and omits nullish values", async () => {
@@ -122,7 +151,7 @@ describe("createRequest", () => {
     });
 
     expect(fetch).toHaveBeenCalledWith(
-      "http://api.local/posts?feed=friends",
+      "http://localhost:3001/posts?feed=friends",
       expect.objectContaining({
         method: "GET",
       }),
@@ -150,33 +179,40 @@ describe("createRequest", () => {
       body: {
         refreshToken: "refresh-token",
       },
+      auth: false,
     });
 
     expect(resolveAccessToken).not.toHaveBeenCalled();
     expect(fetch).toHaveBeenCalledWith(
-      "http://api.local/auth/logout",
+      "http://localhost:3001/auth/logout",
       expect.objectContaining({
-        headers: {
+        headers: expect.objectContaining({
           "content-type": "application/json",
-        },
+        }),
       }),
     );
   });
 
-  it("uses relative URLs and same-origin credentials for web paths", async () => {
+  it("uses relative URLs and same-origin credentials for explicit web requests", async () => {
     const request = createRequest() as (
       path: "/api/auth/logout",
       method: "POST",
-      options: Record<string, never>,
+      options: {
+        requestType: "web";
+      },
     ) => Promise<unknown>;
 
-    await request("/api/auth/logout", "POST", {});
+    await request("/api/auth/logout", "POST", {
+      requestType: "web",
+    });
 
     expect(fetch).toHaveBeenCalledWith("/api/auth/logout", {
       body: undefined,
       cache: undefined,
       credentials: "same-origin",
-      headers: {},
+      headers: {
+        "x-request-id": expect.any(String),
+      },
       method: "POST",
     });
   });
@@ -195,10 +231,7 @@ describe("createRequest", () => {
   });
 
   it("can surface unauthorized API responses when retry handling is disabled", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockResolvedValue(jsonResponse({ message: "Unauthorized" }, { status: 401 })),
-    );
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse({ message: "Unauthorized" }, { status: 401 })));
     const request = createRequest({
       resolveAccessToken: vi.fn().mockResolvedValue("expired-token"),
     });
@@ -231,6 +264,16 @@ describe("createRequest", () => {
     await vi.advanceTimersByTimeAsync(250);
     await expect(response).resolves.toEqual({ id: "post-1" });
     expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(logger.warn).toHaveBeenCalledWith(
+      "api_request_retry",
+      expect.objectContaining({
+        attempt: 1,
+        errorName: "TypeError",
+        method: "GET",
+        requestId: expect.any(String),
+        url: "http://localhost:3001/posts",
+      }),
+    );
   });
 
   it("retries GET requests after a retryable server response", async () => {
@@ -253,6 +296,56 @@ describe("createRequest", () => {
     await vi.advanceTimersByTimeAsync(250);
     await expect(response).resolves.toEqual({ id: "post-1" });
     expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("adds a fresh abort signal to retries so server fetches are not memoized together", async () => {
+    vi.useFakeTimers();
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(new Response(null, { status: 503, statusText: "Unavailable" }))
+      .mockResolvedValueOnce(jsonResponse({ id: "post-1" }));
+    vi.stubGlobal("fetch", fetchMock);
+    const request = createRequest({
+      resolveAccessToken: vi.fn().mockResolvedValue("access-token"),
+    });
+
+    const response = request("/posts", "GET", {
+      queryParams: {},
+    });
+
+    await vi.advanceTimersByTimeAsync(0);
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      1,
+      "http://localhost:3001/posts",
+      expect.not.objectContaining({
+        signal: expect.any(AbortSignal),
+      }),
+    );
+
+    await vi.advanceTimersByTimeAsync(250);
+    await expect(response).resolves.toEqual({ id: "post-1" });
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      "http://localhost:3001/posts",
+      expect.objectContaining({
+        signal: expect.any(AbortSignal),
+      }),
+    );
+    expect(fetchMock.mock.calls[0]?.[1]).toMatchObject({
+      headers: {
+        "x-request-id": fetchMock.mock.calls[1]?.[1]?.headers["x-request-id"],
+      },
+    });
+    expect(logger.warn).toHaveBeenCalledWith(
+      "api_request_retry",
+      expect.objectContaining({
+        attempt: 1,
+        method: "GET",
+        requestId: fetchMock.mock.calls[0]?.[1]?.headers["x-request-id"],
+        statusCode: 503,
+        url: "http://localhost:3001/posts",
+      }),
+    );
   });
 
   it("retries rate-limited responses using Retry-After capped by maxDelayMs", async () => {
@@ -295,9 +388,7 @@ describe("createRequest", () => {
 
   it("does not retry GET requests when retry is disabled", async () => {
     vi.useFakeTimers();
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValue(new Response(null, { status: 503, statusText: "Unavailable" }));
+    const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 503, statusText: "Unavailable" }));
     vi.stubGlobal("fetch", fetchMock);
     const request = createRequest({
       resolveAccessToken: vi.fn().mockResolvedValue("access-token"),
@@ -314,9 +405,7 @@ describe("createRequest", () => {
 
   it("does not retry POST requests by default", async () => {
     vi.useFakeTimers();
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValue(new Response(null, { status: 503, statusText: "Unavailable" }));
+    const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 503, statusText: "Unavailable" }));
     vi.stubGlobal("fetch", fetchMock);
     const request = createRequest({
       resolveAccessToken: vi.fn().mockResolvedValue("access-token"),
@@ -379,9 +468,7 @@ describe("createRequest", () => {
 
   it("does not retry validation responses", async () => {
     vi.useFakeTimers();
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValue(jsonResponse({ message: "Invalid content" }, { status: 400 }));
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ message: "Invalid content" }, { status: 400 }));
     vi.stubGlobal("fetch", fetchMock);
     const request = createRequest({
       resolveAccessToken: vi.fn().mockResolvedValue("access-token"),
@@ -438,5 +525,15 @@ describe("createRequest", () => {
     await vi.advanceTimersByTimeAsync(500);
     await assertion;
     expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(logger.error).toHaveBeenCalledWith(
+      "api_request_failed",
+      expect.objectContaining({
+        attempts: 3,
+        method: "GET",
+        requestId: expect.any(String),
+        statusCode: 503,
+        url: "http://localhost:3001/posts",
+      }),
+    );
   });
 });

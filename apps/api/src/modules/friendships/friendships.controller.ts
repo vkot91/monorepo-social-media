@@ -6,11 +6,11 @@ import {
   targetUserSchema,
 } from "@social/contracts";
 
-import { FriendshipsService } from "./friendships.service";
-
 import { ZodValidationPipe } from "#common/pipes/zod-validation.pipe";
 import { CurrentUser } from "#modules/auth/decorators/current-user.decorator";
 import type { AuthTokenPayload } from "#modules/auth/types/auth-token-payload";
+
+import { FriendshipsService } from "./friendships.service";
 
 @Controller("friendships")
 export class FriendshipsController {

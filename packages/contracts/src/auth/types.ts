@@ -13,9 +13,7 @@ export type AuthTokens = {
   refreshToken: string;
 };
 
-export type AuthResponse = AuthTokens & {
-  user: AuthUserDto;
-};
+export type AuthResponse = AuthTokens;
 
 export type RegisterInput = {
   displayName: string;

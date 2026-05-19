@@ -5,6 +5,7 @@ import { RefreshTokenGuard } from "./guards/refresh-token.guard";
 
 describe("AuthController", () => {
   const authService = {
+    getCurrentUser: jest.fn(),
     login: jest.fn(),
     logout: jest.fn(),
     refresh: jest.fn(),
@@ -52,6 +53,17 @@ describe("AuthController", () => {
     await controller.login(dto);
 
     expect(authService.login).toHaveBeenCalledWith(dto);
+  });
+
+  it("delegates current user lookup with the authenticated subject", async () => {
+    await controller.me({
+      email: "ada@example.com",
+      sub: "user-1",
+      type: "access",
+      username: "ada",
+    });
+
+    expect(authService.getCurrentUser).toHaveBeenCalledWith("user-1");
   });
 
   it("delegates refresh with the raw token", async () => {

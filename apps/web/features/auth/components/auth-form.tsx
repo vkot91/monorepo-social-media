@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { type FieldValues, type Path, useForm, type UseFormSetError } from "react-hook-form";
 
-import { AppLogo } from "#/components/layout/app-logo";
+import { Logo } from "#/components/ui";
 import { Button } from "#/components/ui/button";
 import { Field, FormCard, FormError, Input } from "#/components/ui/form";
 import { login, signup } from "#/lib/api/auth/actions";
@@ -43,7 +43,6 @@ const setServerErrors = <TValues extends FieldValues>(
     if (message) {
       setError(name as Path<TValues>, {
         message,
-        type: "server",
       });
     }
   }
@@ -62,7 +61,7 @@ function AuthHeader({ mode }: AuthFormProps) {
 
   return (
     <div>
-      <AppLogo className="mb-5" />
+      <Logo className="mb-5" />
       <h1 className="m-0 text-4xl font-extrabold tracking-normal">{copy.heading}</h1>
       <p className="text-muted-text">{copy.subheading}</p>
     </div>

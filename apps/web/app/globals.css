@@ -24,7 +24,8 @@
 }
 
 @layer base {
-  :root {
+  :root,
+  [data-theme="light"] {
     color-scheme: light;
     --app-color-background: #f6f8fa;
     --app-color-surface: #ffffff;
@@ -67,6 +68,30 @@
     --app-color-on-warning: #451a03;
     --app-color-skeleton: #334155;
     --app-color-skeleton-muted: #1f2937;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme]) {
+      color-scheme: dark;
+      --app-color-background: #030712;
+      --app-color-surface: #111827;
+      --app-color-subtle-surface: #1f2937;
+      --app-color-text: #f9fafb;
+      --app-color-muted-text: #94a3b8;
+      --app-color-line: #374151;
+      --app-color-line-strong: #4b5563;
+      --app-color-primary: #60a5fa;
+      --app-color-primary-hover: #3b82f6;
+      --app-color-on-primary: #082f49;
+      --app-color-success: #34d399;
+      --app-color-danger: #f87171;
+      --app-color-danger-hover: #ef4444;
+      --app-color-on-danger: #450a0a;
+      --app-color-warning: #fbbf24;
+      --app-color-on-warning: #451a03;
+      --app-color-skeleton: #334155;
+      --app-color-skeleton-muted: #1f2937;
+    }
   }
 
   body {

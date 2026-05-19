@@ -5,9 +5,9 @@ import { useActionState } from "react";
 import { Button } from "#/components/ui/button";
 import { FieldError, FormCard, TextArea } from "#/components/ui/form";
 import { createPost } from "#/lib/api/posts/actions";
-import { createIdleResponse } from "#/lib/api/requests/responses";
+import { createIdleActionResult } from "#/lib/api/requests/responses";
 
-const createPostInitialState = createIdleResponse();
+const createPostInitialState = createIdleActionResult();
 
 // Example of server action with form data and useActionState hook
 export const CreatePostForm = () => {

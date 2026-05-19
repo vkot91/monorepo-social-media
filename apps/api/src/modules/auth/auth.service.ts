@@ -2,20 +2,16 @@ import { randomUUID } from "node:crypto";
 
 import { ConflictException, Injectable, UnauthorizedException } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
-import type { AuthResponse, AuthTokens, LoginInput, RegisterInput } from "@social/contracts";
+import type { AuthResponse, AuthTokens, AuthUserDto, LoginInput, RegisterInput } from "@social/contracts";
 import { prisma } from "@social/database";
-
-import { EmailQueueService } from "../email/email-queue.service";
-import {
-  type AuthUserRecord,
-  authUserSelect,
-  serializeAuthUser,
-} from "./auth.serializer";
-import { HashService } from "./services/hash.service";
-import type { AuthTokenPayload } from "./types/auth-token-payload";
 
 import { durationToMilliseconds } from "#common/utils/token-duration";
 import { getApiEnv } from "#config/env";
+
+import { EmailQueueService } from "../email/email-queue.service";
+import { type AuthUserRecord, authUserSelect, serializeAuthUser } from "./auth.serializer";
+import { HashService } from "./services/hash.service";
+import type { AuthTokenPayload } from "./types/auth-token-payload";
 
 type InternalAuthTokens = AuthTokens & {
   refreshTokenId: string;
@@ -79,6 +75,21 @@ export class AuthService {
     }
 
     return this.createAuthResponse(user);
+  }
+
+  async getCurrentUser(userId: string): Promise<AuthUserDto> {
+    const user = await prisma.user.findUnique({
+      select: authUserSelect,
+      where: {
+        id: userId,
+      },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException("User no longer exists");
+    }
+
+    return serializeAuthUser(user);
   }
 
   async refresh(refreshToken: string): Promise<AuthTokens> {
@@ -168,7 +179,6 @@ export class AuthService {
 
     return {
       ...stripRefreshTokenId(tokens),
-      user: serializeAuthUser(user),
     };
   }
 

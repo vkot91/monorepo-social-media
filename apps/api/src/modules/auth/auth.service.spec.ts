@@ -1,13 +1,13 @@
 import { ConflictException, UnauthorizedException } from "@nestjs/common";
 
-import { AuthService } from "./auth.service";
-
 import {
   buildAuthUserRecord,
   buildRefreshPayload,
   buildStoredRefreshTokenRecord,
 } from "#test/factories/auth.factory";
 import { mockedPrisma } from "#test/prisma.mock";
+
+import { AuthService } from "./auth.service";
 
 jest.mock("../../config/env", () => ({
   getApiEnv: jest.fn(() => ({
@@ -91,15 +91,6 @@ describe("AuthService", () => {
     expect(result).toEqual({
       accessToken: "access-token",
       refreshToken: expect.stringMatching(/^refresh-token:/),
-      user: {
-        avatarUrl: null,
-        bio: null,
-        createdAt: "2026-05-05T10:00:00.000Z",
-        displayName: "Ada Lovelace",
-        email: "ada@example.com",
-        id: "user-1",
-        username: "ada",
-      },
     });
   });
 
@@ -162,11 +153,9 @@ describe("AuthService", () => {
         email: "ada@example.com",
       },
     });
-    expect(result).toMatchObject({
+    expect(result).toEqual({
       accessToken: "access-token",
-      user: {
-        id: "user-1",
-      },
+      refreshToken: expect.stringMatching(/^refresh-token:/),
     });
   });
 
@@ -194,6 +183,38 @@ describe("AuthService", () => {
       }),
     ).rejects.toBeInstanceOf(UnauthorizedException);
     expect(hashService.compare).not.toHaveBeenCalled();
+  });
+
+  it("returns the current authenticated user", async () => {
+    const { prisma, service } = createService();
+    prisma.user.findUnique.mockResolvedValue(persistedUser);
+
+    const result = await service.getCurrentUser("user-1");
+
+    expect(prisma.user.findUnique).toHaveBeenCalledWith({
+      select: expect.any(Object),
+      where: {
+        id: "user-1",
+      },
+    });
+    expect(result).toEqual({
+      avatarUrl: null,
+      bio: null,
+      createdAt: "2026-05-05T10:00:00.000Z",
+      displayName: "Ada Lovelace",
+      email: "ada@example.com",
+      id: "user-1",
+      username: "ada",
+    });
+  });
+
+  it("rejects current user lookup when the user no longer exists", async () => {
+    const { prisma, service } = createService();
+    prisma.user.findUnique.mockResolvedValue(null);
+
+    await expect(service.getCurrentUser("missing-user")).rejects.toBeInstanceOf(
+      UnauthorizedException,
+    );
   });
 
   it("rotates refresh tokens", async () => {

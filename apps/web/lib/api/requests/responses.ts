@@ -1,6 +1,6 @@
-import { ApiErrorResponse, ApiFieldErrors } from "../types";
+import { ActionResult, ApiFieldErrors } from "../types";
 
-export const createIdleResponse = <TField extends string = string, TData = null>(): ApiErrorResponse<
+export const createIdleActionResult = <TField extends string = string, TData = null>(): ActionResult<
   TField,
   TData
 > => ({
@@ -10,20 +10,20 @@ export const createIdleResponse = <TField extends string = string, TData = null>
   status: "idle",
 });
 
-export const createSuccessResponse = <TData = null, TField extends string = string>(
+export const createSuccessActionResult = <TData = null, TField extends string = string>(
   message: string | null = null,
   data: TData | null = null,
-): ApiErrorResponse<TField, TData> => ({
+): ActionResult<TField, TData> => ({
   data,
   errors: {},
   message,
   status: "success",
 });
 
-export const createErrorResponse = <TField extends string = string>(
+export const createErrorActionResult = <TField extends string = string>(
   message: string,
   errors: ApiFieldErrors<TField> = {},
-): ApiErrorResponse<TField> => ({
+): ActionResult<TField> => ({
   data: null,
   errors,
   message,

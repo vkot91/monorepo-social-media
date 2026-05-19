@@ -1,10 +1,10 @@
 import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 
+import { getApiEnv } from "#config/env";
+
 import type { AuthTokenPayload } from "../types/auth-token-payload";
 import type { AuthenticatedRequest } from "../types/authenticated-request";
-
-import { getApiEnv } from "#config/env";
 
 @Injectable()
 export class RefreshTokenGuard implements CanActivate {

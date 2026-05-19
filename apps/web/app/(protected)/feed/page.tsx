@@ -4,24 +4,36 @@ import { Suspense } from "react";
 import { Card } from "#/components/ui/card";
 import { CreatePostForm, PostsLoadingPlaceholder } from "#/features/posts/components";
 import { serverRequest } from "#/lib/api/requests/server-request";
-import { AuthRequiredError } from "#/lib/api/utils/errors";
+import { ApiRequestError, AuthRequiredError } from "#/lib/api/utils/errors";
+
+export const metadata = {
+  title: "Feed",
+};
 
 async function getPosts() {
   try {
-    return await serverRequest("/posts", "GET", {
+    const posts = await serverRequest("/posts", "GET", {
       queryParams: {
         feed: "friends",
       },
       retry: {
-        attempts: 10,
+        attempts: 3,
       },
     });
+
+    return {
+      posts,
+      status: "success" as const,
+    };
   } catch (error) {
     if (error instanceof AuthRequiredError) {
       redirect("/login");
     }
 
-    return null;
+    return {
+      message: error instanceof ApiRequestError ? error.message : "Feed is temporarily unavailable.",
+      status: "error" as const,
+    };
   }
 }
 
@@ -45,17 +57,17 @@ export default function FeedPage() {
 }
 
 export async function FeedPosts() {
-  const posts = await getPosts();
+  const result = await getPosts();
 
   return (
     <section className="grid gap-4" aria-label="Posts">
-      {posts === null ? (
+      {result.status === "error" ? (
         <Card>
           <h2 className="mb-2 mt-0 text-xl font-extrabold">Feed is temporarily unavailable</h2>
-          <p className="m-0 text-muted-text">The API could not be reached. Your session is still protected.</p>
+          <p className="m-0 text-muted-text">{result.message}</p>
         </Card>
-      ) : posts.length > 0 ? (
-        posts.map((post) => (
+      ) : result.posts.length > 0 ? (
+        result.posts.map((post) => (
           <Card className="grid gap-4" key={post.id}>
             <div className="flex items-center gap-3.5">
               <div className="h-11 w-11 shrink-0 rounded-full bg-warning" />
