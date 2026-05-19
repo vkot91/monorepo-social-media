@@ -19,22 +19,19 @@ import {
   updatePostSchema,
 } from "@social/contracts";
 
-import { PostsService } from "./posts.service";
-
 import { ZodValidationPipe } from "#common/pipes/zod-validation.pipe";
+import { delay } from "#common/utils/delay";
 import { CurrentUser } from "#modules/auth/decorators/current-user.decorator";
 import type { AuthTokenPayload } from "#modules/auth/types/auth-token-payload";
 
-const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+import { PostsService } from "./posts.service";
+
 @Controller("posts")
 export class PostsController {
   constructor(private readonly postsService: PostsService) {}
 
   @HttpPost()
-  create(
-    @CurrentUser() user: AuthTokenPayload,
-    @Body(new ZodValidationPipe(createPostSchema)) input: CreatePostInput,
-  ) {
+  create(@CurrentUser() user: AuthTokenPayload, @Body(new ZodValidationPipe(createPostSchema)) input: CreatePostInput) {
     return this.postsService.create(user.sub, input);
   }
 
@@ -43,7 +40,8 @@ export class PostsController {
     @CurrentUser() user: AuthTokenPayload,
     @Query(new ZodValidationPipe(listPostsQuerySchema)) query: ListPostsQueryInput,
   ) {
-    await wait(3000);
+    await delay(2_000);
+
     return this.postsService.list(user.sub, query);
   }
 

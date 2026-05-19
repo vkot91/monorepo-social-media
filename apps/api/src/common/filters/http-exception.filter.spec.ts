@@ -1,4 +1,4 @@
-import { BadRequestException, HttpException, HttpStatus } from "@nestjs/common";
+import { BadRequestException, HttpException, HttpStatus, Logger } from "@nestjs/common";
 
 import { HttpExceptionFilter } from "./http-exception.filter";
 
@@ -7,7 +7,7 @@ function createHost() {
   const status = jest.fn(() => ({ json }));
   const host = {
     switchToHttp: jest.fn(() => ({
-      getRequest: jest.fn(() => ({ url: "/test" })),
+      getRequest: jest.fn(() => ({ requestStartedAt: 100, url: "/test" })),
       getResponse: jest.fn(() => ({ status })),
     })),
   };
@@ -22,7 +22,16 @@ function createHost() {
 describe("HttpExceptionFilter", () => {
   const filter = new HttpExceptionFilter();
 
+  beforeEach(() => {
+    jest.spyOn(Logger.prototype, "error").mockImplementation();
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   it("serializes Nest HTTP exceptions", () => {
+    jest.spyOn(Date, "now").mockReturnValue(150);
     const { host, json, status } = createHost();
 
     filter.catch(new BadRequestException(["email must be an email"]), host as never);
@@ -34,6 +43,14 @@ describe("HttpExceptionFilter", () => {
       path: "/test",
       statusCode: HttpStatus.BAD_REQUEST,
       timestamp: expect.any(String),
+    });
+    expect(Logger.prototype.error).toHaveBeenCalledWith({
+      durationMs: 50,
+      errorName: "BadRequestException",
+      method: "UNKNOWN",
+      path: "/test",
+      requestId: expect.any(String),
+      statusCode: HttpStatus.BAD_REQUEST,
     });
   });
 

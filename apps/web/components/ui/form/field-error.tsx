@@ -3,5 +3,5 @@ export const FieldError = ({ message }: { message?: string }) => {
     return null;
   }
 
-  return <span className="text-sm font-bold text-red-700">{message}</span>;
+  return <span className="text-sm font-bold text-danger">{message}</span>;
 };

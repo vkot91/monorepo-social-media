@@ -12,15 +12,6 @@ vi.mock("#/lib/api/auth/cookies", () => ({
 const authResponse: AuthResponse = {
   accessToken: "access-token",
   refreshToken: "refresh-token",
-  user: {
-    avatarUrl: null,
-    bio: null,
-    createdAt: "2026-05-07T10:00:00.000Z",
-    displayName: "Maya Johnson",
-    email: "maya@example.com",
-    id: "user-1",
-    username: "maya",
-  },
 };
 
 describe("persistAuthSession", () => {

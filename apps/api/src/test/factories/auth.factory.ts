@@ -1,7 +1,5 @@
-import type { AuthUserDto } from "@social/contracts";
 import type { RefreshToken, User } from "@social/database";
 
-import { serializeAuthUser } from "#modules/auth/auth.serializer";
 import type { AuthTokenPayload } from "#modules/auth/types/auth-token-payload";
 
 export type StoredRefreshTokenRecord = RefreshToken & {
@@ -19,13 +17,6 @@ export function buildAuthUserRecord(overrides: Partial<User> = {}): User {
     passwordHash: "hashed-password",
     updatedAt: new Date("2026-05-05T10:00:00.000Z"),
     username: "ada",
-    ...overrides,
-  };
-}
-
-export function buildAuthUserDto(overrides: Partial<AuthUserDto> = {}): AuthUserDto {
-  return {
-    ...serializeAuthUser(buildAuthUserRecord()),
     ...overrides,
   };
 }

@@ -1,4 +1,4 @@
-import { Body, Controller, HttpCode, HttpStatus, Post } from "@nestjs/common";
+import { Body, Controller, Get, HttpCode, HttpStatus, Post } from "@nestjs/common";
 import {
   type LoginInput,
   loginSchema,
@@ -10,10 +10,12 @@ import {
   registerSchema,
 } from "@social/contracts";
 
+import { ZodValidationPipe } from "#common/pipes/zod-validation.pipe";
+
 import { AuthService } from "./auth.service";
 import { PublicRoute, RefreshTokenRoute } from "./decorators/auth-route-type.decorator";
-
-import { ZodValidationPipe } from "#common/pipes/zod-validation.pipe";
+import { CurrentUser } from "./decorators/current-user.decorator";
+import type { AuthTokenPayload } from "./types/auth-token-payload";
 
 @Controller("auth")
 export class AuthController {
@@ -30,6 +32,11 @@ export class AuthController {
   @Post("login")
   login(@Body(new ZodValidationPipe(loginSchema)) input: LoginInput) {
     return this.authService.login(input);
+  }
+
+  @Get("me")
+  me(@CurrentUser() user: AuthTokenPayload) {
+    return this.authService.getCurrentUser(user.sub);
   }
 
   @HttpCode(HttpStatus.OK)

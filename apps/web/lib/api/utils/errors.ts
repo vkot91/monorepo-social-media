@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 
-import { createErrorResponse } from "../requests/responses";
-import { ApiErrorResponse, ApiFieldErrors } from "../types";
+import { createErrorActionResult } from "../requests/responses";
+import { ActionResult, ApiFieldErrors } from "../types";
 
 export class AuthRequiredError extends Error {
   constructor() {
@@ -21,17 +21,17 @@ export class ApiRequestError extends Error {
   }
 }
 
-export const generateCommonError = <TField extends string = string>(
+export const createCommonActionError = <TField extends string = string>(
   error: unknown,
   fallbackMessage = "Failed to perform the request. Please try again.",
-): ApiErrorResponse<TField> => {
+): ActionResult<TField> => {
   if (error instanceof AuthRequiredError) {
     redirect("/login");
   }
 
   if (error instanceof ApiRequestError) {
-    return createErrorResponse(error.message, error.errors as ApiFieldErrors<TField>);
+    return createErrorActionResult(error.message, error.errors as ApiFieldErrors<TField>);
   }
 
-  return createErrorResponse(fallbackMessage);
+  return createErrorActionResult(fallbackMessage);
 };

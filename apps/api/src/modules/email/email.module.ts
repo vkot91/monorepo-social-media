@@ -1,12 +1,12 @@
 import { BullModule } from "@nestjs/bullmq";
 import { Module } from "@nestjs/common";
 
+import { getApiEnv } from "#config/env";
+
 import { EmailProcessor } from "./email.processor";
 import { EMAIL_QUEUE_NAME } from "./email-queue.constants";
 import { EmailQueueService } from "./email-queue.service";
 import { MailerService } from "./mailer.service";
-
-import { getApiEnv } from "#config/env";
 
 @Module({
   exports: [EmailQueueService],

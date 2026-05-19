@@ -61,6 +61,7 @@ export async function proxy(request: NextRequest) {
     body: {
       refreshToken,
     },
+    auth: false,
   });
 
   if (!refreshResponse?.accessToken) {
@@ -89,5 +90,13 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/feed/:path*", "/login", "/register"],
+  matcher: [
+    "/feed/:path*",
+    "/friends/:path*",
+    "/messages/:path*",
+    "/profile/:path*",
+    "/settings/:path*",
+    "/login",
+    "/register",
+  ],
 };

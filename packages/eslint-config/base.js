@@ -46,8 +46,8 @@ export const config = [
             ["^node:"],
             // 3. External packages
             ["^@?\\w"],
-            // 4. Internal aliases (e.g. @/components, ~/utils)
-            ["^#/", "^~/"],
+            // 4. Internal aliases (e.g. #/components, #modules/*, ~/utils)
+            ["^#", "^~/"],
             // 5. Relative imports — parent dirs first, then siblings
             ["^\\.\\./", "^\\./"],
             // 6. Style/asset imports last
@@ -102,8 +102,8 @@ export const config = [
       "import/no-unresolved": [
         "error",
         {
-          // '#' is a valid path alias prefix — resolver handles it
-          ignore: ["^#/"],
+          // '#' is a valid path alias prefix — TypeScript owns validation for it
+          ignore: ["^#"],
         },
       ],
 

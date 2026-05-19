@@ -16,8 +16,8 @@ test.describe("feed page", () => {
     await page.goto("/feed");
 
     await expect(page.getByRole("heading", { name: "Your feed" })).toBeVisible();
-    await expect(page.getByRole("link", { name: "Feed" })).toHaveAttribute("href", "/feed");
-    await expect(page.getByRole("button", { name: "Sign out" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Home" })).toHaveAttribute("href", "/feed");
+    await expect(page.getByRole("button", { name: "Open account menu" })).toBeVisible();
     await expect(page.getByLabel("Create post")).toHaveAttribute("placeholder", "What are you building today?");
     await expect(page.getByLabel("Posts")).toContainText("Maya Johnson");
     await expect(page.getByLabel("Posts")).toContainText("Planning a weekend photo walk downtown.");
@@ -38,14 +38,15 @@ test.describe("feed page", () => {
     await page.goto("/feed");
 
     await expect(page.getByRole("heading", { name: "Feed is temporarily unavailable" })).toBeVisible();
-    await expect(page.getByText("The API could not be reached")).toBeVisible();
+    await expect(page.getByText("API unavailable")).toBeVisible();
   });
 
   test("signs out and returns to login", async ({ context, page, baseURL }) => {
     await authenticate(context, baseURL!, "posts");
     await page.goto("/feed");
 
-    await page.getByRole("button", { name: "Sign out" }).click();
+    await page.getByRole("button", { name: "Open account menu" }).click();
+    await page.getByRole("menuitem", { name: "Logout" }).click();
 
     await expect(page).toHaveURL(/\/login$/);
     await expect(page.getByRole("heading", { name: "Welcome back" })).toBeVisible();

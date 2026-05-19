@@ -5,9 +5,9 @@ import { useActionState } from "react";
 import { Button } from "#/components/ui/button";
 import { FieldError, FormCard, TextArea } from "#/components/ui/form";
 import { createPost } from "#/lib/api/posts/actions";
-import { createIdleResponse } from "#/lib/api/requests/responses";
+import { createIdleActionResult } from "#/lib/api/requests/responses";
 
-const createPostInitialState = createIdleResponse();
+const createPostInitialState = createIdleActionResult();
 
 // Example of server action with form data and useActionState hook
 export const CreatePostForm = () => {
@@ -16,10 +16,18 @@ export const CreatePostForm = () => {
 
   return (
     <FormCard action={formAction} className="max-w-full">
-      <TextArea invalid={!!contentError} minRows={4} name="content" aria-label="Create post" placeholder="What are you building today?" />
+      <TextArea
+        invalid={!!contentError}
+        minRows={2}
+        name="content"
+        aria-label="Create post"
+        placeholder="What are you building today?"
+        variant="borderless"
+        radius="2xl"
+      />
       <FieldError message={contentError} />
       <div className="text-right">
-        <Button size="sm" disabled={pending} type="submit">
+        <Button size="sm" loading={pending} type="submit">
           Post
         </Button>
       </div>

@@ -1,32 +1,27 @@
-import Link from "next/link";
 import type { ReactNode } from "react";
 
-import { LogoutButton } from "#/features/auth/components/logout-button";
+import { AppNavigation, Header } from "#/components/layout";
+import type { ThemePreference } from "#/lib/theme";
+
+import { Logo } from "../ui";
 
 type MainLayoutProps = {
   children: ReactNode;
+  theme: ThemePreference;
 };
 
-export const MainLayout = ({ children }: MainLayoutProps) => {
+export const MainLayout = ({ children, theme }: MainLayoutProps) => {
   return (
-    <div className="min-h-screen bg-stone-100">
-      <header className="border-b border-stone-300 bg-stone-50/90">
-        <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-4 px-5 py-4 sm:px-8">
-          <Link className="font-extrabold text-slate-900 no-underline" href="/feed">
-            Social Media
-          </Link>
-          <nav className="flex items-center gap-2" aria-label="Primary navigation">
-            <Link
-              className="rounded-lg px-3 py-2 text-sm font-bold text-slate-600 no-underline hover:bg-stone-200"
-              href="/feed"
-            >
-              Feed
-            </Link>
-            <LogoutButton />
-          </nav>
-        </div>
-      </header>
-      <main className="mx-auto w-full max-w-5xl p-5 sm:p-8">{children}</main>
+    <div className="min-h-screen bg-background md:flex">
+      <aside className="sticky top-0 hidden h-screen w-72 shrink-0 flex-col border-r border-line bg-surface/95 px-4 py-5 md:flex">
+        <Logo className="mb-8 px-3" href="/feed" />
+        <AppNavigation layout="sidebar" />
+      </aside>
+
+      <div className="min-w-0 flex-1">
+        <Header theme={theme} />
+        <main className="mx-auto w-full max-w-6xl p-5 sm:p-8">{children}</main>
+      </div>
     </div>
   );
 };

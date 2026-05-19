@@ -6,9 +6,9 @@ export default function RegisterPage() {
   return (
     <>
       <AuthForm mode="register" />
-      <p className="m-0 text-slate-500">
+      <p className="m-0 text-muted-text">
         Already have an account?{" "}
-        <Link className="font-extrabold text-blue-700" href="/login">
+        <Link className="font-extrabold text-primary" href="/login">
           Sign in
         </Link>
       </p>

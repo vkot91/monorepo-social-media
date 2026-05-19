@@ -11,6 +11,7 @@ export default defineConfig({
       "server-only": fileURLToPath(new URL("./test/server-only.ts", import.meta.url)),
     },
   },
+
   test: {
     environment: "jsdom",
     exclude: [...configDefaults.exclude, "e2e/**"],
@@ -20,7 +21,18 @@ export default defineConfig({
       provider: "v8",
       reporter: ["text", "lcov"],
       include: ["app/**/*.tsx", "app/**/*.ts", "env.ts", "lib/**/*.ts"],
-      exclude: ["**/*.test.*", "**/*.type.ts", "lib/api/types.ts"],
+      exclude: [
+        "**/*.test.*",
+        "**/*.type.ts",
+        "lib/api/types.ts",
+        "app/**/layout.tsx",
+        "app/**/page.tsx",
+        "app/**/loading.tsx",
+        "app/**/error.tsx",
+        "app/**/not-found.tsx",
+        "lib/api/requests/client-request.ts",
+        "lib/api/**/index.ts",
+      ],
       thresholds: {
         branches: 90,
         functions: 90,

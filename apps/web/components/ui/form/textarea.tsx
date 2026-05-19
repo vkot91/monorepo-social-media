@@ -10,14 +10,14 @@ import {
 type TextAreaProps = TextareaAutosizeProps & FieldControlProps;
 
 export const TextArea = forwardRef<HTMLTextAreaElement, TextAreaProps>(
-  ({ className, invalid, ...props }, ref) => {
+  ({ className, invalid, radius, variant, ...props }, ref) => {
     const ariaInvalid = props["aria-invalid"];
 
     return (
       <TextareaAutosize
         {...props}
         aria-invalid={getFieldControlAriaInvalid(invalid, ariaInvalid)}
-        className={fieldControlClassName({ ariaInvalid, className, invalid, multiline: true })}
+        className={fieldControlClassName({ ariaInvalid, className, invalid, multiline: true, radius, variant })}
         ref={ref}
       />
     );

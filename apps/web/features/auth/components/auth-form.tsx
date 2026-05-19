@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { type FieldValues, type Path, useForm, type UseFormSetError } from "react-hook-form";
 
+import { Logo } from "#/components/ui";
 import { Button } from "#/components/ui/button";
 import { Field, FormCard, FormError, Input } from "#/components/ui/form";
 import { login, signup } from "#/lib/api/auth/actions";
@@ -42,7 +43,6 @@ const setServerErrors = <TValues extends FieldValues>(
     if (message) {
       setError(name as Path<TValues>, {
         message,
-        type: "server",
       });
     }
   }
@@ -61,9 +61,9 @@ function AuthHeader({ mode }: AuthFormProps) {
 
   return (
     <div>
-      <p className="mb-3 text-xs font-extrabold uppercase tracking-[0.12em] text-emerald-700">Social Media</p>
+      <Logo className="mb-5" />
       <h1 className="m-0 text-4xl font-extrabold tracking-normal">{copy.heading}</h1>
-      <p className="text-slate-500">{copy.subheading}</p>
+      <p className="text-muted-text">{copy.subheading}</p>
     </div>
   );
 }
@@ -78,8 +78,8 @@ function LoginAuthForm() {
     register,
     setError,
   } = useForm<LoginInput>({
-    mode: "onBlur",
     resolver: zodResolver(loginSchema),
+    mode: "onTouched",
   });
 
   async function onSubmit(values: LoginInput) {
@@ -124,7 +124,7 @@ function LoginAuthForm() {
 
       <FormError>{formError}</FormError>
 
-      <Button disabled={isSubmitting} type="submit">
+      <Button loading={isSubmitting} type="submit">
         {isSubmitting ? "Please wait..." : authCopy.login.button}
       </Button>
     </FormCard>
@@ -142,6 +142,7 @@ function RegisterAuthForm() {
     setError,
   } = useForm<RegisterInput>({
     resolver: zodResolver(registerSchema),
+    mode: "onTouched",
   });
 
   async function onSubmit(values: RegisterInput) {
@@ -191,7 +192,7 @@ function RegisterAuthForm() {
 
       <FormError>{formError}</FormError>
 
-      <Button disabled={isSubmitting} type="submit">
+      <Button loading={isSubmitting} type="submit">
         {isSubmitting ? "Please wait..." : authCopy.register.button}
       </Button>
     </FormCard>

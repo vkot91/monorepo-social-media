@@ -1,6 +1,7 @@
 import {
   AuthResponse,
   AuthTokens,
+  AuthUserDto,
   LoginInput,
   LogoutInput,
   RefreshTokenInput,
@@ -36,6 +37,12 @@ export type AuthApiRoutes = {
       auth: false;
       body: RegisterInput;
       response: AuthResponse;
+    }>;
+  };
+  "/auth/me": {
+    GET: ApiRoute<{
+      auth: true;
+      response: AuthUserDto;
     }>;
   };
 };

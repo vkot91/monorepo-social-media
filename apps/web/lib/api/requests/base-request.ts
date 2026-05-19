@@ -1,4 +1,7 @@
+import { randomUUID } from "node:crypto";
+
 import { getWebEnv } from "#/env";
+import { logger } from "#/lib/logger";
 
 import { ApiRequestError, AuthRequiredError } from "../utils/errors";
 import {
@@ -66,11 +69,7 @@ export async function parseJsonResponse<TResponse>(response: Response): Promise<
   return (await response.json()) as TResponse;
 }
 
-const buildRequestUrl = (
-  path: string,
-  requestType: RequestType,
-  queryParams?: Record<string, QueryValue>,
-) => {
+const buildRequestUrl = (path: string, requestType: RequestType, queryParams?: Record<string, QueryValue>) => {
   if (requestType === "web") {
     const url = appendQueryParams(new URL(path, "http://bff.local"), queryParams);
 
@@ -80,10 +79,7 @@ const buildRequestUrl = (
   return appendQueryParams(new URL(path, getWebEnv().NEXT_PUBLIC_API_URL), queryParams).toString();
 };
 
-const getRetrySettings = (
-  method: ApiMethod,
-  retry?: boolean | RetryOptions,
-): RetrySettings | null => {
+const getRetrySettings = (method: ApiMethod, retry?: boolean | RetryOptions): RetrySettings | null => {
   if (retry === false) {
     return null;
   }
@@ -113,12 +109,7 @@ const isRetryableResponse = (response: Response, retry: RetrySettings) => {
 };
 
 const isRetryableError = (error: unknown) => {
-  if (
-    typeof error === "object" &&
-    error !== null &&
-    "name" in error &&
-    error.name === "AbortError"
-  ) {
+  if (typeof error === "object" && error !== null && "name" in error && error.name === "AbortError") {
     return false;
   }
 
@@ -134,36 +125,86 @@ const sleep = (ms: number) =>
     setTimeout(resolve, ms);
   });
 
+const withRetrySignal = (init: RequestInit, retryNumber: number): RequestInit => {
+  if (retryNumber === 0) {
+    return init;
+  }
+
+  return {
+    ...init,
+    signal: new AbortController().signal,
+  };
+};
+
 const fetchWithRetry = async (
   url: string,
   init: RequestInit,
   retry: RetrySettings | null,
+  requestId: string,
   retryNumber = 0,
 ): Promise<Response> => {
   try {
-    const response = await fetch(url, init);
+    const response = await fetch(url, withRetrySignal(init, retryNumber));
 
     if (!retry || retryNumber >= retry.retries || !isRetryableResponse(response, retry)) {
+      if (retry && retryNumber >= retry.retries && isRetryableResponse(response, retry)) {
+        logger.error("api_request_failed", {
+          attempts: retryNumber + 1,
+          method: init.method,
+          requestId,
+          statusCode: response.status,
+          url,
+        });
+      }
+
       return response;
     }
 
-    await sleep(getRetryDelayMs(retryNumber + 1, retry));
+    const delayMs = getRetryDelayMs(retryNumber + 1, retry);
 
-    return fetchWithRetry(url, init, retry, retryNumber + 1);
+    logger.warn("api_request_retry", {
+      attempt: retryNumber + 1,
+      delayMs,
+      method: init.method,
+      requestId,
+      statusCode: response.status,
+      url,
+    });
+
+    await sleep(delayMs);
+
+    return fetchWithRetry(url, init, retry, requestId, retryNumber + 1);
   } catch (error) {
     if (!retry || retryNumber >= retry.retries || !isRetryableError(error)) {
+      if (retry && retryNumber >= retry.retries && isRetryableError(error)) {
+        logger.error("api_request_failed", {
+          attempts: retryNumber + 1,
+          errorName: error instanceof Error ? error.name : "UnknownError",
+          method: init.method,
+          requestId,
+          url,
+        });
+      }
+
       throw error;
     }
 
-    await sleep(getRetryDelayMs(retryNumber + 1, retry));
+    const delayMs = getRetryDelayMs(retryNumber + 1, retry);
 
-    return fetchWithRetry(url, init, retry, retryNumber + 1);
+    logger.warn("api_request_retry", {
+      attempt: retryNumber + 1,
+      delayMs,
+      errorName: error instanceof Error ? error.name : "UnknownError",
+      method: init.method,
+      requestId,
+      url,
+    });
+
+    await sleep(delayMs);
+
+    return fetchWithRetry(url, init, retry, requestId, retryNumber + 1);
   }
 };
-
-const isWebPath = (path: string) => path.startsWith("/api/");
-
-const isPublicPath = (path: string) => path.startsWith("/auth/") || path.startsWith("/api/auth/");
 
 export const createRequest = ({ resolveAccessToken }: RequestFactoryOptions = {}) => {
   return async function request<
@@ -175,15 +216,18 @@ export const createRequest = ({ resolveAccessToken }: RequestFactoryOptions = {}
     method: TMethod,
     options: StrictRequestOptions<RouteConfig<TPath, TMethod>, TOptions>,
   ): Promise<RouteResponse<RouteConfig<TPath, TMethod>>> {
-    const requestType: RequestType = options.requestType ?? (isWebPath(path) ? "web" : "server");
-    const requiresAuth = options.auth ?? !isPublicPath(path);
+    const requestType: RequestType = options.requestType ?? "server";
+    const requiresAuth = options.auth ?? true;
     const headers: HeadersInit = {};
     const body = "body" in options ? options.body : undefined;
     const queryParams = "queryParams" in options ? options.queryParams : undefined;
     const retrySettings = getRetrySettings(method, options.retry);
+    const requestId = randomUUID();
     if (body !== undefined) {
       headers["content-type"] = "application/json";
     }
+
+    headers["x-request-id"] = requestId;
 
     if (requestType === "server" && requiresAuth) {
       const accessToken = await resolveAccessToken?.();
@@ -195,11 +239,7 @@ export const createRequest = ({ resolveAccessToken }: RequestFactoryOptions = {}
       headers.authorization = `Bearer ${accessToken}`;
     }
 
-    const url = buildRequestUrl(
-      path,
-      requestType,
-      queryParams as Record<string, QueryValue> | undefined,
-    );
+    const url = buildRequestUrl(path, requestType, queryParams as Record<string, QueryValue> | undefined);
     const fetchOptions: RequestInit = {
       body: body !== undefined ? JSON.stringify(body) : undefined,
       cache: options.cache,
@@ -207,14 +247,9 @@ export const createRequest = ({ resolveAccessToken }: RequestFactoryOptions = {}
       headers,
       method,
     };
-    const response = await fetchWithRetry(url, fetchOptions, retrySettings);
+    const response = await fetchWithRetry(url, fetchOptions, retrySettings, requestId);
 
-    if (
-      response.status === 401 &&
-      requestType === "server" &&
-      requiresAuth &&
-      options.retryOnUnauthorized !== false
-    ) {
+    if (response.status === 401 && requestType === "server" && requiresAuth && options.retryOnUnauthorized !== false) {
       throw new AuthRequiredError();
     }
 

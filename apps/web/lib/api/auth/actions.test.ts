@@ -29,15 +29,6 @@ vi.mock("next/navigation", () => ({
 const authResponse: AuthResponse = {
   accessToken: "access-token",
   refreshToken: "refresh-token",
-  user: {
-    avatarUrl: null,
-    bio: null,
-    createdAt: "2026-05-07T10:00:00.000Z",
-    displayName: "Maya Johnson",
-    email: "maya@example.com",
-    id: "user-1",
-    username: "maya",
-  },
 };
 
 describe("auth actions", () => {
@@ -69,6 +60,7 @@ describe("auth actions", () => {
       });
 
       expect(serverRequest).toHaveBeenCalledWith("/auth/login", "POST", {
+        auth: false,
         body: {
           email: "maya@example.com",
           password: "password123",
@@ -148,6 +140,7 @@ describe("auth actions", () => {
       });
 
       expect(serverRequest).toHaveBeenCalledWith("/auth/register", "POST", {
+        auth: false,
         body: {
           displayName: "Maya Johnson",
           email: "maya@example.com",
@@ -201,6 +194,7 @@ describe("auth actions", () => {
       await expect(logout()).rejects.toThrow("redirect:/login");
 
       expect(serverRequest).toHaveBeenCalledWith("/auth/logout", "POST", {
+        auth: false,
         body: {
           refreshToken: "refresh-token",
         },
@@ -223,4 +217,5 @@ describe("auth actions", () => {
       expect(clearAuthCookies).not.toHaveBeenCalled();
     });
   });
+
 });

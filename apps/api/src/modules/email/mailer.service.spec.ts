@@ -1,8 +1,8 @@
 import { createTransport } from "nodemailer";
 
-import { MailerService } from "./mailer.service";
-
 import { getApiEnv } from "#config/env";
+
+import { MailerService } from "./mailer.service";
 
 const mockSendMail = jest.fn();
 

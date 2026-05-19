@@ -1,7 +1,100 @@
 @import "tailwindcss";
 
+@theme {
+  --color-background: var(--app-color-background);
+  --color-surface: var(--app-color-surface);
+  --color-subtle-surface: var(--app-color-subtle-surface);
+  --color-surface-subtle: var(--app-color-subtle-surface);
+  --color-text: var(--app-color-text);
+  --color-muted-text: var(--app-color-muted-text);
+  --color-text-muted: var(--app-color-muted-text);
+  --color-line: var(--app-color-line);
+  --color-line-strong: var(--app-color-line-strong);
+  --color-primary: var(--app-color-primary);
+  --color-primary-hover: var(--app-color-primary-hover);
+  --color-on-primary: var(--app-color-on-primary);
+  --color-success: var(--app-color-success);
+  --color-danger: var(--app-color-danger);
+  --color-danger-hover: var(--app-color-danger-hover);
+  --color-on-danger: var(--app-color-on-danger);
+  --color-warning: var(--app-color-warning);
+  --color-on-warning: var(--app-color-on-warning);
+  --color-skeleton: var(--app-color-skeleton);
+  --color-skeleton-muted: var(--app-color-skeleton-muted);
+}
+
 @layer base {
+  :root,
+  [data-theme="light"] {
+    color-scheme: light;
+    --app-color-background: #f6f8fa;
+    --app-color-surface: #ffffff;
+    --app-color-subtle-surface: #eff2f5;
+    --app-color-text: #0f172a;
+    --app-color-muted-text: #64748b;
+    --app-color-line: #e0e6ed;
+    --app-color-line-strong: #c7d0db;
+    --app-color-primary: #2563eb;
+    --app-color-primary-hover: #1d4ed8;
+    --app-color-on-primary: #ffffff;
+    --app-color-success: #059669;
+    --app-color-danger: #dc2626;
+    --app-color-danger-hover: #b91c1c;
+    --app-color-on-danger: #ffffff;
+    --app-color-warning: #da7512;
+    --app-color-on-warning: #ffffff;
+    --app-color-skeleton: #d8e0e8;
+    --app-color-skeleton-muted: #e8edf2;
+  }
+
+  .dark,
+  [data-theme="dark"] {
+    color-scheme: dark;
+    --app-color-background: #030712;
+    --app-color-surface: #111827;
+    --app-color-subtle-surface: #1f2937;
+    --app-color-text: #f9fafb;
+    --app-color-muted-text: #94a3b8;
+    --app-color-line: #374151;
+    --app-color-line-strong: #4b5563;
+    --app-color-primary: #60a5fa;
+    --app-color-primary-hover: #3b82f6;
+    --app-color-on-primary: #082f49;
+    --app-color-success: #34d399;
+    --app-color-danger: #f87171;
+    --app-color-danger-hover: #ef4444;
+    --app-color-on-danger: #450a0a;
+    --app-color-warning: #fbbf24;
+    --app-color-on-warning: #451a03;
+    --app-color-skeleton: #334155;
+    --app-color-skeleton-muted: #1f2937;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme]) {
+      color-scheme: dark;
+      --app-color-background: #030712;
+      --app-color-surface: #111827;
+      --app-color-subtle-surface: #1f2937;
+      --app-color-text: #f9fafb;
+      --app-color-muted-text: #94a3b8;
+      --app-color-line: #374151;
+      --app-color-line-strong: #4b5563;
+      --app-color-primary: #60a5fa;
+      --app-color-primary-hover: #3b82f6;
+      --app-color-on-primary: #082f49;
+      --app-color-success: #34d399;
+      --app-color-danger: #f87171;
+      --app-color-danger-hover: #ef4444;
+      --app-color-on-danger: #450a0a;
+      --app-color-warning: #fbbf24;
+      --app-color-on-warning: #451a03;
+      --app-color-skeleton: #334155;
+      --app-color-skeleton-muted: #1f2937;
+    }
+  }
+
   body {
-    @apply bg-stone-100 text-slate-800 antialiased;
+    @apply bg-background text-text antialiased;
   }
 }
