@@ -2,7 +2,7 @@
 
 import { createServer, IncomingMessage, ServerResponse } from "node:http";
 
-import { authErrors, authResponse, authTokens } from "./fixtures/auth.js";
+import { authErrors, authResponse, authTokens, authUser } from "./fixtures/auth.js";
 import { getPostScenario } from "./fixtures/posts.js";
 
 const port = Number(process.env.PLAYWRIGHT_API_PORT ?? 3210);
@@ -96,6 +96,16 @@ const server = createServer(async (request, response) => {
 
   if (request.method === "POST" && url.pathname === "/auth/logout") {
     json(response, 204, null);
+    return;
+  }
+
+  if (request.method === "GET" && url.pathname === "/auth/me") {
+    if (!getScenario(request)) {
+      json(response, 401, { message: "Authentication required" });
+      return;
+    }
+
+    json(response, 200, authUser);
     return;
   }
 

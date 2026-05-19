@@ -13,9 +13,7 @@ export const authTokens = {
   refreshToken: "refresh-token",
 };
 
-export const authResponse = {
-  ...authTokens,
-};
+export const authResponse = authTokens;
 
 export const authErrors = {
   emailAlreadyExists: { message: "Email already exists" },
