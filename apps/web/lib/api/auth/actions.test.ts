@@ -1,9 +1,9 @@
-import type { AuthResponse, AuthUserDto } from "@social/contracts";
+import type { AuthResponse } from "@social/contracts";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { serverRequest } from "../requests/server-request";
 import { ApiRequestError, AuthRequiredError } from "../utils/errors";
-import { getActiveUser, login, logout, signup } from "./actions";
+import { login, logout, signup } from "./actions";
 import { clearAuthCookies, getRefreshToken } from "./cookies";
 import { persistAuthSession } from "./session";
 
@@ -29,16 +29,6 @@ vi.mock("next/navigation", () => ({
 const authResponse: AuthResponse = {
   accessToken: "access-token",
   refreshToken: "refresh-token",
-};
-
-const authUser: AuthUserDto = {
-  avatarUrl: null,
-  bio: null,
-  createdAt: "2026-05-07T10:00:00.000Z",
-  displayName: "Maya Johnson",
-  email: "maya@example.com",
-  id: "user-1",
-  username: "maya",
 };
 
 describe("auth actions", () => {
@@ -228,24 +218,4 @@ describe("auth actions", () => {
     });
   });
 
-  describe("getActiveUser", () => {
-    it("returns the active user for server loaders", async () => {
-      vi.mocked(serverRequest).mockResolvedValueOnce(authUser);
-
-      await expect(getActiveUser()).resolves.toEqual(authUser);
-    });
-
-    it("redirects to login when auth is required", async () => {
-      vi.mocked(serverRequest).mockRejectedValueOnce(new AuthRequiredError());
-
-      await expect(getActiveUser()).rejects.toThrow("redirect:/login");
-    });
-
-    it("rethrows non-auth failures for the route boundary", async () => {
-      const error = new Error("profile unavailable");
-      vi.mocked(serverRequest).mockRejectedValueOnce(error);
-
-      await expect(getActiveUser()).rejects.toBe(error);
-    });
-  });
 });

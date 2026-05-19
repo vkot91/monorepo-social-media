@@ -536,4 +536,66 @@ describe("createRequest", () => {
       }),
     );
   });
+
+  it("stops after configured retry attempts and rethrows the final network error", async () => {
+    vi.useFakeTimers();
+    const networkError = new TypeError("network unavailable");
+    const fetchMock = vi.fn().mockRejectedValue(networkError);
+    vi.stubGlobal("fetch", fetchMock);
+    const request = createRequest({
+      resolveAccessToken: vi.fn().mockResolvedValue("access-token"),
+    });
+
+    const response = request("/posts", "GET", {
+      queryParams: {},
+    });
+    const assertion = expect(response).rejects.toBe(networkError);
+
+    await vi.advanceTimersByTimeAsync(250);
+    await vi.advanceTimersByTimeAsync(500);
+    await assertion;
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(logger.error).toHaveBeenCalledWith(
+      "api_request_failed",
+      expect.objectContaining({
+        attempts: 3,
+        errorName: "TypeError",
+        method: "GET",
+        requestId: expect.any(String),
+        url: "http://localhost:3001/posts",
+      }),
+    );
+  });
+
+  it("logs unknown errors when exhausted retries reject without an Error object", async () => {
+    vi.useFakeTimers();
+    const fetchMock = vi.fn().mockRejectedValue("network unavailable");
+    vi.stubGlobal("fetch", fetchMock);
+    const request = createRequest({
+      resolveAccessToken: vi.fn().mockResolvedValue("access-token"),
+    });
+
+    const response = request("/posts", "GET", {
+      queryParams: {},
+      retry: {
+        attempts: 1,
+        delayMs: 1,
+      },
+    });
+    const assertion = expect(response).rejects.toBe("network unavailable");
+
+    await vi.advanceTimersByTimeAsync(1);
+    await assertion;
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(logger.error).toHaveBeenCalledWith(
+      "api_request_failed",
+      expect.objectContaining({
+        attempts: 2,
+        errorName: "UnknownError",
+        method: "GET",
+        requestId: expect.any(String),
+        url: "http://localhost:3001/posts",
+      }),
+    );
+  });
 });

@@ -3,10 +3,7 @@
 import { type CreatePostInput, createPostSchema, type PostDto } from "@social/contracts";
 import { revalidatePath } from "next/cache";
 
-import {
-  createErrorActionResult,
-  createSuccessActionResult,
-} from "../requests/responses";
+import { createErrorActionResult, createSuccessActionResult } from "../requests/responses";
 import { serverRequest } from "../requests/server-request";
 import { ActionResult } from "../types";
 import { createCommonActionError } from "../utils/errors";

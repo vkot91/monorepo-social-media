@@ -2,12 +2,13 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { cookies } from "next/headers";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { PostsLoadingPlaceholder } from "#/features/posts/components";
+import { PostsLoadingPlaceholder } from "#/features/posts/components/loading-placeholder";
+import { PostsList } from "#/features/posts/components/posts-list";
 import { serverRequest } from "#/lib/api/requests/server-request";
 import { ApiRequestError, AuthRequiredError } from "#/lib/api/utils/errors";
 
 import ProtectedLayout from "../layout";
-import FeedPage, { FeedPosts } from "./page";
+import FeedPage from "./page";
 
 vi.mock("#/lib/api/requests/server-request", () => ({
   serverRequest: vi.fn(),
@@ -48,12 +49,12 @@ describe("FeedPage", () => {
   it("renders an empty protected feed", async () => {
     vi.mocked(serverRequest).mockResolvedValueOnce([]);
 
-    render(await FeedPosts());
+    render(await PostsList({ feedType: "all" }));
 
     expect(screen.getByRole("heading", { name: /no posts yet/i })).toBeInTheDocument();
     expect(serverRequest).toHaveBeenCalledWith("/posts", "GET", {
       queryParams: {
-        feed: "friends",
+        feed: "all",
       },
       retry: { attempts: 3 },
     });
@@ -132,7 +133,7 @@ describe("FeedPage", () => {
       },
     ]);
 
-    render(await FeedPosts());
+    render(await PostsList({ feedType: "all" }));
 
     expect(screen.getByText(/maya johnson/i)).toBeInTheDocument();
     expect(screen.getByText(/planning a weekend photo walk/i)).toBeInTheDocument();
@@ -141,7 +142,7 @@ describe("FeedPage", () => {
   it("renders a fallback state when the API fails unexpectedly", async () => {
     vi.mocked(serverRequest).mockRejectedValueOnce(new Error("API unavailable"));
 
-    render(await FeedPosts());
+    render(await PostsList({ feedType: "all" }));
 
     expect(screen.getByRole("heading", { name: /feed is temporarily unavailable/i })).toBeInTheDocument();
     expect(screen.getByText("Feed is temporarily unavailable.")).toBeInTheDocument();
@@ -150,7 +151,7 @@ describe("FeedPage", () => {
   it("renders the API error message when the feed request fails", async () => {
     vi.mocked(serverRequest).mockRejectedValueOnce(new ApiRequestError("Feed service is down", 503));
 
-    render(await FeedPosts());
+    render(await PostsList({ feedType: "all" }));
 
     expect(screen.getByText(/feed service is down/i)).toBeInTheDocument();
   });
@@ -158,6 +159,6 @@ describe("FeedPage", () => {
   it("redirects to login when auth is required", async () => {
     vi.mocked(serverRequest).mockRejectedValueOnce(new AuthRequiredError());
 
-    await expect(FeedPosts()).rejects.toThrow("redirect:/login");
+    await expect(PostsList({ feedType: "all" })).rejects.toThrow("redirect:/login");
   });
 });

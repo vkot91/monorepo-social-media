@@ -2,7 +2,7 @@ import { cookies } from "next/headers";
 import type { ReactNode } from "react";
 
 import { MainLayout } from "#/components/layout/main-layout";
-import { getActiveUser } from "#/lib/api/auth";
+import { getActiveUser } from "#/lib/api/auth/queries";
 import { parseThemePreference, themeCookieName } from "#/lib/theme";
 import { AuthProvider } from "#/providers/auth-provider";
 

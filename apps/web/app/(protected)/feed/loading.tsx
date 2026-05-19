@@ -1,4 +1,4 @@
-import { PostsLoadingPlaceholder } from "#/features/posts/components";
+import { PostsLoadingPlaceholder } from "#/features/posts/components/loading-placeholder";
 
 export default function Loading() {
   return (

@@ -1,12 +1,12 @@
 "use server";
 
-import { type AuthUserDto, type LoginInput, loginSchema, type RegisterInput, registerSchema } from "@social/contracts";
+import { type LoginInput, loginSchema, type RegisterInput, registerSchema } from "@social/contracts";
 import { redirect } from "next/navigation";
 
 import { createErrorActionResult, createSuccessActionResult } from "../requests/responses";
 import { serverRequest } from "../requests/server-request";
 import { ActionResult } from "../types";
-import { AuthRequiredError, createCommonActionError } from "../utils/errors";
+import { createCommonActionError } from "../utils/errors";
 import { clearAuthCookies, getRefreshToken } from "./cookies";
 import { persistAuthSession } from "./session";
 
@@ -75,16 +75,4 @@ export const logout = async () => {
   }
 
   redirect("/login");
-};
-
-export const getActiveUser = async (): Promise<AuthUserDto> => {
-  try {
-    return await serverRequest("/auth/me", "GET", {});
-  } catch (error) {
-    if (error instanceof AuthRequiredError) {
-      redirect("/login");
-    }
-
-    throw error;
-  }
 };
