@@ -1,5 +1,6 @@
-import { ArgumentsHost, Catch, ExceptionFilter, HttpException, HttpStatus, Logger } from "@nestjs/common";
+import { ArgumentsHost, Catch, ExceptionFilter, HttpException, HttpStatus } from "@nestjs/common";
 
+import { LoggingService } from "#common/logging/logging.service";
 import type { HttpRequestWithMetadata } from "#common/types/http-request";
 import { getRequestDurationMs } from "#common/utils/request-duration";
 import { getRequestId } from "#common/utils/request-id";
@@ -56,7 +57,7 @@ function getExceptionResponse(exception: unknown) {
 
 @Catch()
 export class HttpExceptionFilter implements ExceptionFilter {
-  private readonly logger = new Logger(HttpExceptionFilter.name);
+  constructor(private readonly loggingService: LoggingService) {}
 
   catch(exception: unknown, host: ArgumentsHost) {
     const context = host.switchToHttp();
@@ -65,14 +66,17 @@ export class HttpExceptionFilter implements ExceptionFilter {
     const body = getExceptionResponse(exception);
     const requestId = getRequestId(request);
 
-    this.logger.error({
-      durationMs: getRequestDurationMs(request),
-      errorName: exception instanceof Error ? exception.name : "UnknownError",
-      method: request.method ?? "UNKNOWN",
-      path: request.url,
-      requestId,
-      statusCode: body.statusCode,
-    });
+    this.loggingService.error(
+      HttpExceptionFilter.name,
+      {
+        durationMs: getRequestDurationMs(request),
+        errorName: exception instanceof Error ? exception.name : "UnknownError",
+        method: request.method ?? "UNKNOWN",
+        path: request.url,
+        requestId,
+        statusCode: body.statusCode,
+      },
+    );
 
     response.status(body.statusCode).json({
       ...body,

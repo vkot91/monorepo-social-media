@@ -2,29 +2,24 @@ import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from
 import { Reflector } from "@nestjs/core";
 import { JwtService } from "@nestjs/jwt";
 
-import { getApiEnv } from "#config/env";
+import { env } from "#config/env";
 
-import {
-  AUTH_ROUTE_TYPE_METADATA_KEY,
-  type AuthRouteType,
-} from "../decorators/auth-route-type.decorator";
+import { AUTH_ROUTE_TYPE_METADATA_KEY, type AuthRouteType } from "../decorators/auth-route-type.decorator";
 import type { AuthTokenPayload } from "../types/auth-token-payload";
 import type { AuthenticatedRequest } from "../types/authenticated-request";
 
 @Injectable()
 export class AccessTokenGuard implements CanActivate {
-  private readonly env = getApiEnv();
-
   constructor(
     private readonly jwtService: JwtService,
     private readonly reflector: Reflector,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const routeType = this.reflector.getAllAndOverride<AuthRouteType>(
-      AUTH_ROUTE_TYPE_METADATA_KEY,
-      [context.getHandler(), context.getClass()],
-    );
+    const routeType = this.reflector.getAllAndOverride<AuthRouteType>(AUTH_ROUTE_TYPE_METADATA_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
 
     if (routeType === "public" || routeType === "refresh") {
       return true;
@@ -39,7 +34,7 @@ export class AccessTokenGuard implements CanActivate {
 
     try {
       const payload = await this.jwtService.verifyAsync<AuthTokenPayload>(token, {
-        secret: this.env.JWT_ACCESS_SECRET,
+        secret: env.JWT_ACCESS_SECRET,
       });
 
       if (payload.type !== "access") {

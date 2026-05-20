@@ -4,12 +4,12 @@
   "type": "module",
   "scripts": {
     "build": "next build",
-    "dev": "next dev",
+    "dev": "dotenv -e ../../.env.development -- next dev -p 3000",
+    "test": "dotenv -e ../../.env.test -- vitest run",
+    "test:coverage": "dotenv -e ../../.env.test -- vitest run --coverage",
+    "test:e2e": "dotenv -e ../../.env.test -- playwright test",
+    "test:e2e:ui": "dotenv -e ../../.env.test -- playwright test --ui",
     "lint": "eslint . --max-warnings=0",
-    "test": "vitest run",
-    "test:coverage": "vitest run --coverage",
-    "test:e2e": "playwright test",
-    "test:e2e:ui": "playwright test --ui",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -28,6 +28,7 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.51.1",
+    "@social/database": "workspace:*",
     "@social/eslint-config": "workspace:*",
     "@social/typescript-config": "workspace:*",
     "@tailwindcss/postcss": "^4.2.4",
@@ -40,6 +41,7 @@
     "@vitejs/plugin-react": "^4.3.1",
     "@vitest/coverage-v8": "^2.0.5",
     "autoprefixer": "^10.5.0",
+    "dotenv-cli": "^11.0.0",
     "eslint": "^9.31.0",
     "jsdom": "^24.1.1",
     "postcss": "^8.5.14",

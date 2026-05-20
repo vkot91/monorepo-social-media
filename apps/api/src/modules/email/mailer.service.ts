@@ -3,7 +3,7 @@ import { createTransport, type Transporter } from "nodemailer";
 import type JSONTransport from "nodemailer/lib/json-transport";
 import type SMTPTransport from "nodemailer/lib/smtp-transport";
 
-import { getApiEnv } from "#config/env";
+import { env } from "#config/env";
 
 type WelcomeEmailInput = {
   displayName: string;
@@ -16,11 +16,9 @@ export class MailerService {
   private readonly transporter: Transporter;
 
   constructor() {
-    const env = getApiEnv();
-
     this.from = env.MAIL_FROM;
     this.transporter = env.SMTP_HOST
-      ? createTransport(buildSmtpTransportOptions(env))
+      ? createTransport(buildSmtpTransportOptions())
       : createTransport(buildJsonTransportOptions());
   }
 
@@ -38,7 +36,7 @@ export class MailerService {
   }
 }
 
-function buildSmtpTransportOptions(env: ReturnType<typeof getApiEnv>): SMTPTransport.Options {
+function buildSmtpTransportOptions(): SMTPTransport.Options {
   return {
     auth:
       env.SMTP_USER && env.SMTP_PASSWORD

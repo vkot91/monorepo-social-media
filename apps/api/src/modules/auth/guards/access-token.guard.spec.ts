@@ -5,10 +5,10 @@ import { AUTH_ROUTE_TYPE_METADATA_KEY } from "../decorators/auth-route-type.deco
 import { AccessTokenGuard } from "./access-token.guard";
 
 jest.mock("#config/env", () => ({
-  getApiEnv: jest.fn(() => ({
+  env: jest.requireActual("#test/env").createTestApiEnv({
     JWT_ACCESS_SECRET: "a".repeat(32),
     JWT_REFRESH_SECRET: "r".repeat(32),
-  })),
+  }),
 }));
 
 function createContext(request: Record<string, unknown>) {

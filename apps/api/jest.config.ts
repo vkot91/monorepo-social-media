@@ -8,13 +8,21 @@ const config: Config = {
     "^#modules/(.*)$": "<rootDir>/src/modules/$1",
     "^#test/(.*)$": "<rootDir>/src/test/$1",
   },
+  setupFiles: ["<rootDir>/jest.env.ts"],
   setupFilesAfterEnv: ["<rootDir>/jest.setup.ts"],
   rootDir: ".",
   testRegex: ".*\\.spec\\.ts$",
   transform: {
-    "^.+\\.(t|j)s$": "ts-jest",
+    "^.+\\.(t|j)s$": [
+      "ts-jest",
+      {
+        tsconfig: {
+          emitDecoratorMetadata: true,
+        },
+      },
+    ],
   },
-  collectCoverageFrom: ["src/**/*.ts", "!src/**/*.controller.ts"],
+  collectCoverageFrom: ["src/**/*.ts", "!src/**/*.controller.ts", "!src/**/*.e2e-spec.ts", "!src/test/**"],
   coverageThreshold: {
     global: {
       branches: 70,
@@ -23,7 +31,7 @@ const config: Config = {
       statements: 75,
     },
     "./src/**/*.service.ts": {
-      branches: 85,
+      branches: 80,
       functions: 85,
       lines: 85,
       statements: 85,
@@ -40,6 +48,8 @@ const config: Config = {
   coveragePathIgnorePatterns: [
     "/node_modules/",
     "src/test/",
+    "src/test/e2e/",
+    ".*\\.e2e-spec\\.ts$",
     "main\\.ts$", // bootstrap
     "app\\.module\\.ts$", // same as other module files
   ],

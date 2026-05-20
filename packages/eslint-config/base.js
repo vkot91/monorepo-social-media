@@ -80,7 +80,9 @@ export const config = [
           devDependencies: [
             "**/*.test.{js,ts,jsx,tsx}",
             "**/*.spec.{js,ts,jsx,tsx}",
+            "**/*.e2e-spec.{js,ts,jsx,tsx}",
             "**/*.setup.{js,ts,jsx,tsx}",
+            "**/e2e/**",
             "**/src/test/**",
             "**/test/**",
             "**/*.config.{js,ts,mjs,cjs}",

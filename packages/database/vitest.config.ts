@@ -6,7 +6,15 @@ export default defineConfig({
       provider: "v8",
       reporter: ["text", "lcov"],
       include: ["src/**/*.ts"],
-      exclude: ["src/**/*.test.ts", "src/generated/**", "src/index.ts"],
+      exclude: [
+        "src/**/*.test.ts",
+        "src/generated/**",
+        "src/index.ts",
+        "src/scripts/**",
+        "src/test-environment.ts",
+        "src/seed/**.seed.ts",
+        "src/seed/index.ts",
+      ],
       thresholds: {
         branches: 90,
         functions: 90,

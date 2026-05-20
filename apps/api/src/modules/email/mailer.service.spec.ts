@@ -1,6 +1,6 @@
 import { createTransport } from "nodemailer";
 
-import { getApiEnv } from "#config/env";
+import { env as mockEnv } from "#config/env";
 
 import { MailerService } from "./mailer.service";
 
@@ -13,19 +13,20 @@ jest.mock("nodemailer", () => ({
 }));
 
 jest.mock("#config/env", () => ({
-  getApiEnv: jest.fn(() => ({
+  env: jest.requireActual("#test/env").createTestApiEnv({
     MAIL_FROM: "Social Media <no-reply@example.com>",
-    SMTP_HOST: undefined,
-    SMTP_PASSWORD: undefined,
-    SMTP_PORT: 587,
-    SMTP_SECURE: false,
-    SMTP_USER: undefined,
-  })),
+  }),
 }));
 
 describe("MailerService", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    Object.assign(
+      mockEnv,
+      jest.requireActual("#test/env").createTestApiEnv({
+        MAIL_FROM: "Social Media <no-reply@example.com>",
+      }),
+    );
   });
 
   it("uses JSON transport when SMTP is not configured", () => {
@@ -54,14 +55,13 @@ describe("MailerService", () => {
   });
 
   it("uses SMTP transport when SMTP host is configured", () => {
-    jest.mocked(getApiEnv).mockReturnValue({
-      MAIL_FROM: "Social Media <no-reply@example.com>",
+    Object.assign(mockEnv, {
       SMTP_HOST: "smtp.example.com",
       SMTP_PASSWORD: "secret",
       SMTP_PORT: 465,
       SMTP_SECURE: true,
       SMTP_USER: "mailer",
-    } as never);
+    });
 
     new MailerService();
 
@@ -77,14 +77,13 @@ describe("MailerService", () => {
   });
 
   it("uses SMTP transport without auth when credentials are not configured", () => {
-    jest.mocked(getApiEnv).mockReturnValue({
-      MAIL_FROM: "Social Media <no-reply@example.com>",
+    Object.assign(mockEnv, {
       SMTP_HOST: "smtp.example.com",
       SMTP_PASSWORD: undefined,
       SMTP_PORT: 587,
       SMTP_SECURE: false,
       SMTP_USER: undefined,
-    } as never);
+    });
 
     new MailerService();
 

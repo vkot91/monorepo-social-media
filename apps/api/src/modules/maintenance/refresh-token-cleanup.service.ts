@@ -1,10 +1,12 @@
-import { Injectable, Logger, OnApplicationBootstrap } from "@nestjs/common";
+import { Injectable, OnApplicationBootstrap } from "@nestjs/common";
 import { Cron, CronExpression } from "@nestjs/schedule";
 import { prisma } from "@social/database";
 
+import { LoggingService } from "#common/logging/logging.service";
+
 @Injectable()
 export class RefreshTokenCleanupService implements OnApplicationBootstrap {
-  private readonly logger = new Logger(RefreshTokenCleanupService.name);
+  constructor(private readonly loggingService: LoggingService) {}
 
   async onApplicationBootstrap() {
     await this.deleteStaleRefreshTokens();
@@ -38,7 +40,7 @@ export class RefreshTokenCleanupService implements OnApplicationBootstrap {
     });
 
     if (result.count > 0) {
-      this.logger.log(`Deleted ${result.count} stale refresh tokens`);
+      this.loggingService.log(RefreshTokenCleanupService.name, `Deleted ${result.count} stale refresh tokens`);
     }
 
     return result.count;

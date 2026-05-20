@@ -1,0 +1,37 @@
+services:
+  postgres-test:
+    image: postgres:16-alpine
+    container_name: social-media-postgres-test
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${TEST_POSTGRES_USER:-social_media_test}
+      POSTGRES_PASSWORD: ${TEST_POSTGRES_PASSWORD:-social_media_test_password}
+      POSTGRES_DB: ${TEST_POSTGRES_DB:-social_media_test}
+    ports:
+      - "${TEST_POSTGRES_PORT:-55432}:5432"
+    volumes:
+      - postgres_test_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${TEST_POSTGRES_USER:-social_media_test} -d ${TEST_POSTGRES_DB:-social_media_test}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis-test:
+    image: redis:7-alpine
+    container_name: social-media-redis-test
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "${TEST_REDIS_PORT:-56380}:6379"
+    volumes:
+      - redis_test_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_test_data:
+  redis_test_data:

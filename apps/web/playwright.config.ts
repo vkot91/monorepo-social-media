@@ -1,51 +1,57 @@
 import { defineConfig, devices } from "@playwright/test";
 
-const port = Number(process.env.PLAYWRIGHT_PORT ?? 3100);
-const apiPort = Number(process.env.PLAYWRIGHT_API_PORT ?? 3210);
-const baseURL = `http://127.0.0.1:${port}`;
-const apiURL = `http://127.0.0.1:${apiPort}`;
+import { e2eConfig } from "./e2e/config";
 
 export default defineConfig({
-  expect: {
-    timeout: 10_000,
-  },
+  expect: { timeout: 10_000 },
   forbidOnly: Boolean(process.env.CI),
-  fullyParallel: true,
   outputDir: "test-results",
   projects: [
     {
       name: "chromium",
-      use: {
-        ...devices["Desktop Chrome"],
-      },
+      use: { ...devices["Desktop Chrome"] },
     },
   ],
   reporter: process.env.CI ? [["github"], ["html", { open: "never" }]] : [["list"]],
   retries: process.env.CI ? 2 : 0,
   testDir: "./e2e",
   use: {
-    baseURL,
+    baseURL: e2eConfig.baseURL,
     trace: "on-first-retry",
   },
+  workers: 1,
   webServer: [
     {
-      command: "npx tsx e2e/mock-api.ts",
+      command:
+        "pnpm --filter @social/database build && pnpm --filter @social/api build && pnpm --filter @social/api start",
       env: {
-        PLAYWRIGHT_API_PORT: String(apiPort),
+        NODE_ENV: "test",
+        PORT: String(e2eConfig.apiPort),
+        CORS_ORIGIN: e2eConfig.baseURL,
+        DATABASE_URL:
+          process.env.DATABASE_URL ??
+          "postgresql://social_media_test:social_media_test_password@127.0.0.1:55432/social_media_test",
+        REDIS_URL: process.env.REDIS_URL ?? "redis://localhost:56380",
+        JWT_ACCESS_SECRET: process.env.JWT_ACCESS_SECRET ?? "test-access-secret-at-least-32-chars",
+        JWT_REFRESH_SECRET: process.env.JWT_REFRESH_SECRET ?? "test-refresh-secret-at-least-32-chars",
+        MAIL_FROM: "Social Media Test <no-reply@example.com>",
       },
-      reuseExistingServer: !process.env.CI,
-      timeout: 30_000,
-      url: `${apiURL}/health`,
+      reuseExistingServer: false,
+      timeout: 120_000,
+      url: `${e2eConfig.apiURL}/health`,
+      stdout: "pipe",
+      stderr: "pipe",
     },
     {
-      command: `pnpm dev --hostname 127.0.0.1 --port ${port}`,
+      command: `pnpm --filter @social/web exec next dev --hostname 127.0.0.1 --port ${e2eConfig.webPort}`,
       env: {
-        NEXT_PUBLIC_API_URL: apiURL,
+        NODE_ENV: "test",
+        NEXT_PUBLIC_API_URL: e2eConfig.apiURL,
         NEXT_TELEMETRY_DISABLED: "1",
       },
-      reuseExistingServer: !process.env.CI,
+      reuseExistingServer: false,
       timeout: 120_000,
-      url: baseURL,
+      url: e2eConfig.baseURL,
     },
   ],
 });

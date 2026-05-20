@@ -1,8 +1,13 @@
 import { expect, test } from "@playwright/test";
 
 import { authenticate } from "./support/auth";
+import { resetDatabase } from "./support/database";
 
 test.describe("register page", () => {
+  test.beforeEach(async () => {
+    await resetDatabase();
+  });
+
   test("renders the registration form and login link", async ({ page }) => {
     await page.goto("/register");
 
@@ -34,21 +39,21 @@ test.describe("register page", () => {
     await page.getByLabel("Password").fill("password123");
     await page.getByRole("button", { name: "Create account" }).click();
 
-    await expect(page.getByText("Email already exists")).toBeVisible();
+    await expect(page.getByText("Email or username is already in use")).toBeVisible();
   });
 
   test("creates an account and opens the feed", async ({ page }) => {
     await page.goto("/register");
 
-    await page.getByLabel("Display name").fill("Maya Johnson");
-    await page.getByLabel("Username").fill("maya");
-    await page.getByLabel("Email").fill("maya@example.com");
+    await page.getByLabel("Display name").fill("New User");
+    await page.getByLabel("Username").fill("new_user");
+    await page.getByLabel("Email").fill("new-user@example.com");
     await page.getByLabel("Password").fill("password123");
     await page.getByRole("button", { name: "Create account" }).click();
 
     await expect(page).toHaveURL(/\/feed$/);
     await expect(page.getByRole("heading", { name: "Your feed" })).toBeVisible();
-    await expect(page.getByText("Planning a weekend photo walk downtown.")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "No posts yet" })).toBeVisible();
   });
 
   test("redirects authenticated users to the feed", async ({ context, page, baseURL }) => {

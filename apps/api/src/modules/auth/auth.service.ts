@@ -6,7 +6,7 @@ import type { AuthResponse, AuthTokens, AuthUserDto, LoginInput, RegisterInput }
 import { prisma } from "@social/database";
 
 import { durationToMilliseconds } from "#common/utils/token-duration";
-import { getApiEnv } from "#config/env";
+import { env } from "#config/env";
 
 import { EmailQueueService } from "../email/email-queue.service";
 import { type AuthUserRecord, authUserSelect, serializeAuthUser } from "./auth.serializer";
@@ -23,7 +23,6 @@ function isUniqueConstraintError(error: unknown) {
 
 @Injectable()
 export class AuthService {
-  private readonly env = getApiEnv();
   constructor(
     private readonly jwtService: JwtService,
     private readonly hashService: HashService,
@@ -194,8 +193,8 @@ export class AuthService {
           username: user.username,
         } satisfies AuthTokenPayload,
         {
-          expiresIn: toJwtExpiresIn(this.env.JWT_ACCESS_EXPIRES_IN),
-          secret: this.env.JWT_ACCESS_SECRET,
+          expiresIn: toJwtExpiresIn(env.JWT_ACCESS_EXPIRES_IN),
+          secret: env.JWT_ACCESS_SECRET,
         },
       ),
       this.jwtService.signAsync(
@@ -207,8 +206,8 @@ export class AuthService {
           username: user.username,
         } satisfies AuthTokenPayload,
         {
-          expiresIn: toJwtExpiresIn(this.env.JWT_REFRESH_EXPIRES_IN),
-          secret: this.env.JWT_REFRESH_SECRET,
+          expiresIn: toJwtExpiresIn(env.JWT_REFRESH_EXPIRES_IN),
+          secret: env.JWT_REFRESH_SECRET,
         },
       ),
     ]);
@@ -221,13 +220,13 @@ export class AuthService {
   }
 
   private getRefreshExpiration() {
-    return new Date(Date.now() + durationToMilliseconds(this.env.JWT_REFRESH_EXPIRES_IN));
+    return new Date(Date.now() + durationToMilliseconds(env.JWT_REFRESH_EXPIRES_IN));
   }
 
   private async verifyRefreshToken(refreshToken: string): Promise<AuthTokenPayload> {
     try {
       const payload = await this.jwtService.verifyAsync<AuthTokenPayload>(refreshToken, {
-        secret: this.env.JWT_REFRESH_SECRET,
+        secret: env.JWT_REFRESH_SECRET,
       });
 
       if (payload.type !== "refresh") {
