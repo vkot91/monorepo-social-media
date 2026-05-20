@@ -1,10 +1,9 @@
 import type { BrowserContext } from "@playwright/test";
 
+import { e2eConfig } from "../config";
+
 const accessTokenCookieName = "social_access_token";
 const refreshTokenCookieName = "social_refresh_token";
-
-const apiPort = process.env.PLAYWRIGHT_API_PORT ?? "3210";
-const apiURL = process.env.NEXT_PUBLIC_API_URL ?? `http://127.0.0.1:${apiPort}`;
 
 const testAccounts = {
   empty: {
@@ -20,7 +19,7 @@ const testAccounts = {
 type TestAccount = keyof typeof testAccounts;
 
 const getAuthTokens = async (account: TestAccount) => {
-  const response = await fetch(`${apiURL}/auth/login`, {
+  const response = await fetch(`${e2eConfig.apiURL}/auth/login`, {
     body: JSON.stringify(testAccounts[account]),
     headers: {
       "content-type": "application/json",
