@@ -3,10 +3,10 @@ import { type ExecutionContext,UnauthorizedException } from "@nestjs/common";
 import { RefreshTokenGuard } from "./refresh-token.guard";
 
 jest.mock("#config/env", () => ({
-  getApiEnv: jest.fn(() => ({
+  env: jest.requireActual("#test/env").createTestApiEnv({
     JWT_ACCESS_SECRET: "a".repeat(32),
     JWT_REFRESH_SECRET: "r".repeat(32),
-  })),
+  }),
 }));
 
 function createContext(request: Record<string, unknown>) {

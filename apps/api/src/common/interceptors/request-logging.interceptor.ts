@@ -1,7 +1,8 @@
-import { type CallHandler, type ExecutionContext, Injectable, Logger, type NestInterceptor } from "@nestjs/common";
+import { type CallHandler, type ExecutionContext, Injectable, type NestInterceptor } from "@nestjs/common";
 import { type Observable } from "rxjs";
 import { tap } from "rxjs/operators";
 
+import { LoggingService } from "#common/logging/logging.service";
 import type { HttpRequestWithMetadata } from "#common/types/http-request";
 import { getRequestDurationMs } from "#common/utils/request-duration";
 import { getRequestId } from "#common/utils/request-id";
@@ -12,7 +13,7 @@ type HttpResponse = {
 
 @Injectable()
 export class RequestLoggingInterceptor implements NestInterceptor {
-  private readonly logger = new Logger(RequestLoggingInterceptor.name);
+  constructor(private readonly loggingService: LoggingService) {}
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
     const httpContext = context.switchToHttp();
@@ -22,7 +23,7 @@ export class RequestLoggingInterceptor implements NestInterceptor {
 
     return next.handle().pipe(
       tap(() => {
-        this.logger.log({
+        this.loggingService.log(RequestLoggingInterceptor.name, {
           durationMs: getRequestDurationMs(request),
           method: request.method ?? "UNKNOWN",
           path: request.url,

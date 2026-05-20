@@ -13,8 +13,12 @@
     "lint": "turbo run lint",
     "prepare": "husky",
     "test": "turbo run test",
+    "test:db:migrate": "pnpm --filter @social/database test:db:migrate",
+    "test:db:reset": "pnpm --filter @social/database test:db:reset",
+    "test:infra:down": "docker compose -f docker-compose.test.yml down",
+    "test:infra:up": "docker compose -f docker-compose.test.yml up -d",
     "test:coverage": "turbo run test:coverage",
-    "test:e2e": "turbo run test:e2e",
+    "test:e2e": "turbo run test:e2e --concurrency=1",
     "typecheck": "turbo run typecheck"
   },
   "devDependencies": {

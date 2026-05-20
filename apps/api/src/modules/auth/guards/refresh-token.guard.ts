@@ -1,15 +1,13 @@
 import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 
-import { getApiEnv } from "#config/env";
+import { env } from "#config/env";
 
 import type { AuthTokenPayload } from "../types/auth-token-payload";
 import type { AuthenticatedRequest } from "../types/authenticated-request";
 
 @Injectable()
 export class RefreshTokenGuard implements CanActivate {
-  private readonly env = getApiEnv();
-
   constructor(private readonly jwtService: JwtService) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -22,7 +20,7 @@ export class RefreshTokenGuard implements CanActivate {
 
     try {
       const payload = await this.jwtService.verifyAsync<AuthTokenPayload>(token, {
-        secret: this.env.JWT_REFRESH_SECRET,
+        secret: env.JWT_REFRESH_SECRET,
       });
 
       if (payload.type !== "refresh") {

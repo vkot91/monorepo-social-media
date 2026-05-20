@@ -1,13 +1,25 @@
 import { PrismaPg } from "@prisma/adapter-pg";
 
 import { getDatabaseUrl } from "./env";
-import { PrismaClient } from "./generated/prisma/client";
+import { Prisma, PrismaClient } from "./generated/prisma/client";
 
 type GlobalWithPrisma = typeof globalThis & {
   socialPrisma?: PrismaClient;
 };
 
 const globalForPrisma = globalThis as GlobalWithPrisma;
+
+const getPrismaLogLevels = (): Prisma.LogLevel[] => {
+  if (process.env.NODE_ENV === "development") {
+    return ["query", "warn", "error"];
+  }
+
+  if (process.env.NODE_ENV === "test") {
+    return [];
+  }
+
+  return ["error"];
+};
 
 export function createPrismaClient(): PrismaClient {
   const adapter = new PrismaPg({
@@ -16,7 +28,7 @@ export function createPrismaClient(): PrismaClient {
 
   return new PrismaClient({
     adapter,
-    log: process.env.NODE_ENV === "development" ? ["query", "warn", "error"] : ["error"],
+    log: getPrismaLogLevels(),
   });
 }
 

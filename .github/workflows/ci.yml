@@ -15,11 +15,34 @@ jobs:
     name: Lint, typecheck, test, build
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: social_media_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d social_media_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 56380:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     env:
       NODE_ENV: test
       PORT: 3001
       DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/social_media_test
-      REDIS_URL: redis://127.0.0.1:6379
+      REDIS_URL: redis://127.0.0.1:56380
       JWT_ACCESS_SECRET: ci-access-secret-must-be-at-least-32-chars
       JWT_REFRESH_SECRET: ci-refresh-secret-must-be-at-least-32-chars
       JWT_ACCESS_EXPIRES_IN: 15m
@@ -68,6 +91,9 @@ jobs:
       - name: Check packages
         if: github.event_name != 'pull_request'
         run: pnpm check
+
+      - name: Migrate test database
+        run: pnpm test:db:migrate
 
       - name: Check E2E tests
         run: pnpm test:e2e

@@ -1,12 +1,21 @@
+import { LoggingService } from "#common/logging/logging.service";
+
 import { EMAIL_JOB_NAMES } from "./email-queue.constants";
 import { EmailQueueService } from "./email-queue.service";
+
+const createLoggingService = () =>
+  ({
+    error: jest.fn(),
+    log: jest.fn(),
+    warn: jest.fn(),
+  }) as unknown as jest.Mocked<LoggingService>;
 
 describe("EmailQueueService", () => {
   it("enqueues welcome email jobs with retry options", async () => {
     const queue = {
       add: jest.fn().mockResolvedValue({}),
     };
-    const service = new EmailQueueService(queue as never);
+    const service = new EmailQueueService(queue as never, createLoggingService());
 
     await service.enqueueWelcomeEmail({
       displayName: "Ada Lovelace",
@@ -35,8 +44,8 @@ describe("EmailQueueService", () => {
     const queue = {
       add: jest.fn().mockRejectedValue(new Error("redis unavailable")),
     };
-    const service = new EmailQueueService(queue as never);
-    const loggerSpy = jest.spyOn(service["logger"], "error").mockImplementation();
+    const loggingService = createLoggingService();
+    const service = new EmailQueueService(queue as never, loggingService);
 
     await expect(
       service.enqueueWelcomeEmail({
@@ -44,7 +53,8 @@ describe("EmailQueueService", () => {
         email: "ada@example.com",
       }),
     ).resolves.toBeUndefined();
-    expect(loggerSpy).toHaveBeenCalledWith(
+    expect(loggingService.error).toHaveBeenCalledWith(
+      EmailQueueService.name,
       "Failed to enqueue welcome email for ada@example.com",
       expect.any(String),
     );
@@ -54,8 +64,8 @@ describe("EmailQueueService", () => {
     const queue = {
       add: jest.fn().mockRejectedValue("redis unavailable"),
     };
-    const service = new EmailQueueService(queue as never);
-    const loggerSpy = jest.spyOn(service["logger"], "error").mockImplementation();
+    const loggingService = createLoggingService();
+    const service = new EmailQueueService(queue as never, loggingService);
 
     await expect(
       service.enqueueWelcomeEmail({
@@ -63,7 +73,8 @@ describe("EmailQueueService", () => {
         email: "ada@example.com",
       }),
     ).resolves.toBeUndefined();
-    expect(loggerSpy).toHaveBeenCalledWith(
+    expect(loggingService.error).toHaveBeenCalledWith(
+      EmailQueueService.name,
       "Failed to enqueue welcome email for ada@example.com",
       undefined,
     );

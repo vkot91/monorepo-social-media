@@ -29,11 +29,11 @@ export const apiEnvSchema = z.object({
   JWT_REFRESH_EXPIRES_IN: z.string().default("30d"),
   CORS_ORIGIN: z.string().url().default("http://localhost:3000"),
   MAIL_FROM: z.string().default("Social Media <no-reply@example.com>"),
-  SMTP_HOST: z.preprocess(emptyStringToUndefined, z.string()),
+  SMTP_HOST: z.preprocess(emptyStringToUndefined, z.string().optional()),
   SMTP_PORT: z.preprocess(emptyStringToUndefined, z.coerce.number().int().positive().default(465)),
   SMTP_SECURE: z.preprocess(emptyStringToUndefined, stringBoolean.default(false)),
-  SMTP_USER: z.preprocess(emptyStringToUndefined, z.string()),
-  SMTP_PASSWORD: z.preprocess(emptyStringToUndefined, z.string()),
+  SMTP_USER: z.preprocess(emptyStringToUndefined, z.string().optional()),
+  SMTP_PASSWORD: z.preprocess(emptyStringToUndefined, z.string().optional()),
 });
 
 export const webEnvSchema = z.object({

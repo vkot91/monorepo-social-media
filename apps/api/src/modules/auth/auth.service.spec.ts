@@ -1,21 +1,12 @@
 import { ConflictException, UnauthorizedException } from "@nestjs/common";
 
-import {
-  buildAuthUserRecord,
-  buildRefreshPayload,
-  buildStoredRefreshTokenRecord,
-} from "#test/factories/auth.factory";
+import { buildAuthUserRecord, buildRefreshPayload, buildStoredRefreshTokenRecord } from "#test/factories/auth.factory";
 import { mockedPrisma } from "#test/prisma.mock";
 
 import { AuthService } from "./auth.service";
 
 jest.mock("../../config/env", () => ({
-  getApiEnv: jest.fn(() => ({
-    JWT_ACCESS_EXPIRES_IN: "15m",
-    JWT_ACCESS_SECRET: "a".repeat(32),
-    JWT_REFRESH_EXPIRES_IN: "30d",
-    JWT_REFRESH_SECRET: "r".repeat(32),
-  })),
+  env: jest.requireActual("#test/env").createTestApiEnv(),
 }));
 
 const persistedUser = buildAuthUserRecord();
@@ -212,9 +203,7 @@ describe("AuthService", () => {
     const { prisma, service } = createService();
     prisma.user.findUnique.mockResolvedValue(null);
 
-    await expect(service.getCurrentUser("missing-user")).rejects.toBeInstanceOf(
-      UnauthorizedException,
-    );
+    await expect(service.getCurrentUser("missing-user")).rejects.toBeInstanceOf(UnauthorizedException);
   });
 
   it("rotates refresh tokens", async () => {
@@ -240,10 +229,7 @@ describe("AuthService", () => {
         id: "refresh-token-1",
       },
     });
-    expect(prisma.$transaction).toHaveBeenCalledWith([
-      expect.objectContaining({}),
-      expect.objectContaining({}),
-    ]);
+    expect(prisma.$transaction).toHaveBeenCalledWith([expect.objectContaining({}), expect.objectContaining({})]);
     expect(prisma.refreshToken.update).toHaveBeenCalledWith({
       data: {
         revokedAt: new Date("2026-05-05T12:00:00.000Z"),
@@ -274,9 +260,7 @@ describe("AuthService", () => {
       revokedAt: new Date("2026-05-05T12:00:00.000Z"),
     });
 
-    await expect(service.refresh("old-refresh-token")).rejects.toBeInstanceOf(
-      UnauthorizedException,
-    );
+    await expect(service.refresh("old-refresh-token")).rejects.toBeInstanceOf(UnauthorizedException);
   });
 
   it("rejects refresh tokens without a token id", async () => {

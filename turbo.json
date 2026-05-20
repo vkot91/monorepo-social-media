@@ -2,12 +2,16 @@
   "$schema": "https://turbo.build/schema.json",
   "globalEnv": [
     "CI",
+    "CORS_ORIGIN",
     "DATABASE_URL",
     "JWT_ACCESS_SECRET",
     "JWT_REFRESH_SECRET",
     "NODE_ENV",
+    "NEXT_PUBLIC_API_URL",
     "PLAYWRIGHT_API_PORT",
-    "PLAYWRIGHT_PORT"
+    "PLAYWRIGHT_PORT",
+    "PORT",
+    "REDIS_URL"
   ],
   "tasks": {
     "build": {
@@ -35,7 +39,9 @@
       "outputs": ["coverage/**"]
     },
     "test:e2e": {
+      "dependsOn": ["^build"],
       "cache": false,
+      "env": ["DATABASE_URL", "NODE_ENV"],
       "outputs": ["test-results/**", "playwright-report/**"]
     },
     "typecheck": {

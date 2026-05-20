@@ -1,8 +1,6 @@
-import { existsSync } from "node:fs";
-
 import { parseApiEnv } from "@social/env";
 
-import { getApiEnv } from "./env";
+import { env } from "./env";
 
 jest.mock("@social/env", () => ({
   parseApiEnv: jest.fn(() => ({
@@ -15,29 +13,26 @@ jest.mock("@social/env", () => ({
     JWT_ACCESS_EXPIRES_IN: "15m",
     JWT_REFRESH_EXPIRES_IN: "30d",
     CORS_ORIGIN: "http://localhost:3000",
+    MAIL_FROM: "Social Media <no-reply@example.com>",
+    SMTP_HOST: undefined,
+    SMTP_PASSWORD: undefined,
+    SMTP_PORT: 587,
+    SMTP_SECURE: false,
+    SMTP_USER: undefined,
   })),
 }));
 
-jest.mock("node:fs", () => ({
-  existsSync: jest.fn(() => false),
-  readFileSync: jest.fn(),
-}));
-
-describe("getApiEnv", () => {
-  it("returns the parsed API environment", () => {
-    expect(getApiEnv()).toMatchObject({
+describe("env", () => {
+  it("exports the parsed API environment", () => {
+    expect(env).toMatchObject({
       NODE_ENV: "test",
       PORT: 3001,
       CORS_ORIGIN: "http://localhost:3000",
     });
   });
 
-  it("caches the parsed API environment", () => {
-    const firstEnv = getApiEnv();
-    const secondEnv = getApiEnv();
-
-    expect(secondEnv).toBe(firstEnv);
+  it("parses the API environment when the module loads", () => {
     expect(parseApiEnv).toHaveBeenCalledTimes(1);
-    expect(existsSync).toHaveBeenCalledTimes(1);
+    expect(parseApiEnv).toHaveBeenCalledWith();
   });
 });

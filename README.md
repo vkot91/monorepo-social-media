@@ -30,3 +30,17 @@ pnpm --filter @social/env build
 ```
 
 The root `pnpm dev` task also runs dependency builds before starting persistent app dev tasks.
+
+## Test Environment
+
+Real e2e tests use `NODE_ENV=test`, the isolated services in `docker-compose.test.yml`, and a deterministic reset/seed step against `social_media_test`.
+
+```sh
+cp .env.test.example .env.test
+pnpm test:infra:up
+pnpm test:db:migrate
+pnpm --filter @social/api test:e2e
+pnpm --filter @social/web test:e2e
+```
+
+The web Playwright suite starts the real API and resets the test database between tests.

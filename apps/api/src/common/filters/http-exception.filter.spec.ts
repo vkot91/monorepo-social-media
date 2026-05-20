@@ -1,4 +1,6 @@
-import { BadRequestException, HttpException, HttpStatus, Logger } from "@nestjs/common";
+import { BadRequestException, HttpException, HttpStatus } from "@nestjs/common";
+
+import { LoggingService } from "#common/logging/logging.service";
 
 import { HttpExceptionFilter } from "./http-exception.filter";
 
@@ -19,11 +21,20 @@ function createHost() {
   };
 }
 
+const createLoggingService = () =>
+  ({
+    error: jest.fn(),
+    log: jest.fn(),
+    warn: jest.fn(),
+  }) as unknown as jest.Mocked<LoggingService>;
+
 describe("HttpExceptionFilter", () => {
-  const filter = new HttpExceptionFilter();
+  let filter: HttpExceptionFilter;
+  let loggingService: jest.Mocked<LoggingService>;
 
   beforeEach(() => {
-    jest.spyOn(Logger.prototype, "error").mockImplementation();
+    loggingService = createLoggingService();
+    filter = new HttpExceptionFilter(loggingService);
   });
 
   afterEach(() => {
@@ -44,7 +55,7 @@ describe("HttpExceptionFilter", () => {
       statusCode: HttpStatus.BAD_REQUEST,
       timestamp: expect.any(String),
     });
-    expect(Logger.prototype.error).toHaveBeenCalledWith({
+    expect(loggingService.error).toHaveBeenCalledWith(HttpExceptionFilter.name, {
       durationMs: 50,
       errorName: "BadRequestException",
       method: "UNKNOWN",

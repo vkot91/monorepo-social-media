@@ -72,6 +72,26 @@ describe("createPrismaClient", () => {
       log: ["error"],
     });
   });
+
+  it("creates a Prisma client without logging in test env", async () => {
+    vi.resetModules();
+    adapterConstructorSpy.mockClear();
+    constructorSpy.mockClear();
+    vi.stubEnv("NODE_ENV", "test");
+    vi.stubEnv(
+      "DATABASE_URL",
+      "postgresql://social_media_test:social_media_test_password@127.0.0.1:55432/social_media_test",
+    );
+
+    const { createPrismaClient } = await import("./client");
+
+    createPrismaClient();
+
+    expect(constructorSpy).toHaveBeenCalledWith({
+      adapter: expect.any(Object),
+      log: [],
+    });
+  });
 });
 
 describe("getPrismaClient", () => {
