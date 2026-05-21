@@ -3,7 +3,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { logger } from "#/lib/logger";
 
 import { ApiRequestError, AuthRequiredError } from "../utils/errors";
-import { appendQueryParams, createRequest, parseJsonResponse } from "./base-request";
+import { appendQueryParams, createApiClient, parseJsonResponse } from "./request";
+import type { BackendApiRoutes,BffApiRoutes } from "./request.type";
 
 vi.mock("#/env", () => ({
   getWebEnv: vi.fn(() => ({
@@ -70,6 +71,26 @@ describe("parseJsonResponse", () => {
     ).rejects.toEqual(new ApiRequestError("Request failed", 400));
   });
 
+  it("preserves structured field errors when available", async () => {
+    await expect(
+      parseJsonResponse(
+        jsonResponse(
+          {
+            errors: {
+              email: ["Email or password is incorrect."],
+            },
+            message: "Invalid credentials",
+          },
+          { status: 401 },
+        ),
+      ),
+    ).rejects.toEqual(
+      new ApiRequestError("Invalid credentials", 401, {
+        email: ["Email or password is incorrect."],
+      }),
+    );
+  });
+
   it("falls back to the status text when the error body is not JSON", async () => {
     await expect(
       parseJsonResponse(new Response("not-json", { status: 503, statusText: "Unavailable" })),
@@ -77,7 +98,7 @@ describe("parseJsonResponse", () => {
   });
 });
 
-describe("createRequest", () => {
+describe("createApiClient", () => {
   beforeEach(() => {
     vi.useRealTimers();
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse({ id: "post-1" })));
@@ -88,8 +109,9 @@ describe("createRequest", () => {
     vi.clearAllMocks();
   });
 
-  it("builds authenticated server requests against the API origin", async () => {
-    const request = createRequest({
+  it("builds authenticated backend requests against the API origin", async () => {
+    const request = createApiClient<BackendApiRoutes>({
+      origin: "backend",
       resolveAccessToken: vi.fn().mockResolvedValue("access-token"),
     });
 
@@ -120,7 +142,8 @@ describe("createRequest", () => {
   });
 
   it("adds one request id to outbound requests", async () => {
-    const request = createRequest({
+    const request = createApiClient<BackendApiRoutes>({
+      origin: "backend",
       resolveAccessToken: vi.fn().mockResolvedValue("access-token"),
     });
 
@@ -139,7 +162,8 @@ describe("createRequest", () => {
   });
 
   it("adds query params and omits nullish values", async () => {
-    const request = createRequest({
+    const request = createApiClient<BackendApiRoutes>({
+      origin: "backend",
       resolveAccessToken: vi.fn().mockResolvedValue("access-token"),
     });
 
@@ -158,8 +182,9 @@ describe("createRequest", () => {
     );
   });
 
-  it("throws before fetching when an authenticated server request has no token", async () => {
-    const request = createRequest({
+  it("throws before fetching when an authenticated backend request has no token", async () => {
+    const request = createApiClient<BackendApiRoutes>({
+      origin: "backend",
       resolveAccessToken: vi.fn().mockResolvedValue(null),
     });
 
@@ -173,7 +198,10 @@ describe("createRequest", () => {
 
   it("does not require tokens for public auth paths", async () => {
     const resolveAccessToken = vi.fn();
-    const request = createRequest({ resolveAccessToken });
+    const request = createApiClient<BackendApiRoutes>({
+      origin: "backend",
+      resolveAccessToken,
+    });
 
     await request("/auth/logout", "POST", {
       body: {
@@ -193,17 +221,13 @@ describe("createRequest", () => {
     );
   });
 
-  it("uses relative URLs and same-origin credentials for explicit web requests", async () => {
-    const request = createRequest() as (
-      path: "/api/auth/logout",
-      method: "POST",
-      options: {
-        requestType: "web";
-      },
-    ) => Promise<unknown>;
+  it("uses relative URLs and same-origin credentials for BFF requests", async () => {
+    const request = createApiClient<BffApiRoutes>({
+      origin: "bff",
+    });
 
     await request("/api/auth/logout", "POST", {
-      requestType: "web",
+      auth: false,
     });
 
     expect(fetch).toHaveBeenCalledWith("/api/auth/logout", {
@@ -217,9 +241,61 @@ describe("createRequest", () => {
     });
   });
 
+  it("does not retry BFF requests", async () => {
+    vi.useFakeTimers();
+    const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 503, statusText: "Unavailable" }));
+    vi.stubGlobal("fetch", fetchMock);
+    const request = createApiClient<BffApiRoutes>({
+      origin: "bff",
+    });
+
+    await expect(
+      request("/api/posts", "GET", {
+        queryParams: {},
+        retry: {
+          attempts: 1,
+        },
+      }),
+    ).rejects.toEqual(new ApiRequestError("Unavailable", 503));
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps backend and BFF route maps distinct at compile time", () => {
+    const backendClient = createApiClient<BackendApiRoutes>({
+      origin: "backend",
+      resolveAccessToken: vi.fn().mockResolvedValue("access-token"),
+    });
+    const bffClient = createApiClient<BffApiRoutes>({
+      origin: "bff",
+    });
+
+    const shouldRunTypeAssertions = Date.now() < 0;
+
+    if (shouldRunTypeAssertions) {
+      void backendClient("/posts", "GET", {
+        queryParams: {},
+      });
+      void bffClient("/api/posts", "GET", {
+        queryParams: {},
+      });
+      // @ts-expect-error backend clients cannot call BFF routes.
+      void backendClient("/api/posts", "GET", {
+        queryParams: {},
+      });
+      // @ts-expect-error BFF clients cannot call backend API routes.
+      void bffClient("/posts", "GET", {
+        queryParams: {},
+      });
+    }
+
+    expect(backendClient).toBeTypeOf("function");
+    expect(bffClient).toBeTypeOf("function");
+  });
+
   it("converts unauthorized authenticated server responses into auth-required errors", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(null, { status: 401 })));
-    const request = createRequest({
+    const request = createApiClient<BackendApiRoutes>({
+      origin: "backend",
       resolveAccessToken: vi.fn().mockResolvedValue("expired-token"),
     });
 
@@ -232,7 +308,8 @@ describe("createRequest", () => {
 
   it("can surface unauthorized API responses when retry handling is disabled", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse({ message: "Unauthorized" }, { status: 401 })));
-    const request = createRequest({
+    const request = createApiClient<BackendApiRoutes>({
+      origin: "backend",
       resolveAccessToken: vi.fn().mockResolvedValue("expired-token"),
     });
 
@@ -251,7 +328,8 @@ describe("createRequest", () => {
       .mockRejectedValueOnce(new TypeError("network unavailable"))
       .mockResolvedValueOnce(jsonResponse({ id: "post-1" }));
     vi.stubGlobal("fetch", fetchMock);
-    const request = createRequest({
+    const request = createApiClient<BackendApiRoutes>({
+      origin: "backend",
       resolveAccessToken: vi.fn().mockResolvedValue("access-token"),
     });
 
@@ -283,7 +361,8 @@ describe("createRequest", () => {
       .mockResolvedValueOnce(new Response(null, { status: 503, statusText: "Unavailable" }))
       .mockResolvedValueOnce(jsonResponse({ id: "post-1" }));
     vi.stubGlobal("fetch", fetchMock);
-    const request = createRequest({
+    const request = createApiClient<BackendApiRoutes>({
+      origin: "backend",
       resolveAccessToken: vi.fn().mockResolvedValue("access-token"),
     });
 
@@ -305,7 +384,8 @@ describe("createRequest", () => {
       .mockResolvedValueOnce(new Response(null, { status: 503, statusText: "Unavailable" }))
       .mockResolvedValueOnce(jsonResponse({ id: "post-1" }));
     vi.stubGlobal("fetch", fetchMock);
-    const request = createRequest({
+    const request = createApiClient<BackendApiRoutes>({
+      origin: "backend",
       resolveAccessToken: vi.fn().mockResolvedValue("access-token"),
     });
 
@@ -365,7 +445,8 @@ describe("createRequest", () => {
       )
       .mockResolvedValueOnce(jsonResponse({ id: "post-1" }));
     vi.stubGlobal("fetch", fetchMock);
-    const request = createRequest({
+    const request = createApiClient<BackendApiRoutes>({
+      origin: "backend",
       resolveAccessToken: vi.fn().mockResolvedValue("access-token"),
     });
 
@@ -390,7 +471,8 @@ describe("createRequest", () => {
     vi.useFakeTimers();
     const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 503, statusText: "Unavailable" }));
     vi.stubGlobal("fetch", fetchMock);
-    const request = createRequest({
+    const request = createApiClient<BackendApiRoutes>({
+      origin: "backend",
       resolveAccessToken: vi.fn().mockResolvedValue("access-token"),
     });
 
@@ -407,7 +489,8 @@ describe("createRequest", () => {
     vi.useFakeTimers();
     const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 503, statusText: "Unavailable" }));
     vi.stubGlobal("fetch", fetchMock);
-    const request = createRequest({
+    const request = createApiClient<BackendApiRoutes>({
+      origin: "backend",
       resolveAccessToken: vi.fn().mockResolvedValue("access-token"),
     });
 
@@ -430,7 +513,8 @@ describe("createRequest", () => {
       .mockResolvedValueOnce(new Response(null, { status: 503, statusText: "Unavailable" }))
       .mockResolvedValueOnce(jsonResponse({ id: "post-1" }));
     vi.stubGlobal("fetch", fetchMock);
-    const request = createRequest({
+    const request = createApiClient<BackendApiRoutes>({
+      origin: "backend",
       resolveAccessToken: vi.fn().mockResolvedValue("access-token"),
     });
 
@@ -454,7 +538,8 @@ describe("createRequest", () => {
     vi.useFakeTimers();
     const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 401 }));
     vi.stubGlobal("fetch", fetchMock);
-    const request = createRequest({
+    const request = createApiClient<BackendApiRoutes>({
+      origin: "backend",
       resolveAccessToken: vi.fn().mockResolvedValue("expired-token"),
     });
 
@@ -470,7 +555,8 @@ describe("createRequest", () => {
     vi.useFakeTimers();
     const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ message: "Invalid content" }, { status: 400 }));
     vi.stubGlobal("fetch", fetchMock);
-    const request = createRequest({
+    const request = createApiClient<BackendApiRoutes>({
+      origin: "backend",
       resolveAccessToken: vi.fn().mockResolvedValue("access-token"),
     });
 
@@ -492,7 +578,8 @@ describe("createRequest", () => {
     const abortError = new DOMException("The operation was aborted.", "AbortError");
     const fetchMock = vi.fn().mockRejectedValue(abortError);
     vi.stubGlobal("fetch", fetchMock);
-    const request = createRequest({
+    const request = createApiClient<BackendApiRoutes>({
+      origin: "backend",
       resolveAccessToken: vi.fn().mockResolvedValue("access-token"),
     });
 
@@ -512,7 +599,8 @@ describe("createRequest", () => {
       .mockResolvedValueOnce(new Response(null, { status: 503, statusText: "Unavailable" }))
       .mockResolvedValueOnce(new Response(null, { status: 503, statusText: "Unavailable" }));
     vi.stubGlobal("fetch", fetchMock);
-    const request = createRequest({
+    const request = createApiClient<BackendApiRoutes>({
+      origin: "backend",
       resolveAccessToken: vi.fn().mockResolvedValue("access-token"),
     });
 
@@ -542,7 +630,8 @@ describe("createRequest", () => {
     const networkError = new TypeError("network unavailable");
     const fetchMock = vi.fn().mockRejectedValue(networkError);
     vi.stubGlobal("fetch", fetchMock);
-    const request = createRequest({
+    const request = createApiClient<BackendApiRoutes>({
+      origin: "backend",
       resolveAccessToken: vi.fn().mockResolvedValue("access-token"),
     });
 
@@ -571,7 +660,8 @@ describe("createRequest", () => {
     vi.useFakeTimers();
     const fetchMock = vi.fn().mockRejectedValue("network unavailable");
     vi.stubGlobal("fetch", fetchMock);
-    const request = createRequest({
+    const request = createApiClient<BackendApiRoutes>({
+      origin: "backend",
       resolveAccessToken: vi.fn().mockResolvedValue("access-token"),
     });
 

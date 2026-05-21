@@ -1,33 +1,86 @@
 "use client";
 
-import { useActionState } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { type CreatePostInput, createPostSchema, type PostDto } from "@social/contracts";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useForm } from "react-hook-form";
 
 import { Button } from "#/components/ui/button";
 import { FieldError, FormCard, TextArea } from "#/components/ui/form";
-import { createPost } from "#/lib/api/posts/actions";
-import { createIdleActionResult } from "#/lib/api/requests/responses";
+import { ApiRequestError } from "#/lib/api/utils/errors";
 
-const createPostInitialState = createIdleActionResult();
+import { createPost } from "../lib/mutations";
+import { postsKeys } from "../lib/routes";
 
-// Example of server action with form data and useActionState hook
 export const CreatePostForm = () => {
-  const [state, formAction, pending] = useActionState(createPost, createPostInitialState);
-  const contentError = state.errors.content?.[0];
+  const queryClient = useQueryClient();
+  const createPostMutation = useMutation({
+    mutationFn: createPost,
+    onSuccess: (post) => {
+      const feedQuery = {
+        feed: "all" as const,
+      };
+
+      queryClient.setQueryData<PostDto[]>(postsKeys.feed(feedQuery), (posts = []) => [post, ...posts]);
+      void queryClient.invalidateQueries({ queryKey: postsKeys.all });
+    },
+  });
+  const {
+    formState: { errors, isSubmitting },
+    handleSubmit,
+    register,
+    reset,
+    setError,
+  } = useForm<CreatePostInput>({
+    defaultValues: {
+      content: "",
+      imageUrl: null,
+      visibility: "PUBLIC",
+    },
+    mode: "onTouched",
+    resolver: zodResolver(createPostSchema),
+  });
+
+  const contentError = errors.content?.message;
+  const formError = createPostMutation.error instanceof ApiRequestError ? createPostMutation.error.message : undefined;
+  
+  const onSubmit = async (values: CreatePostInput) => {
+    try {
+      await createPostMutation.mutateAsync(values);
+
+      reset({
+        content: "",
+        imageUrl: null,
+        visibility: "PUBLIC",
+      });
+    } catch (error) {
+      if (error instanceof ApiRequestError) {
+        const message = error.errors.content?.[0];
+
+        if (message) {
+          setError("content", {
+            message,
+          });
+        }
+      }
+    }
+  };
 
   return (
-    <FormCard action={formAction} className="max-w-full">
+    <FormCard className="max-w-full" onSubmit={handleSubmit(onSubmit)}>
       <TextArea
         invalid={!!contentError}
         minRows={2}
-        name="content"
         aria-label="Create post"
         placeholder="What are you building today?"
         variant="borderless"
         radius="2xl"
+        {...register("content")}
       />
       <FieldError message={contentError} />
+      <FieldError message={formError} />
       <div className="text-right">
-        <Button size="sm" loading={pending} type="submit">
+        <Button size="sm" loading={isSubmitting || createPostMutation.isPending} type="submit">
           Post
         </Button>
       </div>

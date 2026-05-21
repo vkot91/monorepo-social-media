@@ -1,8 +1,5 @@
 import { z } from "zod";
 
-import { SchemaShape } from "../utils/schemaShape.type";
-import type { CreatePostInput, ListPostsQueryInput, UpdatePostInput } from "./types";
-
 export const postVisibilitySchema = z.enum(["PUBLIC", "FRIENDS"]);
 
 const postContentSchema = z
@@ -18,14 +15,14 @@ export const createPostSchema = z.object({
   content: postContentSchema,
   imageUrl: postImageUrlSchema.optional(),
   visibility: postVisibilitySchema.default("PUBLIC"),
-} satisfies SchemaShape<CreatePostInput>);
+});
 
 export const updatePostSchema = z
   .object({
     content: postContentSchema.optional(),
     imageUrl: postImageUrlSchema.optional(),
     visibility: postVisibilitySchema.optional(),
-  } satisfies SchemaShape<UpdatePostInput>)
+  })
   .refine(
     (input) =>
       input.content !== undefined || input.visibility !== undefined || input.imageUrl !== undefined,
@@ -40,7 +37,26 @@ export const listPostsQuerySchema = z
   .object({
     authorId: z.string().uuid().optional(),
     feed: postFeedSchema.optional(),
-  } satisfies SchemaShape<ListPostsQueryInput>)
+  })
   .refine((input) => !(input.authorId && input.feed), {
     message: "Use either authorId or feed, not both",
   });
+
+export const PostAuthorSchema = z.object({
+  avatarUrl: z.string().nullable(),
+  displayName: z.string(),
+  id: z.string(),
+  username: z.string(),
+});
+
+export const PostSchema = z.object({
+  author: PostAuthorSchema,
+  content: z.string(),
+  createdAt: z.string().datetime(),
+  id: z.string(),
+  imageUrl: z.string().nullable(),
+  updatedAt: z.string().datetime(),
+  visibility: postVisibilitySchema,
+});
+
+export const PostsSchema = z.array(PostSchema);

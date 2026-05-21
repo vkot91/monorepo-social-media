@@ -1,5 +1,7 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Post } from "@nestjs/common";
+import { Body, Controller, Get, HttpCode, HttpStatus, Post, UseInterceptors } from "@nestjs/common";
 import {
+  AuthResponseSchema,
+  AuthUserSchema,
   type LoginInput,
   loginSchema,
   type LogoutInput,
@@ -10,6 +12,7 @@ import {
   registerSchema,
 } from "@social/contracts";
 
+import { ZodResponseInterceptor } from "#common/interceptors/response.interceptor";
 import { ZodValidationPipe } from "#common/pipes/zod-validation.pipe";
 
 import { AuthService } from "./auth.service";
@@ -23,6 +26,7 @@ export class AuthController {
 
   @PublicRoute()
   @Post("register")
+  @UseInterceptors(ZodResponseInterceptor(AuthResponseSchema))
   register(@Body(new ZodValidationPipe(registerSchema)) input: RegisterInput) {
     return this.authService.register(input);
   }
@@ -30,11 +34,13 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @PublicRoute()
   @Post("login")
+  @UseInterceptors(ZodResponseInterceptor(AuthResponseSchema))
   login(@Body(new ZodValidationPipe(loginSchema)) input: LoginInput) {
     return this.authService.login(input);
   }
 
   @Get("me")
+  @UseInterceptors(ZodResponseInterceptor(AuthUserSchema))
   me(@CurrentUser() user: AuthTokenPayload) {
     return this.authService.getCurrentUser(user.sub);
   }
@@ -42,6 +48,7 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @RefreshTokenRoute()
   @Post("refresh")
+  @UseInterceptors(ZodResponseInterceptor(AuthResponseSchema))
   refresh(@Body(new ZodValidationPipe(refreshTokenSchema)) input: RefreshTokenInput) {
     return this.authService.refresh(input.refreshToken);
   }

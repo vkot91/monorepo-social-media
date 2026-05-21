@@ -9,16 +9,20 @@ import {
   Patch,
   Post as HttpPost,
   Query,
+  UseInterceptors,
 } from "@nestjs/common";
 import {
   type CreatePostInput,
   createPostSchema,
   type ListPostsQueryInput,
   listPostsQuerySchema,
+  PostSchema,
+  PostsSchema,
   type UpdatePostInput,
   updatePostSchema,
 } from "@social/contracts";
 
+import { ZodResponseInterceptor } from "#common/interceptors/response.interceptor";
 import { ZodValidationPipe } from "#common/pipes/zod-validation.pipe";
 import { delay } from "#common/utils/delay";
 import { CurrentUser } from "#modules/auth/decorators/current-user.decorator";
@@ -31,26 +35,34 @@ export class PostsController {
   constructor(private readonly postsService: PostsService) {}
 
   @HttpPost()
-  create(@CurrentUser() user: AuthTokenPayload, @Body(new ZodValidationPipe(createPostSchema)) input: CreatePostInput) {
+  @UseInterceptors(ZodResponseInterceptor(PostSchema))
+  async create(
+    @CurrentUser() user: AuthTokenPayload,
+    @Body(new ZodValidationPipe(createPostSchema)) input: CreatePostInput,
+  ) {
+    await delay(2_000);
+
     return this.postsService.create(user.sub, input);
   }
 
   @Get()
+  @UseInterceptors(ZodResponseInterceptor(PostsSchema))
   async list(
     @CurrentUser() user: AuthTokenPayload,
     @Query(new ZodValidationPipe(listPostsQuerySchema)) query: ListPostsQueryInput,
   ) {
-    await delay(2_000);
-
+    await delay(4_000);
     return this.postsService.list(user.sub, query);
   }
 
   @Get(":id")
+  @UseInterceptors(ZodResponseInterceptor(PostSchema))
   findOne(@CurrentUser() user: AuthTokenPayload, @Param("id") postId: string) {
     return this.postsService.findOne(user.sub, postId);
   }
 
   @Patch(":id")
+  @UseInterceptors(ZodResponseInterceptor(PostSchema))
   update(
     @CurrentUser() user: AuthTokenPayload,
     @Param("id") postId: string,

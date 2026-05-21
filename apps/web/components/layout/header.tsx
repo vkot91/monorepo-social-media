@@ -1,11 +1,14 @@
 "use client";
 
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { LogOut, Search, User, UserCircle } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 import { AppNavigation, ThemeToggle } from "#/components/layout";
 import { DropdownMenu, Logo } from "#/components/ui";
 import { Input } from "#/components/ui/form";
-import { logout } from "#/lib/api/auth/actions";
+import { logout } from "#/features/auth/lib/mutations";
+import { authKeys } from "#/features/auth/lib/routes";
 import { useAuthStore } from "#/lib/store/auth";
 import type { ThemePreference } from "#/lib/theme";
 
@@ -14,7 +17,20 @@ type ProtectedHeaderProps = {
 };
 
 export function Header({ theme }: ProtectedHeaderProps) {
-  const { user } = useAuthStore();
+  const queryClient = useQueryClient();
+  const router = useRouter();
+  const { clearUser, user } = useAuthStore();
+  const logoutMutation = useMutation({
+    mutationFn: logout,
+  });
+  const handleLogout = async () => {
+    clearUser();
+    queryClient.removeQueries({ queryKey: authKeys.all });
+    await logoutMutation.mutateAsync();
+    router.replace("/login");
+    router.refresh();
+  };
+
   return (
     <header className="sticky top-0 z-20 border-b border-line bg-surface/95 px-4 py-3 backdrop-blur">
       <div className="mx-auto flex w-full max-w-6xl items-center gap-3">
@@ -47,7 +63,7 @@ export function Header({ theme }: ProtectedHeaderProps) {
             {
               icon: LogOut,
               label: "Logout",
-              onSelect: logout,
+              onSelect: handleLogout,
               variant: "danger",
             },
           ]}

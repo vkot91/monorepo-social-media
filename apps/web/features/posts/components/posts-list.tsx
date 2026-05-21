@@ -1,24 +1,35 @@
+"use client";
+
 import { PostFeed } from "@social/contracts";
+import { useQuery } from "@tanstack/react-query";
 
 import { Card } from "#/components/ui";
-import { getPosts } from "#/lib/api/posts/queries";
+
+import { postsQueryOptions } from "../lib/queries";
+import { PostsLoadingPlaceholder } from "./loading-placeholder";
 
 interface PostListProps {
   feedType: PostFeed;
 }
 
-export const PostsList = async ({ feedType }: PostListProps) => {
-  const result = await getPosts(feedType);
+export const PostsList = ({ feedType }: PostListProps) => {
+  const { data: posts = [], error, isLoading } = useQuery(postsQueryOptions({ feed: feedType }));
+
+  if (isLoading) {
+    return <PostsLoadingPlaceholder />;
+  }
 
   return (
     <section className="grid gap-4" aria-label="Posts">
-      {result.status === "error" ? (
+      {error ? (
         <Card>
           <h2 className="mb-2 mt-0 text-xl font-extrabold">Feed is temporarily unavailable</h2>
-          <p className="m-0 text-muted-text">{result.message}</p>
+          <p className="m-0 text-muted-text">
+            {error instanceof Error ? error.message : "Feed is temporarily unavailable."}
+          </p>
         </Card>
-      ) : result.posts.length > 0 ? (
-        result.posts.map((post) => (
+      ) : posts.length > 0 ? (
+        posts.map((post) => (
           <Card className="grid gap-4" key={post.id}>
             <div className="flex items-center gap-3.5">
               <div className="h-11 w-11 shrink-0 rounded-full bg-warning" />

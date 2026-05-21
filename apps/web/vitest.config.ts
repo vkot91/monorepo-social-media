@@ -30,7 +30,7 @@ export default defineConfig({
         "app/**/loading.tsx",
         "app/**/error.tsx",
         "app/**/not-found.tsx",
-        "lib/api/requests/client-request.ts",
+        "lib/api/api-client/bff-client.ts",
         "lib/api/**/index.ts",
       ],
       thresholds: {
