@@ -26,6 +26,7 @@ Styling rules:
 - When adding a new color, define it in `globals.css` for both light and dark themes, then expose it through `@theme`.
 - Preserve the theme model: server-rendered `data-theme` controls explicit light/dark mode, and no `data-theme` means system preference.
 - Avoid client-only theme restoration that can cause a light-first paint.
+- Avoid inline `style` props for UI styling. Prefer Tailwind utilities, theme tokens, `cva` variants, or CSS classes in `globals.css`; use inline styles only when a runtime value cannot be represented safely any other way.
 
 Component design:
 

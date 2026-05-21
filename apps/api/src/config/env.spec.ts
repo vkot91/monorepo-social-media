@@ -6,7 +6,7 @@ jest.mock("@social/env", () => ({
   parseApiEnv: jest.fn(() => ({
     NODE_ENV: "test",
     PORT: 3001,
-    DATABASE_URL: "postgresql://social_media:social_media_password@127.0.0.1:5432/social_media",
+    DATABASE_URL: "postgresql://postgres:postgres@127.0.0.1:15432/social_media?schema=public",
     REDIS_URL: "redis://localhost:6380",
     JWT_ACCESS_SECRET: "a".repeat(32),
     JWT_REFRESH_SECRET: "b".repeat(32),

@@ -6,7 +6,7 @@ import { parseApiEnv, parseDatabaseEnv, parseWebEnv } from "./index";
 const validSecret = "a".repeat(32);
 const nodeEnvironments = ["development", "test", "production"] as const;
 const validApiEnv = {
-  DATABASE_URL: "postgresql://social_media:social_media_password@127.0.0.1:5432/social_media",
+  DATABASE_URL: "postgresql://postgres:postgres@127.0.0.1:15432/social_media?schema=public",
   JWT_ACCESS_SECRET: validSecret,
   JWT_REFRESH_SECRET: validSecret,
   SMTP_HOST: "smtp.example.com",
@@ -63,7 +63,7 @@ describe("parseApiEnv", () => {
     const env = parseApiEnv({
       ...validApiEnv,
       CORS_ORIGIN: "http://127.0.0.1:3100",
-      DATABASE_URL: "postgresql://social_media_test:social_media_test_password@127.0.0.1:55432/social_media_test",
+      DATABASE_URL: "postgresql://social_media_test:social_media_test_password@127.0.0.1:15433/social_media_test",
       NODE_ENV: "test",
       PORT: "3210",
       REDIS_URL: "redis://localhost:56380",
@@ -71,7 +71,7 @@ describe("parseApiEnv", () => {
 
     expect(env).toMatchObject({
       CORS_ORIGIN: "http://127.0.0.1:3100",
-      DATABASE_URL: "postgresql://social_media_test:social_media_test_password@127.0.0.1:55432/social_media_test",
+      DATABASE_URL: "postgresql://social_media_test:social_media_test_password@127.0.0.1:15433/social_media_test",
       NODE_ENV: "test",
       PORT: 3210,
       REDIS_URL: "redis://localhost:56380",
@@ -217,11 +217,11 @@ describe("parseDatabaseEnv", () => {
   it("parses database environment variables", () => {
     expect(
       parseDatabaseEnv({
-        DATABASE_URL: "postgresql://social_media:social_media_password@127.0.0.1:5432/social_media",
+        DATABASE_URL: "postgresql://postgres:postgres@127.0.0.1:15432/social_media?schema=public",
       }),
     ).toEqual({
       NODE_ENV: "development",
-      DATABASE_URL: "postgresql://social_media:social_media_password@127.0.0.1:5432/social_media",
+      DATABASE_URL: "postgresql://postgres:postgres@127.0.0.1:15432/social_media?schema=public",
     });
   });
 
@@ -229,22 +229,22 @@ describe("parseDatabaseEnv", () => {
     expect(
       parseDatabaseEnv({
         NODE_ENV: "test",
-        DATABASE_URL: "postgresql://social_media_test:social_media_test_password@127.0.0.1:55432/social_media_test",
+        DATABASE_URL: "postgresql://social_media_test:social_media_test_password@127.0.0.1:15433/social_media_test",
       }),
     ).toEqual({
       NODE_ENV: "test",
-      DATABASE_URL: "postgresql://social_media_test:social_media_test_password@127.0.0.1:55432/social_media_test",
+      DATABASE_URL: "postgresql://social_media_test:social_media_test_password@127.0.0.1:15433/social_media_test",
     });
   });
 
   it.each(nodeEnvironments)("accepts NODE_ENV=%s", (nodeEnv) => {
     expect(
       parseDatabaseEnv({
-        DATABASE_URL: "postgresql://social_media:social_media_password@127.0.0.1:5432/social_media",
+        DATABASE_URL: "postgresql://postgres:postgres@127.0.0.1:15432/social_media?schema=public",
         NODE_ENV: nodeEnv,
       }),
     ).toEqual({
-      DATABASE_URL: "postgresql://social_media:social_media_password@127.0.0.1:5432/social_media",
+      DATABASE_URL: "postgresql://postgres:postgres@127.0.0.1:15432/social_media?schema=public",
       NODE_ENV: nodeEnv,
     });
   });
@@ -260,7 +260,7 @@ describe("parseDatabaseEnv", () => {
   it("rejects unsupported NODE_ENV values", () => {
     expect(() =>
       parseDatabaseEnv({
-        DATABASE_URL: "postgresql://social_media:social_media_password@127.0.0.1:5432/social_media",
+        DATABASE_URL: "postgresql://postgres:postgres@127.0.0.1:15432/social_media?schema=public",
         NODE_ENV: "staging",
       }),
     ).toThrow(ZodError);

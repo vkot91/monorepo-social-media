@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ReactNode, useEffect } from "react";
 
 import { activeUserQueryOptions } from "#/features/auth/lib/queries";
-import { useAuthStore } from "#/lib/store/auth";
+import { useAuthStore } from "#/features/auth/store/auth";
 
 interface AuthProviderProps {
   children: ReactNode;

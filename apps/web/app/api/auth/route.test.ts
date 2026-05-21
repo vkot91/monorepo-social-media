@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { backendClient } from "#/lib/api/api-client/backend-client";
 import { clearAuthCookies, getRefreshToken } from "#/lib/api/auth/cookies";
 import { persistAuthSession } from "#/lib/api/auth/session";
-import { AuthRequiredError } from "#/lib/api/utils/errors";
+import { ApiRequestError, AuthRequiredError } from "#/lib/api/utils/errors";
 
 import { POST as loginPost } from "./login/route";
 import { POST as logoutPost } from "./logout/route";
@@ -95,6 +95,53 @@ describe("auth BFF routes", () => {
     expect(backendClient).not.toHaveBeenCalled();
   });
 
+  it("returns register validation errors before calling the backend", async () => {
+    const response = await registerPost(
+      jsonRequest("http://localhost/api/auth/register", {
+        displayName: "M",
+        email: "not-an-email",
+        password: "short",
+        username: "bad-name",
+      }),
+    );
+
+    await expect(response.json()).resolves.toMatchObject({
+      errors: {
+        email: expect.any(Array),
+        password: expect.any(Array),
+        displayName: expect.any(Array),
+        username: expect.any(Array),
+      },
+      message: "Please check the registration fields.",
+    });
+    expect(response.status).toBe(400);
+    expect(backendClient).not.toHaveBeenCalled();
+  });
+
+  it("maps login backend validation errors without persisting cookies", async () => {
+    vi.mocked(backendClient).mockRejectedValueOnce(
+      new ApiRequestError("Invalid credentials", 401, {
+        email: ["Email or password is incorrect."],
+      }),
+    );
+
+    const response = await loginPost(
+      jsonRequest("http://localhost/api/auth/login", {
+        email: "maya@example.com",
+        password: "password123",
+      }),
+    );
+
+    await expect(response.json()).resolves.toEqual({
+      errors: {
+        email: ["Email or password is incorrect."],
+      },
+      message: "Invalid credentials",
+    });
+    expect(response.status).toBe(401);
+    expect(persistAuthSession).not.toHaveBeenCalled();
+  });
+
   it("registers through the backend and persists httpOnly cookies", async () => {
     vi.mocked(backendClient).mockResolvedValueOnce(authResponse);
 
@@ -119,6 +166,32 @@ describe("auth BFF routes", () => {
       },
     });
     expect(persistAuthSession).toHaveBeenCalledWith(authResponse);
+  });
+
+  it("maps register backend validation errors without persisting cookies", async () => {
+    vi.mocked(backendClient).mockRejectedValueOnce(
+      new ApiRequestError("Username is unavailable", 409, {
+        username: ["Username is already taken."],
+      }),
+    );
+
+    const response = await registerPost(
+      jsonRequest("http://localhost/api/auth/register", {
+        displayName: "Maya Johnson",
+        email: "maya@example.com",
+        password: "password123",
+        username: "maya_01",
+      }),
+    );
+
+    await expect(response.json()).resolves.toEqual({
+      errors: {
+        username: ["Username is already taken."],
+      },
+      message: "Username is unavailable",
+    });
+    expect(response.status).toBe(409);
+    expect(persistAuthSession).not.toHaveBeenCalled();
   });
 
   it("logs out through the backend when a refresh token exists", async () => {
@@ -146,6 +219,20 @@ describe("auth BFF routes", () => {
     expect(response.status).toBe(200);
     expect(backendClient).not.toHaveBeenCalled();
     expect(clearAuthCookies).toHaveBeenCalled();
+  });
+
+  it("maps logout backend failures", async () => {
+    vi.mocked(getRefreshToken).mockResolvedValueOnce("refresh-token");
+    vi.mocked(backendClient).mockRejectedValueOnce(new Error("backend unavailable"));
+
+    const response = await logoutPost();
+
+    await expect(response.json()).resolves.toEqual({
+      errors: {},
+      message: "Logout is unavailable right now.",
+    });
+    expect(response.status).toBe(500);
+    expect(clearAuthCookies).not.toHaveBeenCalled();
   });
 
   it("refreshes the session using the refresh token cookie", async () => {
@@ -177,6 +264,20 @@ describe("auth BFF routes", () => {
     expect(backendClient).not.toHaveBeenCalled();
   });
 
+  it("maps refresh backend failures without persisting cookies", async () => {
+    vi.mocked(getRefreshToken).mockResolvedValueOnce("refresh-token");
+    vi.mocked(backendClient).mockRejectedValueOnce(new Error("backend unavailable"));
+
+    const response = await refreshPost();
+
+    await expect(response.json()).resolves.toEqual({
+      errors: {},
+      message: "Session refresh is unavailable right now.",
+    });
+    expect(response.status).toBe(500);
+    expect(persistAuthSession).not.toHaveBeenCalled();
+  });
+
   it("returns the current user through the BFF", async () => {
     vi.mocked(backendClient).mockResolvedValueOnce(authUser);
 
@@ -196,5 +297,17 @@ describe("auth BFF routes", () => {
       message: "Authentication is required",
     });
     expect(response.status).toBe(401);
+  });
+
+  it("maps current-user backend failures to the profile fallback", async () => {
+    vi.mocked(backendClient).mockRejectedValueOnce(new Error("backend unavailable"));
+
+    const response = await meGet();
+
+    await expect(response.json()).resolves.toEqual({
+      errors: {},
+      message: "Profile is unavailable right now.",
+    });
+    expect(response.status).toBe(500);
   });
 });
