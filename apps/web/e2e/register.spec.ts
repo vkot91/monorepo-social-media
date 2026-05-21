@@ -39,7 +39,10 @@ test.describe("register page", () => {
     await page.getByLabel("Password").fill("password123");
     await page.getByRole("button", { name: "Create account" }).click();
 
-    await expect(page.getByText("Email or username is already in use")).toBeVisible();
+    const notifications = page.getByLabel("top right notifications");
+
+    await expect(notifications.getByText("Account creation failed")).toBeVisible();
+    await expect(notifications.getByText("Email or username is already in use")).toBeVisible();
   });
 
   test("creates an account and opens the feed", async ({ page }) => {

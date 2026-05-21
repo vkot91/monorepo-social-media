@@ -36,7 +36,7 @@ describe("createPrismaClient", () => {
     vi.stubEnv("NODE_ENV", "development");
     vi.stubEnv(
       "DATABASE_URL",
-      "postgresql://social_media:social_media_password@127.0.0.1:5432/social_media",
+      "postgresql://postgres:postgres@127.0.0.1:15432/social_media?schema=public",
     );
 
     const { createPrismaClient } = await import("./client");
@@ -45,7 +45,7 @@ describe("createPrismaClient", () => {
 
     expect(adapterConstructorSpy).toHaveBeenCalledWith({
       connectionString:
-        "postgresql://social_media:social_media_password@127.0.0.1:5432/social_media",
+        "postgresql://postgres:postgres@127.0.0.1:15432/social_media?schema=public",
     });
     expect(constructorSpy).toHaveBeenCalledWith({
       adapter: expect.any(Object),
@@ -60,7 +60,7 @@ describe("createPrismaClient", () => {
     vi.stubEnv("NODE_ENV", "production");
     vi.stubEnv(
       "DATABASE_URL",
-      "postgresql://social_media:social_media_password@127.0.0.1:5432/social_media",
+      "postgresql://postgres:postgres@127.0.0.1:15432/social_media?schema=public",
     );
 
     const { createPrismaClient } = await import("./client");
@@ -80,7 +80,7 @@ describe("createPrismaClient", () => {
     vi.stubEnv("NODE_ENV", "test");
     vi.stubEnv(
       "DATABASE_URL",
-      "postgresql://social_media_test:social_media_test_password@127.0.0.1:55432/social_media_test",
+      "postgresql://social_media_test:social_media_test_password@127.0.0.1:15433/social_media_test",
     );
 
     const { createPrismaClient } = await import("./client");
@@ -101,7 +101,7 @@ describe("getPrismaClient", () => {
     vi.stubEnv("NODE_ENV", "test");
     vi.stubEnv(
       "DATABASE_URL",
-      "postgresql://social_media:social_media_password@127.0.0.1:5432/social_media",
+      "postgresql://postgres:postgres@127.0.0.1:15432/social_media?schema=public",
     );
 
     const { getPrismaClient } = await import("./client");
@@ -119,7 +119,7 @@ describe("getPrismaClient", () => {
     vi.stubEnv("NODE_ENV", "production");
     vi.stubEnv(
       "DATABASE_URL",
-      "postgresql://social_media:social_media_password@127.0.0.1:5432/social_media",
+      "postgresql://postgres:postgres@127.0.0.1:15432/social_media?schema=public",
     );
 
     const { getPrismaClient } = await import("./client");
@@ -138,7 +138,7 @@ describe("prisma", () => {
     vi.stubEnv("NODE_ENV", "test");
     vi.stubEnv(
       "DATABASE_URL",
-      "postgresql://social_media:social_media_password@127.0.0.1:5432/social_media",
+      "postgresql://postgres:postgres@127.0.0.1:15432/social_media?schema=public",
     );
 
     const { prisma } = await import("./client");

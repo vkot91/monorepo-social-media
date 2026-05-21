@@ -98,3 +98,15 @@
     @apply bg-background text-text antialiased;
   }
 }
+
+@layer utilities {
+  @keyframes toast-progress {
+    from {
+      transform: scaleX(1);
+    }
+
+    to {
+      transform: scaleX(0);
+    }
+  }
+}

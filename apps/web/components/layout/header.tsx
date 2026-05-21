@@ -9,7 +9,7 @@ import { DropdownMenu, Logo } from "#/components/ui";
 import { Input } from "#/components/ui/form";
 import { logout } from "#/features/auth/lib/mutations";
 import { authKeys } from "#/features/auth/lib/routes";
-import { useAuthStore } from "#/lib/store/auth";
+import { useAuthStore } from "#/features/auth/store/auth";
 import type { ThemePreference } from "#/lib/theme";
 
 type ProtectedHeaderProps = {
@@ -20,15 +20,19 @@ export function Header({ theme }: ProtectedHeaderProps) {
   const queryClient = useQueryClient();
   const router = useRouter();
   const { clearUser, user } = useAuthStore();
+
   const logoutMutation = useMutation({
     mutationFn: logout,
+    onSuccess: () => {
+      queryClient.removeQueries({ queryKey: authKeys.all });
+      clearUser();
+      router.replace("/login");
+      router.refresh();
+    },
   });
-  const handleLogout = async () => {
-    clearUser();
-    queryClient.removeQueries({ queryKey: authKeys.all });
-    await logoutMutation.mutateAsync();
-    router.replace("/login");
-    router.refresh();
+
+  const handleLogout = () => {
+    logoutMutation.mutate();
   };
 
   return (

@@ -3,7 +3,7 @@ import type { ApiEnv } from "@social/env";
 export const testApiEnv = {
   NODE_ENV: "test",
   PORT: 3210,
-  DATABASE_URL: "postgresql://social_media_test:social_media_test_password@127.0.0.1:55432/social_media_test",
+  DATABASE_URL: "postgresql://social_media_test:social_media_test_password@127.0.0.1:15433/social_media_test",
   REDIS_URL: "redis://localhost:56380",
   JWT_ACCESS_SECRET: "test-access-secret-at-least-32-chars",
   JWT_REFRESH_SECRET: "test-refresh-secret-at-least-32-chars",

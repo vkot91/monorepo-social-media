@@ -4,14 +4,11 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { type LoginInput, loginSchema, type RegisterInput, registerSchema } from "@social/contracts";
 import { useMutation } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
-import { type FieldValues, type Path, useForm, type UseFormSetError } from "react-hook-form";
+import { useForm } from "react-hook-form";
 
 import { Logo } from "#/components/ui";
 import { Button } from "#/components/ui/button";
-import { Field, FormCard, FormError, Input } from "#/components/ui/form";
-import { ApiFieldErrors } from "#/lib/api/types";
-import { ApiRequestError } from "#/lib/api/utils/errors";
+import { Field, FormCard, Input } from "#/components/ui/form";
 
 import { login, register as registerAccount } from "../lib/mutations";
 
@@ -36,21 +33,6 @@ const authCopy = {
 
 const getFieldErrorMessage = (message: unknown) => (typeof message === "string" ? message : undefined);
 
-const setServerErrors = <TValues extends FieldValues>(
-  setError: UseFormSetError<TValues>,
-  errors: ApiFieldErrors<Extract<keyof TValues, string>>,
-) => {
-  for (const [name, messages] of Object.entries(errors)) {
-    const message = messages?.[0];
-
-    if (message) {
-      setError(name as Path<TValues>, {
-        message,
-      });
-    }
-  }
-};
-
 export const AuthForm = ({ mode }: AuthFormProps) => {
   if (mode === "login") {
     return <LoginAuthForm />;
@@ -73,38 +55,28 @@ const AuthHeader = ({ mode }: AuthFormProps) => {
 
 const LoginAuthForm = () => {
   const router = useRouter();
+
   const loginMutation = useMutation({
     mutationFn: login,
+    meta: {
+      toastErrorTitle: "Sign in failed",
+    },
+    onSuccess: () => {
+      router.replace("/feed");
+    },
   });
-  const [formError, setFormError] = useState<string | null>(null);
+
   const {
     formState: { errors, isSubmitting },
-    clearErrors,
     handleSubmit,
     register,
-    setError,
   } = useForm<LoginInput>({
     resolver: zodResolver(loginSchema),
     mode: "onTouched",
   });
 
-  const onSubmit = async (values: LoginInput) => {
-    clearErrors();
-    setFormError(null);
-
-    try {
-      await loginMutation.mutateAsync(values);
-      router.replace("/feed");
-      router.refresh();
-    } catch (error) {
-      if (error instanceof ApiRequestError) {
-        setFormError(error.message);
-        setServerErrors(setError, error.errors as ApiFieldErrors<Extract<keyof LoginInput, string>>);
-        return;
-      }
-
-      setFormError("Something went wrong. Try again.");
-    }
+  const onSubmit = (values: LoginInput) => {
+    loginMutation.mutate(values);
   };
 
   const emailError = getFieldErrorMessage(errors.email?.message);
@@ -127,8 +99,6 @@ const LoginAuthForm = () => {
         />
       </Field>
 
-      <FormError>{formError}</FormError>
-
       <Button loading={isSubmitting || loginMutation.isPending} type="submit">
         {isSubmitting ? "Please wait..." : authCopy.login.button}
       </Button>
@@ -138,38 +108,29 @@ const LoginAuthForm = () => {
 
 const RegisterAuthForm = () => {
   const router = useRouter();
+
   const registerMutation = useMutation({
     mutationFn: registerAccount,
+    meta: {
+      toastErrorTitle: "Account creation failed",
+    },
+    onSuccess: () => {
+      router.replace("/feed");
+      router.refresh();
+    },
   });
-  const [formError, setFormError] = useState<string | null>(null);
+
   const {
     formState: { errors, isSubmitting },
-    clearErrors,
     handleSubmit,
     register,
-    setError,
   } = useForm<RegisterInput>({
     resolver: zodResolver(registerSchema),
     mode: "onTouched",
   });
 
-  const onSubmit = async (values: RegisterInput) => {
-    clearErrors();
-    setFormError(null);
-
-    try {
-      await registerMutation.mutateAsync(values);
-      router.replace("/feed");
-      router.refresh();
-    } catch (error) {
-      if (error instanceof ApiRequestError) {
-        setFormError(error.message);
-        setServerErrors(setError, error.errors as ApiFieldErrors<Extract<keyof RegisterInput, string>>);
-        return;
-      }
-
-      setFormError("Something went wrong. Try again.");
-    }
+  const onSubmit = (values: RegisterInput) => {
+    registerMutation.mutate(values);
   };
 
   const displayNameError = getFieldErrorMessage(errors.displayName?.message);
@@ -196,8 +157,6 @@ const RegisterAuthForm = () => {
       <Field error={passwordError} label="Password">
         <Input autoComplete="new-password" invalid={Boolean(passwordError)} type="password" {...register("password")} />
       </Field>
-
-      <FormError>{formError}</FormError>
 
       <Button loading={isSubmitting || registerMutation.isPending} type="submit">
         {isSubmitting ? "Please wait..." : authCopy.register.button}

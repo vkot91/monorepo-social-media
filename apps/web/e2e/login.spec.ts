@@ -33,7 +33,10 @@ test.describe("login page", () => {
     await page.getByLabel("Password").fill("wrong-password");
     await page.getByRole("button", { name: "Sign in" }).click();
 
-    await expect(page.getByText("Invalid email or password")).toBeVisible();
+    const notifications = page.getByLabel("top right notifications");
+
+    await expect(notifications.getByText("Sign in failed")).toBeVisible();
+    await expect(notifications.getByText("Invalid email or password")).toBeVisible();
   });
 
   test("signs in and opens the feed", async ({ page }) => {

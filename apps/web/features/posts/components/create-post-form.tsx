@@ -14,17 +14,7 @@ import { postsKeys } from "../lib/routes";
 
 export const CreatePostForm = () => {
   const queryClient = useQueryClient();
-  const createPostMutation = useMutation({
-    mutationFn: createPost,
-    onSuccess: (post) => {
-      const feedQuery = {
-        feed: "all" as const,
-      };
 
-      queryClient.setQueryData<PostDto[]>(postsKeys.feed(feedQuery), (posts = []) => [post, ...posts]);
-      void queryClient.invalidateQueries({ queryKey: postsKeys.all });
-    },
-  });
   const {
     formState: { errors, isSubmitting },
     handleSubmit,
@@ -41,19 +31,9 @@ export const CreatePostForm = () => {
     resolver: zodResolver(createPostSchema),
   });
 
-  const contentError = errors.content?.message;
-  const formError = createPostMutation.error instanceof ApiRequestError ? createPostMutation.error.message : undefined;
-  
-  const onSubmit = async (values: CreatePostInput) => {
-    try {
-      await createPostMutation.mutateAsync(values);
-
-      reset({
-        content: "",
-        imageUrl: null,
-        visibility: "PUBLIC",
-      });
-    } catch (error) {
+  const createPostMutation = useMutation({
+    mutationFn: createPost,
+    onError: (error) => {
       if (error instanceof ApiRequestError) {
         const message = error.errors.content?.[0];
 
@@ -63,7 +43,24 @@ export const CreatePostForm = () => {
           });
         }
       }
-    }
+    },
+    onSuccess: (post) => {
+      queryClient.setQueryData<PostDto[]>(postsKeys.feed({ feed: "all" }), (posts = []) => [post, ...posts]);
+      void queryClient.invalidateQueries({ queryKey: postsKeys.all });
+
+      reset({
+        content: "",
+        imageUrl: null,
+        visibility: "PUBLIC",
+      });
+    },
+  });
+
+  const contentError = errors.content?.message;
+  const formError = createPostMutation.error instanceof ApiRequestError ? createPostMutation.error.message : undefined;
+
+  const onSubmit = (values: CreatePostInput) => {
+    createPostMutation.mutate(values);
   };
 
   return (
