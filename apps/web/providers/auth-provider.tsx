@@ -1,16 +1,17 @@
 "use client";
 
-import { AuthUserDto } from "@social/contracts";
+import { useQuery } from "@tanstack/react-query";
 import { ReactNode, useEffect } from "react";
 
+import { activeUserQueryOptions } from "#/features/auth/lib/queries";
 import { useAuthStore } from "#/lib/store/auth";
 
 interface AuthProviderProps {
-  user: AuthUserDto | null;
   children: ReactNode;
 }
 
-export const AuthProvider = ({ user, children }: AuthProviderProps) => {
+export const AuthProvider = ({ children }: AuthProviderProps) => {
+  const { data: user } = useQuery(activeUserQueryOptions());
   const setUser = useAuthStore((s) => s.setUser);
 
   useEffect(() => {

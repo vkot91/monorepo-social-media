@@ -1,7 +1,4 @@
-import { Suspense } from "react";
-
 import { CreatePostForm } from "#/features/posts/components/create-post-form";
-import { PostsLoadingPlaceholder } from "#/features/posts/components/loading-placeholder";
 import { PostsList } from "#/features/posts/components/posts-list";
 
 export const metadata = {
@@ -20,9 +17,7 @@ export default function FeedPage() {
       <div className="mb-4">
         <CreatePostForm />
       </div>
-      <Suspense fallback={<PostsLoadingPlaceholder />}>
-        <PostsList feedType="all" />
-      </Suspense>
+      <PostsList feedType="all" />
     </>
   );
 }

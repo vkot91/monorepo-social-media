@@ -1,33 +1,25 @@
-export type PostVisibility = "PUBLIC" | "FRIENDS";
+import type { z } from "zod";
 
-export type CreatePostInput = {
-  content: string;
-  imageUrl?: string | null;
-  visibility?: PostVisibility;
-};
+import type {
+  createPostSchema,
+  listPostsQuerySchema,
+  PostAuthorSchema,
+  postFeedSchema,
+  PostSchema,
+  postVisibilitySchema,
+  updatePostSchema,
+} from "./schemas";
 
-export type UpdatePostInput = Partial<CreatePostInput>;
+export type PostVisibility = z.infer<typeof postVisibilitySchema>;
 
-export type PostFeed = "all" | "friends";
+export type CreatePostInput = z.input<typeof createPostSchema>;
 
-export type ListPostsQueryInput = {
-  authorId?: string;
-  feed?: PostFeed;
-};
+export type UpdatePostInput = z.input<typeof updatePostSchema>;
 
-export type PostAuthorDto = {
-  avatarUrl: string | null;
-  displayName: string;
-  id: string;
-  username: string;
-};
+export type PostFeed = z.infer<typeof postFeedSchema>;
 
-export type PostDto = {
-  author: PostAuthorDto;
-  content: string;
-  createdAt: string;
-  id: string;
-  imageUrl: string | null;
-  updatedAt: string;
-  visibility: PostVisibility;
-};
+export type ListPostsQueryInput = z.input<typeof listPostsQuerySchema>;
+
+export type PostAuthorDto = z.infer<typeof PostAuthorSchema>;
+
+export type PostDto = z.infer<typeof PostSchema>;

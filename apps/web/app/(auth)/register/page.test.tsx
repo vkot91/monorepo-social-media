@@ -1,5 +1,7 @@
-import { render, screen } from "@testing-library/react";
+import { screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
+
+import { renderWithQueryClient } from "#/test/query-client";
 
 import RegisterPage from "./page";
 
@@ -12,7 +14,7 @@ vi.mock("next/navigation", () => ({
 
 describe("RegisterPage", () => {
   it("renders the registration form", () => {
-    render(<RegisterPage />);
+    renderWithQueryClient(<RegisterPage />);
 
     expect(screen.getByRole("heading", { name: /create your account/i })).toBeInTheDocument();
     expect(screen.getByLabelText(/display name/i)).toBeInTheDocument();

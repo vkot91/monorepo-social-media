@@ -1,20 +1,28 @@
-import { AuthApiRoutes } from "../auth";
-import { PostsApiRoutes } from "../posts";
-import { ApiRoute, RequestType } from "../types";
+import type { AuthBackendApiRoutes,AuthBffApiRoutes } from "#/features/auth/lib/routes";
+import type { PostsBackendApiRoutes,PostsBffApiRoutes } from "#/features/posts/lib/routes";
+
+import type { ApiRoute } from "../types";
 
 export type ApiMethod = "DELETE" | "GET" | "PATCH" | "POST" | "PUT";
 
 export type QueryValue = boolean | number | string | null | undefined;
 
-export type ApiRoutes = AuthApiRoutes & PostsApiRoutes;
+export type BackendApiRoutes = AuthBackendApiRoutes & PostsBackendApiRoutes;
+export type BffApiRoutes = AuthBffApiRoutes & PostsBffApiRoutes;
 
-export type ApiPath = keyof ApiRoutes;
-export type MethodFor<TPath extends ApiPath> = Extract<keyof ApiRoutes[TPath], ApiMethod>;
+export type ApiRoutes = BffApiRoutes | BackendApiRoutes;
+
+export type ApiPath<TRoutes extends ApiRoutes> = Extract<keyof TRoutes, string>;
+export type MethodFor<TRoutes extends ApiRoutes, TPath extends ApiPath<TRoutes>> = Extract<
+  keyof TRoutes[TPath],
+  ApiMethod
+>;
 
 export type RouteConfig<
-  TPath extends ApiPath,
-  TMethod extends MethodFor<TPath>,
-> = ApiRoutes[TPath][TMethod];
+  TRoutes extends ApiRoutes,
+  TPath extends ApiPath<TRoutes>,
+  TMethod extends MethodFor<TRoutes, TPath>,
+> = TRoutes[TPath][TMethod];
 
 export type RetryOptions = {
   attempts?: number;
@@ -35,18 +43,8 @@ export type AuthOption<TRoute> =
     ? { auth?: TAuth }
     : { auth?: true };
 
-export type RequestTypeOption<TRoute> =
-  TRoute extends ApiRoute<{
-    requestType: infer TRequestType extends RequestType;
-    response: unknown;
-  }>
-    ? { requestType?: TRequestType }
-    : { requestType?: "server" };
-
 export type BodyOption<TRoute> =
-  TRoute extends ApiRoute<{ body: infer TBody; response: unknown }>
-    ? { body: TBody }
-    : { body?: never };
+  TRoute extends ApiRoute<{ body: infer TBody; response: unknown }> ? { body: TBody } : { body?: never };
 
 export type QueryParamsOption<TRoute> =
   TRoute extends ApiRoute<{
@@ -58,12 +56,10 @@ export type QueryParamsOption<TRoute> =
 
 export type RequestOptions<TRoute> = BaseRequestOptions &
   AuthOption<TRoute> &
-  RequestTypeOption<TRoute> &
   BodyOption<TRoute> &
   QueryParamsOption<TRoute>;
 
-export type NoExtraKeys<TExpected, TActual> = TActual &
-  Record<Exclude<keyof TActual, keyof TExpected>, never>;
+export type NoExtraKeys<TExpected, TActual> = TActual & Record<Exclude<keyof TActual, keyof TExpected>, never>;
 
 export type StrictBodyOption<TRoute, TOptions> =
   TRoute extends ApiRoute<{ body: infer TBody; response: unknown }>
@@ -87,9 +83,19 @@ export type StrictRequestOptions<TRoute, TOptions> = NoExtraKeys<RequestOptions<
   StrictBodyOption<TRoute, TOptions> &
   StrictQueryParamsOption<TRoute, TOptions>;
 
-export type RouteResponse<TRoute> =
-  TRoute extends ApiRoute<{ response: infer TResponse }> ? TResponse : never;
+export type RouteResponse<TRoute> = TRoute extends ApiRoute<{ response: infer TResponse }> ? TResponse : never;
 
-export type RequestFactoryOptions = {
+export type ApiClientOptions = {
+  origin: "bff" | "backend";
   resolveAccessToken?: () => Promise<string | null>;
 };
+
+export type ApiClient<TRoutes extends ApiRoutes> = <
+  const TPath extends ApiPath<TRoutes>,
+  const TMethod extends MethodFor<TRoutes, TPath>,
+  const TOptions extends RequestOptions<RouteConfig<TRoutes, TPath, TMethod>>,
+>(
+  path: TPath,
+  method: TMethod,
+  options: StrictRequestOptions<RouteConfig<TRoutes, TPath, TMethod>, TOptions>,
+) => Promise<RouteResponse<RouteConfig<TRoutes, TPath, TMethod>>>;

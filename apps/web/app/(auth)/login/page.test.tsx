@@ -1,5 +1,7 @@
-import { render, screen } from "@testing-library/react";
+import { screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
+
+import { renderWithQueryClient } from "#/test/query-client";
 
 import LoginPage from "./page";
 
@@ -12,7 +14,7 @@ vi.mock("next/navigation", () => ({
 
 describe("LoginPage", () => {
   it("renders the login form", () => {
-    render(<LoginPage />);
+    renderWithQueryClient(<LoginPage />);
 
     expect(screen.getByRole("heading", { name: /welcome back/i })).toBeInTheDocument();
     expect(screen.getByLabelText(/email/i)).toBeInTheDocument();

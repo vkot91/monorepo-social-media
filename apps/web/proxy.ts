@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 
+import { backendClient } from "./lib/api/api-client/backend-client";
 import { accessTokenCookieName, refreshTokenCookieName } from "./lib/api/auth/cookies";
-import { serverRequest } from "./lib/api/requests/server-request";
 
 function isJwtExpired(token: string) {
   const [, payload] = token.split(".");
@@ -57,7 +57,7 @@ export async function proxy(request: NextRequest) {
     return isRequestForAuthPage ? redirectToFeed(request) : NextResponse.next();
   }
 
-  const refreshResponse = await serverRequest("/auth/refresh", "POST", {
+  const refreshResponse = await backendClient("/auth/refresh", "POST", {
     body: {
       refreshToken,
     },

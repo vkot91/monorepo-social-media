@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import type { ReactNode } from "react";
 
 import { getThemeAttribute, parseThemePreference, themeCookieName } from "#/lib/theme";
+import { QueryProvider } from "#/providers/query-provider";
 
 import "./globals.css";
 
@@ -15,7 +16,9 @@ export default async function RootLayout({ children }: RootLayoutProps) {
 
   return (
     <html data-theme={themeAttribute} lang="en">
-      <body>{children}</body>
+      <body>
+        <QueryProvider>{children}</QueryProvider>
+      </body>
     </html>
   );
 }

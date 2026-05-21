@@ -22,4 +22,19 @@ export const refreshTokenSchema = z.object({
   refreshToken: z.string().min(1),
 });
 
+export const AuthResponseSchema = z.object({
+  accessToken: z.string().min(1),
+  refreshToken: z.string().min(1),
+});
+
+export const AuthUserSchema = z.object({
+  avatarUrl: z.string().nullable(),
+  bio: z.string().nullable(),
+  createdAt: z.string().datetime(),
+  displayName: z.string(),
+  email: z.string().email(),
+  id: z.string(),
+  username: z.string(),
+});
+
 export const logoutSchema = refreshTokenSchema;
