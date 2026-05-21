@@ -9,15 +9,11 @@ import {
 } from "@nestjs/common";
 import { Observable } from "rxjs";
 import { map } from "rxjs/operators";
-import type { SafeParseReturnType } from "zod";
+import z, { ZodTypeAny } from "zod";
 
 import { LoggingService } from "#common/logging/logging.service";
 
-type ResponseSchema<T> = {
-  safeParse: (data: unknown) => SafeParseReturnType<unknown, T>;
-};
-
-export const ZodResponseInterceptor = <T>(schema: ResponseSchema<T>): Type<NestInterceptor<unknown, T>> => {
+export const ZodResponseInterceptor = <T extends ZodTypeAny>(schema: T): Type<NestInterceptor<unknown, z.infer<T>>> => {
   @Injectable()
   class ZodResponseSchemaInterceptor implements NestInterceptor<unknown, T> {
     constructor(private readonly loggingService: LoggingService) {}
