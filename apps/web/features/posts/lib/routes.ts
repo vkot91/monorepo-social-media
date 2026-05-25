@@ -1,4 +1,4 @@
-import type { CreatePostInput, ListPostsQueryInput, PostDto } from "@social/contracts";
+import type { CreatePostInput, ListPostsQueryInput, PaginatedPostsDto, PostDto } from "@social/contracts";
 
 import type { ApiRoute } from "#/lib/api/types";
 
@@ -6,7 +6,7 @@ export type PostsBackendApiRoutes = {
   "/posts": {
     GET: ApiRoute<{
       queryParams: ListPostsQueryInput;
-      response: PostDto[];
+      response: PaginatedPostsDto;
     }>;
     POST: ApiRoute<{
       body: CreatePostInput;
@@ -19,7 +19,7 @@ export type PostsBffApiRoutes = {
   "/api/posts": {
     GET: ApiRoute<{
       queryParams: ListPostsQueryInput;
-      response: PostDto[];
+      response: PaginatedPostsDto;
     }>;
     POST: ApiRoute<{
       body: CreatePostInput;
@@ -31,4 +31,5 @@ export type PostsBffApiRoutes = {
 export const postsKeys = {
   all: ["posts"] as const,
   feed: (query: ListPostsQueryInput) => [...postsKeys.all, "feed", query] as const,
+  infiniteFeed: (query: ListPostsQueryInput) => [...postsKeys.all, "infinite-feed", query] as const,
 };

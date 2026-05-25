@@ -57,36 +57,40 @@ export async function proxy(request: NextRequest) {
     return isRequestForAuthPage ? redirectToFeed(request) : NextResponse.next();
   }
 
-  const refreshResponse = await backendClient("/auth/refresh", "POST", {
-    body: {
-      refreshToken,
-    },
-    auth: false,
-  });
+  try {
+    const refreshResponse = await backendClient("/auth/refresh", "POST", {
+      body: {
+        refreshToken,
+      },
+      auth: false,
+    });
 
-  if (!refreshResponse?.accessToken) {
+    if (!refreshResponse?.accessToken) {
+      return isRequestForAuthPage ? NextResponse.next() : redirectToLogin(request);
+    }
+
+    const tokens = refreshResponse;
+    const response = isRequestForAuthPage ? redirectToFeed(request) : NextResponse.next();
+
+    response.cookies.set(accessTokenCookieName, tokens.accessToken, {
+      httpOnly: true,
+      maxAge: 60 * 15,
+      path: "/",
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+    });
+    response.cookies.set(refreshTokenCookieName, tokens.refreshToken, {
+      httpOnly: true,
+      maxAge: 60 * 60 * 24 * 30,
+      path: "/",
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+    });
+
+    return response;
+  } catch {
     return isRequestForAuthPage ? NextResponse.next() : redirectToLogin(request);
   }
-
-  const tokens = refreshResponse;
-  const response = isRequestForAuthPage ? redirectToFeed(request) : NextResponse.next();
-
-  response.cookies.set(accessTokenCookieName, tokens.accessToken, {
-    httpOnly: true,
-    maxAge: 60 * 15,
-    path: "/",
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-  });
-  response.cookies.set(refreshTokenCookieName, tokens.refreshToken, {
-    httpOnly: true,
-    maxAge: 60 * 60 * 24 * 30,
-    path: "/",
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-  });
-
-  return response;
 }
 
 export const config = {

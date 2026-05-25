@@ -1,4 +1,5 @@
 import type { BrowserContext } from "@playwright/test";
+import { testUsers } from "@social/database";
 
 import { e2eConfig } from "../config";
 
@@ -7,11 +8,11 @@ const refreshTokenCookieName = "social_refresh_token";
 
 const testAccounts = {
   empty: {
-    email: "empty@example.com",
+    email: testUsers.empty.email,
     password: "password123",
   },
   posts: {
-    email: "maya@example.com",
+    email: testUsers.login.email,
     password: "password123",
   },
 } as const;

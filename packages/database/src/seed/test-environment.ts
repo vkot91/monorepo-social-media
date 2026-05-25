@@ -33,15 +33,15 @@ export const seedTestDatabase = async (client: PrismaClient = prisma) => {
     })),
   });
 
-  await client.post.create({
-    data: {
+  await client.post.createMany({
+    data: testPosts.mayaFeedPage.map((post) => ({
       authorId: testUsers.login.id,
-      content: testPosts.mayaFeed.content,
-      createdAt,
-      id: testPosts.mayaFeed.id,
-      updatedAt: createdAt,
+      content: post.content,
+      createdAt: new Date(post.createdAt),
+      id: post.id,
+      updatedAt: new Date(post.createdAt),
       visibility: PostVisibility.FRIENDS,
-    },
+    })),
   });
 };
 

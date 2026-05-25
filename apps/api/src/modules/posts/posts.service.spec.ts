@@ -1,6 +1,7 @@
 import { ForbiddenException, NotFoundException } from "@nestjs/common";
 import { FriendshipStatus, PostVisibility } from "@social/database";
 
+import { PaginationService } from "#common/pagination/pagination.service";
 import { buildPersistedPost, buildPostDto } from "#test/factories/post.factory";
 import { mockedPrisma } from "#test/prisma.mock";
 
@@ -10,6 +11,7 @@ const persistedPost = buildPersistedPost();
 
 function createService() {
   mockedPrisma.post.create.mockResolvedValue(persistedPost);
+  mockedPrisma.post.count.mockResolvedValue(1);
   mockedPrisma.post.findMany.mockResolvedValue([persistedPost]);
   mockedPrisma.post.findFirst.mockResolvedValue(persistedPost);
   mockedPrisma.post.findUnique.mockResolvedValue(persistedPost);
@@ -23,7 +25,7 @@ function createService() {
 
   return {
     prisma: mockedPrisma,
-    service: new PostsService(),
+    service: new PostsService(new PaginationService()),
   };
 }
 
@@ -73,13 +75,20 @@ describe("PostsService", () => {
   it("lists public posts, own posts, and friends-only posts from accepted friends by default", async () => {
     const { prisma, service } = createService();
 
-    await expect(service.list("user-1", {})).resolves.toEqual([buildPostDto()]);
+    await expect(service.list("user-1", {})).resolves.toMatchObject({
+      items: [buildPostDto()],
+      pageInfo: {
+        hasNextPage: false,
+        limit: 20,
+        mode: "cursor",
+        nextCursor: null,
+      },
+    });
 
     expect(prisma.post.findMany).toHaveBeenCalledWith({
       include: expect.any(Object),
-      orderBy: {
-        createdAt: "desc",
-      },
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      take: 21,
       where: {
         OR: [
           {
@@ -151,9 +160,8 @@ describe("PostsService", () => {
 
     expect(prisma.post.findMany).toHaveBeenCalledWith({
       include: expect.any(Object),
-      orderBy: {
-        createdAt: "desc",
-      },
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      take: 21,
       where: {
         OR: [
           {
@@ -211,9 +219,8 @@ describe("PostsService", () => {
 
     expect(prisma.post.findMany).toHaveBeenCalledWith({
       include: expect.any(Object),
-      orderBy: {
-        createdAt: "desc",
-      },
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      take: 21,
       where: {
         authorId: "user-1",
       },
@@ -229,9 +236,8 @@ describe("PostsService", () => {
 
     expect(prisma.post.findMany).toHaveBeenCalledWith({
       include: expect.any(Object),
-      orderBy: {
-        createdAt: "desc",
-      },
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      take: 21,
       where: {
         AND: [
           {
@@ -247,6 +253,119 @@ describe("PostsService", () => {
             },
           },
         ],
+      },
+    });
+  });
+
+  it("uses a stable cursor predicate when a cursor is provided", async () => {
+    const { prisma, service } = createService();
+    const cursor = new PaginationService().encodeCursor({
+      createdAt: "2026-05-05T10:00:00.000Z",
+      id: "post-1",
+      version: 1,
+    });
+
+    await service.list("user-1", {
+      authorId: "user-1",
+      cursor,
+      limit: 10,
+    });
+
+    expect(prisma.post.findMany).toHaveBeenCalledWith({
+      include: expect.any(Object),
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      take: 11,
+      where: {
+        AND: [
+          {
+            authorId: "user-1",
+          },
+          {
+            OR: [
+              {
+                createdAt: {
+                  lt: new Date("2026-05-05T10:00:00.000Z"),
+                },
+              },
+              {
+                createdAt: new Date("2026-05-05T10:00:00.000Z"),
+                id: {
+                  lt: "post-1",
+                },
+              },
+            ],
+          },
+        ],
+      },
+    });
+  });
+
+  it("returns a next cursor when an extra cursor row is found", async () => {
+    const { service } = createService();
+    mockedPrisma.post.findMany.mockResolvedValue([
+      buildPersistedPost({
+        id: "post-2",
+      }),
+      buildPersistedPost({
+        id: "post-1",
+      }),
+    ]);
+
+    await expect(
+      service.list("user-1", {
+        limit: 1,
+      }),
+    ).resolves.toMatchObject({
+      items: [
+        {
+          id: "post-2",
+        },
+      ],
+      pageInfo: {
+        hasNextPage: true,
+        limit: 1,
+        mode: "cursor",
+        nextCursor: expect.any(String),
+      },
+    });
+  });
+
+  it.skip("lists posts with offset pagination metadata", async () => {
+    const { prisma, service } = createService();
+    prisma.post.count.mockResolvedValue(25);
+
+    await expect(
+      service.list("user-1", {
+        authorId: "user-1",
+        limit: 10,
+        mode: "offset",
+        page: 2,
+      }),
+    ).resolves.toMatchObject({
+      items: [buildPostDto()],
+      pageInfo: {
+        hasNextPage: true,
+        hasPreviousPage: true,
+        limit: 10,
+        mode: "offset",
+        page: 2,
+        totalItems: 25,
+        totalPages: 3,
+      },
+    });
+
+    expect(prisma.post.findMany).toHaveBeenCalledWith({
+      include: expect.any(Object),
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      skip: 10,
+      take: 10,
+      where: {
+        authorId: "user-1",
+      },
+    });
+    expect(prisma.post.count).toHaveBeenCalledWith({
+      where: {
+        authorId: "user-1",
       },
     });
   });

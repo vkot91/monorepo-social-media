@@ -75,6 +75,24 @@ describe("listPostsQuerySchema", () => {
     expect(listPostsQuerySchema.safeParse({ feed: "friends" }).success).toBe(true);
   });
 
+  it("accepts cursor and offset pagination queries", () => {
+    expect(
+      listPostsQuerySchema.safeParse({
+        cursor: "opaque-cursor",
+        feed: "all",
+        limit: "20",
+      }).success,
+    ).toBe(true);
+    expect(
+      listPostsQuerySchema.safeParse({
+        feed: "all",
+        limit: "50",
+        mode: "offset",
+        page: "2",
+      }).success,
+    ).toBe(true);
+  });
+
   it("rejects mine feed because authorId should be used for current-user posts", () => {
     expect(listPostsQuerySchema.safeParse({ feed: "mine" }).success).toBe(false);
   });
@@ -84,6 +102,27 @@ describe("listPostsQuerySchema", () => {
       listPostsQuerySchema.safeParse({
         authorId: "11111111-1111-4111-8111-111111111111",
         feed: "friends",
+      }).success,
+    ).toBe(false);
+  });
+
+  it("rejects invalid pagination combinations", () => {
+    expect(
+      listPostsQuerySchema.safeParse({
+        cursor: "opaque-cursor",
+        mode: "offset",
+      }).success,
+    ).toBe(false);
+    expect(
+      listPostsQuerySchema.safeParse({
+        mode: "cursor",
+        page: "2",
+      }).success,
+    ).toBe(false);
+    expect(
+      listPostsQuerySchema.safeParse({
+        limit: "51",
+        mode: "cursor",
       }).success,
     ).toBe(false);
   });

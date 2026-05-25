@@ -136,7 +136,7 @@ const getRetryDelayMs = (retryNumber: number, retry: RetrySettings) => {
 };
 
 const sleep = (ms: number) =>
-  new Promise<void>((resolve) => {
+  new Promise((resolve) => {
     setTimeout(resolve, ms);
   });
 

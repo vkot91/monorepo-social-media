@@ -1,6 +1,7 @@
 import { type INestApplication } from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
 import { Test } from "@nestjs/testing";
+import type { PaginatedPostsDto } from "@social/contracts";
 import { prisma, testPosts, testUsers } from "@social/database";
 
 import { HttpExceptionFilter } from "#common/filters/http-exception.filter";
@@ -165,27 +166,64 @@ describe("API e2e", () => {
     });
   });
 
-  it("lists and creates posts with the real database", async () => {
+  it("lists and creates posts", async () => {
     const { accessToken } = await login();
     const authHeaders = {
       authorization: `Bearer ${accessToken}`,
     };
-    const initialPosts = await request<Array<{ content: string }>>("/posts?feed=all", {
+    const initialPosts = await request<PaginatedPostsDto>("/posts?feed=all&limit=20", {
       headers: authHeaders,
     });
 
     expect(initialPosts.response.status).toBe(200);
-    expect(initialPosts.body).toEqual(
+    expect(initialPosts.body.items).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           content: testPosts.mayaFeed.content,
         }),
       ]),
     );
+    expect(initialPosts.body.pageInfo).toMatchObject({
+      hasNextPage: true,
+      limit: 20,
+      mode: "cursor",
+    });
+
+    if (initialPosts.body.pageInfo.mode !== "cursor" || !initialPosts.body.pageInfo.nextCursor) {
+      throw new Error("Expected the first posts page to include a next cursor.");
+    }
+
+    const lastSeedPost = testPosts.mayaFeedPage.at(-1);
+
+    if (!lastSeedPost) {
+      throw new Error("Expected seeded posts fixture to include a final cursor page post.");
+    }
+
+    const nextPosts = await request<PaginatedPostsDto>(
+      `/posts?feed=all&limit=20&cursor=${encodeURIComponent(initialPosts.body.pageInfo.nextCursor)}`,
+      {
+        headers: authHeaders,
+      },
+    );
+
+    expect(nextPosts.response.status).toBe(200);
+    expect(nextPosts.body).toMatchObject({
+      items: [
+        expect.objectContaining({
+          content: lastSeedPost.content,
+        }),
+      ],
+      pageInfo: {
+        hasNextPage: false,
+        limit: 20,
+        mode: "cursor",
+        nextCursor: null,
+      },
+    });
 
     const createdPost = await request<{ content: string }>("/posts", {
       body: JSON.stringify({
-        content: "Writing real e2e tests against Postgres.",
+        content: testPosts.createdPost.content,
       }),
       headers: authHeaders,
       method: "POST",
@@ -193,7 +231,7 @@ describe("API e2e", () => {
 
     expect(createdPost.response.status).toBe(201);
     expect(createdPost.body).toMatchObject({
-      content: "Writing real e2e tests against Postgres.",
+      content: testPosts.createdPost.content,
     });
 
     await expect(
@@ -202,6 +240,6 @@ describe("API e2e", () => {
           authorId: testUsers.login.id,
         },
       }),
-    ).resolves.toBe(2);
+    ).resolves.toBe(testPosts.mayaFeedPage.length + 1);
   });
 });

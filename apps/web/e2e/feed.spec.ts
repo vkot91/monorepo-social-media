@@ -1,7 +1,23 @@
 import { expect, test } from "@playwright/test";
+import { testPosts, testUsers } from "@social/database";
 
 import { authenticate } from "./support/auth";
 import { resetDatabase } from "./support/database";
+
+const buildPost = (post: (typeof testPosts.mayaFeedPage)[number]) => ({
+  author: {
+    avatarUrl: null,
+    displayName: testUsers.login.displayName,
+    id: testUsers.login.id,
+    username: testUsers.login.username,
+  },
+  content: post.content,
+  createdAt: post.createdAt,
+  id: post.id,
+  imageUrl: null,
+  updatedAt: post.createdAt,
+  visibility: "FRIENDS",
+});
 
 test.describe("feed page", () => {
   test.beforeEach(async () => {
@@ -24,10 +40,8 @@ test.describe("feed page", () => {
     await expect(page.getByRole("link", { name: "Home" })).toHaveAttribute("href", "/feed");
     await expect(page.getByRole("button", { name: "Open account menu" })).toBeVisible();
     await expect(page.getByLabel("Create post")).toHaveAttribute("placeholder", "What are you building today?");
-    await expect(page.getByLabel("Posts", { exact: true })).toContainText("Maya Johnson");
-    await expect(page.getByLabel("Posts", { exact: true })).toContainText(
-      "Planning a weekend photo walk downtown.",
-    );
+    await expect(page.getByLabel("Posts", { exact: true })).toContainText(testUsers.login.displayName);
+    await expect(page.getByLabel("Posts", { exact: true })).toContainText(testPosts.mayaFeed.content);
   });
 
   test("renders the empty feed state", async ({ context, page, baseURL }) => {
@@ -37,6 +51,74 @@ test.describe("feed page", () => {
 
     await expect(page.getByRole("heading", { name: "No posts yet" })).toBeVisible();
     await expect(page.getByText("This placeholder is ready for the feed")).toBeVisible();
+  });
+
+  test("shows an error toast when post creation fails", async ({ context, page, baseURL }) => {
+    await authenticate(context, baseURL!, "posts");
+    await page.route("**/api/posts", async (route) => {
+      if (route.request().method() !== "POST") {
+        await route.fallback();
+        return;
+      }
+
+      await route.fulfill({
+        contentType: "application/json",
+        json: {
+          message: "Post creation is unavailable right now.",
+        },
+        status: 503,
+      });
+    });
+
+    await page.goto("/feed");
+
+    await page.getByLabel("Create post").fill("This post should show an error toast.");
+    await page.getByRole("button", { name: "Post" }).click();
+
+    await expect(page.getByRole("list", { name: "top right notifications" }).getByRole("alert")).toContainText(
+      "Post creation is unavailable right now.",
+    );
+    await expect(page.getByRole("button", { name: "Dismiss toast" })).toBeVisible();
+  });
+
+  test("loads the next page of posts when the feed bottom is reached", async ({ context, page, baseURL }) => {
+    await authenticate(context, baseURL!, "posts");
+    const lastSeedPost = testPosts.mayaFeedPage.at(-1);
+
+    if (!lastSeedPost) {
+      throw new Error("Expected seeded posts fixture to include a final cursor page post.");
+    }
+
+    await page.route("**/api/posts?**", async (route) => {
+      const url = new URL(route.request().url());
+      const isNextPage = url.searchParams.get("cursor") === "cursor-1";
+      const pagePosts = isNextPage ? testPosts.mayaFeedPage.slice(20) : testPosts.mayaFeedPage.slice(0, 20);
+
+      await route.fulfill({
+        contentType: "application/json",
+        json: {
+          items: pagePosts.map(buildPost),
+          pageInfo: {
+            hasNextPage: !isNextPage,
+            limit: 20,
+            mode: "cursor",
+            nextCursor: isNextPage ? null : "cursor-1",
+          },
+        },
+      });
+    });
+
+    await page.goto("/feed");
+
+    await expect(page.getByText(testPosts.mayaFeed.content, { exact: true })).toBeVisible();
+    await expect(page.getByText(lastSeedPost.content, { exact: true })).toBeHidden();
+
+    await page.evaluate(() => {
+      window.scrollTo(0, document.documentElement.scrollHeight);
+    });
+
+    await expect(page.getByText(lastSeedPost.content, { exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Load more posts" })).toBeHidden();
   });
 
   test("signs out and returns to login", async ({ context, page, baseURL }) => {
