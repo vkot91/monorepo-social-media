@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 
-import { backendClient } from "#/lib/api/api-client/backend-client";
-import { apiErrorResponse } from "#/lib/api/api-client/route-handler";
-import { clearAuthCookies, getRefreshToken } from "#/lib/api/auth/cookies";
+import { backendClient } from "#/shared/lib/api/api-client/backend-client";
+import { apiErrorResponse } from "#/shared/lib/api/api-client/route-handler";
+import { clearAuthCookies, getRefreshToken } from "#/shared/lib/api/auth/cookies";
 
 export const POST = async () => {
   const refreshToken = await getRefreshToken();

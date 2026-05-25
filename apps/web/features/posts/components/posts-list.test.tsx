@@ -1,13 +1,13 @@
 import { act, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { bffClient } from "#/lib/api/api-client/bff-client";
-import { ApiRequestError } from "#/lib/api/utils/errors";
+import { bffClient } from "#/shared/lib/api/api-client/bff-client";
+import { ApiRequestError } from "#/shared/lib/api/utils/errors";
 import { renderWithQueryClient } from "#/test/query-client";
 
 import { PostsList } from "./posts-list";
 
-vi.mock("#/lib/api/api-client/bff-client", () => ({
+vi.mock("#/shared/lib/api/api-client/bff-client", () => ({
   bffClient: vi.fn(),
 }));
 

@@ -1,11 +1,11 @@
 import type { PaginatedPostsDto, PostDto } from "@social/contracts";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { backendClient } from "#/lib/api/api-client/backend-client";
+import { backendClient } from "#/shared/lib/api/api-client/backend-client";
 
 import { GET, POST } from "./route";
 
-vi.mock("#/lib/api/api-client/backend-client", () => ({
+vi.mock("#/shared/lib/api/api-client/backend-client", () => ({
   backendClient: vi.fn(),
 }));
 

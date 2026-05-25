@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
-import { backendClient } from "#/lib/api/api-client/backend-client";
-import { apiErrorResponse } from "#/lib/api/api-client/route-handler";
+import { backendClient } from "#/shared/lib/api/api-client/backend-client";
+import { apiErrorResponse } from "#/shared/lib/api/api-client/route-handler";
 
 export const GET = async () => {
   try {

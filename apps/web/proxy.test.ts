@@ -1,11 +1,11 @@
 import { NextRequest } from "next/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { backendClient } from "./lib/api/api-client/backend-client";
-import { accessTokenCookieName, refreshTokenCookieName } from "./lib/api/auth/cookies";
 import { proxy } from "./proxy";
+import { backendClient } from "./shared/lib/api/api-client/backend-client";
+import { accessTokenCookieName, refreshTokenCookieName } from "./shared/lib/api/auth/cookies";
 
-vi.mock("./lib/api/api-client/backend-client", () => ({
+vi.mock("./shared/lib/api/api-client/backend-client", () => ({
   backendClient: vi.fn(),
 }));
 

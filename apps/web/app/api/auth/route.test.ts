@@ -1,10 +1,10 @@
 import type { AuthResponse, AuthUserDto } from "@social/contracts";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { backendClient } from "#/lib/api/api-client/backend-client";
-import { clearAuthCookies, getRefreshToken } from "#/lib/api/auth/cookies";
-import { persistAuthSession } from "#/lib/api/auth/session";
-import { ApiRequestError, AuthRequiredError } from "#/lib/api/utils/errors";
+import { backendClient } from "#/shared/lib/api/api-client/backend-client";
+import { clearAuthCookies, getRefreshToken } from "#/shared/lib/api/auth/cookies";
+import { persistAuthSession } from "#/shared/lib/api/auth/session";
+import { ApiRequestError, AuthRequiredError } from "#/shared/lib/api/utils/errors";
 
 import { POST as loginPost } from "./login/route";
 import { POST as logoutPost } from "./logout/route";
@@ -12,16 +12,16 @@ import { GET as meGet } from "./me/route";
 import { POST as refreshPost } from "./refresh/route";
 import { POST as registerPost } from "./register/route";
 
-vi.mock("#/lib/api/api-client/backend-client", () => ({
+vi.mock("#/shared/lib/api/api-client/backend-client", () => ({
   backendClient: vi.fn(),
 }));
 
-vi.mock("#/lib/api/auth/cookies", () => ({
+vi.mock("#/shared/lib/api/auth/cookies", () => ({
   clearAuthCookies: vi.fn(),
   getRefreshToken: vi.fn(),
 }));
 
-vi.mock("#/lib/api/auth/session", () => ({
+vi.mock("#/shared/lib/api/auth/session", () => ({
   persistAuthSession: vi.fn(),
 }));
 

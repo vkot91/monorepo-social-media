@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 
-import { AuthLayout as AuthLayoutComponent } from "#/components/layout/auth-layout";
+import { AuthLayout as AuthLayoutComponent } from "#/shared/layout/auth-layout";
 
 type AuthLayoutProps = {
   children: ReactNode;

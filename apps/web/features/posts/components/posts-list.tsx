@@ -5,9 +5,9 @@ import { useInfiniteQuery } from "@tanstack/react-query";
 import { LoaderCircle } from "lucide-react";
 import { useEffect, useMemo, useRef } from "react";
 
-import { Card } from "#/components/ui";
+import { Card } from "#/shared/ui";
 
-import { postsInfiniteQueryOptions } from "../lib/queries";
+import { postsInfiniteQueryOptions } from "../api/queries";
 import { PostsLoadingPlaceholder } from "./loading-placeholder";
 
 interface PostListProps {

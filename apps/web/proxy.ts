@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 
-import { backendClient } from "./lib/api/api-client/backend-client";
-import { accessTokenCookieName, refreshTokenCookieName } from "./lib/api/auth/cookies";
+import { backendClient } from "./shared/lib/api/api-client/backend-client";
+import { accessTokenCookieName, refreshTokenCookieName } from "./shared/lib/api/auth/cookies";
 
 function isJwtExpired(token: string) {
   const [, payload] = token.split(".");
