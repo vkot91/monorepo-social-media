@@ -5,12 +5,12 @@ import { type CreatePostInput, createPostSchema } from "@social/contracts";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 
-import { Button } from "#/components/ui/button";
-import { FieldError, FormCard, TextArea } from "#/components/ui/form";
-import { ApiRequestError } from "#/lib/api/utils/errors";
+import { ApiRequestError } from "#/shared/lib/api/utils/errors";
+import { Button } from "#/shared/ui/button";
+import { FieldError, FormCard, TextArea } from "#/shared/ui/form";
 
-import { createPost } from "../lib/mutations";
-import { postsKeys } from "../lib/routes";
+import { createPost } from "../api/mutations";
+import { postsKeys } from "../api/routes";
 
 export const CreatePostForm = () => {
   const queryClient = useQueryClient();

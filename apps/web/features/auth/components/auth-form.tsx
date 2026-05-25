@@ -6,11 +6,11 @@ import { useMutation } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 
-import { Logo } from "#/components/ui";
-import { Button } from "#/components/ui/button";
-import { Field, FormCard, Input } from "#/components/ui/form";
+import { Logo } from "#/shared/ui";
+import { Button } from "#/shared/ui/button";
+import { Field, FormCard, Input } from "#/shared/ui/form";
 
-import { login, register as registerAccount } from "../lib/mutations";
+import { login, register as registerAccount } from "../api/mutations";
 
 type AuthMode = "login" | "register";
 

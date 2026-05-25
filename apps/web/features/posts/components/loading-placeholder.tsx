@@ -1,4 +1,4 @@
-import { Card } from "#/components/ui";
+import { Card } from "#/shared/ui";
 
 interface PostsLoadingPlaceholderProps {
   rowsCount?: number;

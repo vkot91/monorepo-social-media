@@ -1,8 +1,8 @@
 import { cookies } from "next/headers";
 import type { ReactNode } from "react";
 
-import { getThemeAttribute, parseThemePreference, themeCookieName } from "#/lib/theme";
-import { QueryProvider } from "#/providers/query-provider";
+import { getThemeAttribute, parseThemePreference, themeCookieName } from "#/shared/lib/theme";
+import { QueryProvider } from "#/shared/providers/query-provider";
 
 import "./globals.css";
 

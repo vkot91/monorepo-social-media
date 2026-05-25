@@ -1,9 +1,9 @@
 import { cookies } from "next/headers";
 import type { ReactNode } from "react";
 
-import { MainLayout } from "#/components/layout/main-layout";
-import { parseThemePreference, themeCookieName } from "#/lib/theme";
-import { AuthProvider } from "#/providers/auth-provider";
+import { MainLayout } from "#/shared/layout/main-layout";
+import { parseThemePreference, themeCookieName } from "#/shared/lib/theme";
+import { AuthProvider } from "#/shared/providers/auth-provider";
 
 type ProtectedLayoutProps = {
   children: ReactNode;

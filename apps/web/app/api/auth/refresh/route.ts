@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 
-import { backendClient } from "#/lib/api/api-client/backend-client";
-import { apiErrorResponse } from "#/lib/api/api-client/route-handler";
-import { getRefreshToken } from "#/lib/api/auth/cookies";
-import { persistAuthSession } from "#/lib/api/auth/session";
-import { AuthRequiredError } from "#/lib/api/utils/errors";
+import { backendClient } from "#/shared/lib/api/api-client/backend-client";
+import { apiErrorResponse } from "#/shared/lib/api/api-client/route-handler";
+import { getRefreshToken } from "#/shared/lib/api/auth/cookies";
+import { persistAuthSession } from "#/shared/lib/api/auth/session";
+import { AuthRequiredError } from "#/shared/lib/api/utils/errors";
 
 export const POST = async () => {
   const refreshToken = await getRefreshToken();

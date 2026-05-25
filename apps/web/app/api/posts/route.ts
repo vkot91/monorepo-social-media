@@ -1,8 +1,8 @@
 import { createPostSchema, listPostsQuerySchema } from "@social/contracts";
 import { NextResponse } from "next/server";
 
-import { backendClient } from "#/lib/api/api-client/backend-client";
-import { apiErrorResponse, parseJsonBody, zodValidationErrorResponse } from "#/lib/api/api-client/route-handler";
+import { backendClient } from "#/shared/lib/api/api-client/backend-client";
+import { apiErrorResponse, parseJsonBody, zodValidationErrorResponse } from "#/shared/lib/api/api-client/route-handler";
 
 export const GET = async (request: Request) => {
   const url = new URL(request.url);

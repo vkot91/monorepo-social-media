@@ -1,8 +1,8 @@
 import Link from "next/link";
 
-import { Logo } from "#/components/ui";
-import { buttonVariants } from "#/components/ui/button";
-import { cn } from "#/lib/utils";
+import { cn } from "#/shared/lib/utils";
+import { Logo } from "#/shared/ui";
+import { buttonVariants } from "#/shared/ui/button";
 
 export default function HomePage() {
   return (

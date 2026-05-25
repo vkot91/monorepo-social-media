@@ -39,13 +39,12 @@ export class PostsService {
   }
 
   async list(viewerId: string, query: ListPostsQueryInput): Promise<PaginatedPostsDto> {
-
     return this.listCursor(viewerId, query);
   }
 
   private async listCursor(viewerId: string, query: ListPostsQueryInput): Promise<PaginatedPostsDto> {
     const pagination = this.paginationService.resolveCursorQuery(query);
-   
+
     const posts = await prisma.post.findMany({
       ...postWithAuthor,
       orderBy: [{ createdAt: "desc" }, { id: "desc" }],
@@ -64,8 +63,6 @@ export class PostsService {
       pageInfo: page.pageInfo,
     };
   }
-
-
 
   async findOne(authorId: string, postId: string): Promise<PostDto> {
     const post = await prisma.post.findFirst({
