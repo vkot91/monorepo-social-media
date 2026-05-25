@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { testPosts, testUsers } from "@social/database";
 
 import { authenticate } from "./support/auth";
 import { resetDatabase } from "./support/database";
@@ -29,7 +30,7 @@ test.describe("login page", () => {
   test("shows backend authentication errors", async ({ page }) => {
     await page.goto("/login");
 
-    await page.getByLabel("Email").fill("maya@example.com");
+    await page.getByLabel("Email").fill(testUsers.login.email);
     await page.getByLabel("Password").fill("wrong-password");
     await page.getByRole("button", { name: "Sign in" }).click();
 
@@ -42,13 +43,13 @@ test.describe("login page", () => {
   test("signs in and opens the feed", async ({ page }) => {
     await page.goto("/login");
 
-    await page.getByLabel("Email").fill("maya@example.com");
+    await page.getByLabel("Email").fill(testUsers.login.email);
     await page.getByLabel("Password").fill("password123");
     await page.getByRole("button", { name: "Sign in" }).click();
 
     await expect(page).toHaveURL(/\/feed$/);
     await expect(page.getByRole("heading", { name: "Your feed" })).toBeVisible();
-    await expect(page.getByText("Planning a weekend photo walk downtown.")).toBeVisible();
+    await expect(page.getByText(testPosts.mayaFeed.content)).toBeVisible();
   });
 
   test("redirects authenticated users to the feed", async ({ context, page, baseURL }) => {

@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { type CreatePostInput, createPostSchema, type PostDto } from "@social/contracts";
+import { type CreatePostInput, createPostSchema } from "@social/contracts";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 
@@ -44,9 +44,8 @@ export const CreatePostForm = () => {
         }
       }
     },
-    onSuccess: (post) => {
-      queryClient.setQueryData<PostDto[]>(postsKeys.feed({ feed: "all" }), (posts = []) => [post, ...posts]);
-      void queryClient.invalidateQueries({ queryKey: postsKeys.all });
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: postsKeys.all });
 
       reset({
         content: "",
@@ -77,7 +76,7 @@ export const CreatePostForm = () => {
       <FieldError message={contentError} />
       <FieldError message={formError} />
       <div className="text-right">
-        <Button size="sm" loading={isSubmitting || createPostMutation.isPending} type="submit">
+        <Button loading={isSubmitting || createPostMutation.isPending} type="submit">
           Post
         </Button>
       </div>

@@ -1,8 +1,8 @@
 import type { z } from "zod";
 
+import type { PaginatedResponse, PaginationQueryInput } from "../pagination";
 import type {
   createPostSchema,
-  listPostsQuerySchema,
   PostAuthorSchema,
   postFeedSchema,
   PostSchema,
@@ -18,8 +18,13 @@ export type UpdatePostInput = z.input<typeof updatePostSchema>;
 
 export type PostFeed = z.infer<typeof postFeedSchema>;
 
-export type ListPostsQueryInput = z.input<typeof listPostsQuerySchema>;
+export type ListPostsQueryInput = {
+  authorId?: string;
+  feed?: PostFeed;
+} & PaginationQueryInput;
 
 export type PostAuthorDto = z.infer<typeof PostAuthorSchema>;
 
 export type PostDto = z.infer<typeof PostSchema>;
+
+export type PaginatedPostsDto = PaginatedResponse<PostDto>;

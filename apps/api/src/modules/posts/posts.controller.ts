@@ -16,8 +16,8 @@ import {
   createPostSchema,
   type ListPostsQueryInput,
   listPostsQuerySchema,
+  PaginatedPostsSchema,
   PostSchema,
-  PostsSchema,
   type UpdatePostInput,
   updatePostSchema,
 } from "@social/contracts";
@@ -40,19 +40,17 @@ export class PostsController {
     @CurrentUser() user: AuthTokenPayload,
     @Body(new ZodValidationPipe(createPostSchema)) input: CreatePostInput,
   ) {
-    await delay(2_000);
-
     return this.postsService.create(user.sub, input);
   }
 
   @Get()
-  @UseInterceptors(ZodResponseInterceptor(PostsSchema))
+  @UseInterceptors(ZodResponseInterceptor(PaginatedPostsSchema))
   async list(
     @CurrentUser() user: AuthTokenPayload,
     @Query(new ZodValidationPipe(listPostsQuerySchema)) query: ListPostsQueryInput,
   ) {
-    await delay(4_000);
-    return this.postsService.list(user.sub, query);
+    await delay(2_000);
+    return await this.postsService.list(user.sub, query);
   }
 
   @Get(":id")

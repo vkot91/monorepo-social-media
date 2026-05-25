@@ -2,16 +2,28 @@ import { ForbiddenException, Injectable, NotFoundException } from "@nestjs/commo
 import type {
   CreatePostInput,
   ListPostsQueryInput,
+  PaginatedPostsDto,
   PostDto,
   UpdatePostInput,
 } from "@social/contracts";
-import { PostVisibility, prisma } from "@social/database";
+import { PostVisibility, type Prisma, prisma } from "@social/database";
+import { z } from "zod";
+
+import { PaginationService } from "#common/pagination/pagination.service";
 
 import { visiblePostsWhere } from "./post.where";
 import { postWithAuthor, serializePost } from "./posts.serializer";
 
+const postCursorSchema = z.object({
+  createdAt: z.string().datetime(),
+  id: z.string(),
+  version: z.literal(1),
+});
+
 @Injectable()
 export class PostsService {
+  constructor(private readonly paginationService: PaginationService) {}
+
   async create(authorId: string, input: CreatePostInput): Promise<PostDto> {
     const post = await prisma.post.create({
       ...postWithAuthor,
@@ -26,17 +38,34 @@ export class PostsService {
     return serializePost(post);
   }
 
-  async list(viewerId: string, query: ListPostsQueryInput): Promise<PostDto[]> {
+  async list(viewerId: string, query: ListPostsQueryInput): Promise<PaginatedPostsDto> {
+
+    return this.listCursor(viewerId, query);
+  }
+
+  private async listCursor(viewerId: string, query: ListPostsQueryInput): Promise<PaginatedPostsDto> {
+    const pagination = this.paginationService.resolveCursorQuery(query);
+   
     const posts = await prisma.post.findMany({
       ...postWithAuthor,
-      orderBy: {
-        createdAt: "desc",
-      },
-      where: visiblePostsWhere(viewerId, query),
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      take: pagination.limit + 1,
+      where: this.withCursorWhere(visiblePostsWhere(viewerId, query), pagination.cursor),
     });
 
-    return posts.map(serializePost);
+    const page = this.paginationService.buildCursorPage(posts, pagination.limit, (post) => ({
+      createdAt: post.createdAt.toISOString(),
+      id: post.id,
+      version: 1,
+    }));
+
+    return {
+      items: page.items.map(serializePost),
+      pageInfo: page.pageInfo,
+    };
   }
+
+
 
   async findOne(authorId: string, postId: string): Promise<PostDto> {
     const post = await prisma.post.findFirst({
@@ -97,5 +126,35 @@ export class PostsService {
     if (post.authorId !== authorId) {
       throw new ForbiddenException("You cannot modify this post");
     }
+  }
+
+  private withCursorWhere(where: Prisma.PostWhereInput, cursor: string | undefined): Prisma.PostWhereInput {
+    if (!cursor) {
+      return where;
+    }
+
+    const decodedCursor = this.paginationService.decodeCursor(cursor, postCursorSchema);
+    const cursorCreatedAt = new Date(decodedCursor.createdAt);
+
+    return {
+      AND: [
+        where,
+        {
+          OR: [
+            {
+              createdAt: {
+                lt: cursorCreatedAt,
+              },
+            },
+            {
+              createdAt: cursorCreatedAt,
+              id: {
+                lt: decodedCursor.id,
+              },
+            },
+          ],
+        },
+      ],
+    };
   }
 }

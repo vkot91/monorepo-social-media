@@ -1,11 +1,13 @@
 "use client";
 
 import { PostFeed } from "@social/contracts";
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery } from "@tanstack/react-query";
+import { LoaderCircle } from "lucide-react";
+import { useEffect, useMemo, useRef } from "react";
 
 import { Card } from "#/components/ui";
 
-import { postsQueryOptions } from "../lib/queries";
+import { postsInfiniteQueryOptions } from "../lib/queries";
 import { PostsLoadingPlaceholder } from "./loading-placeholder";
 
 interface PostListProps {
@@ -13,7 +15,44 @@ interface PostListProps {
 }
 
 export const PostsList = ({ feedType }: PostListProps) => {
-  const { data: posts = [], error, isLoading } = useQuery(postsQueryOptions({ feed: feedType }));
+  const loadMoreRef = useRef<HTMLDivElement>(null);
+  const { data, error, fetchNextPage, hasNextPage, isFetching, isFetchingNextPage, isLoading } = useInfiniteQuery(
+    postsInfiniteQueryOptions({
+      feed: feedType,
+      mode: "cursor",
+    }),
+  );
+  const posts = useMemo(() => data?.pages.flatMap((page) => page.items) ?? [], [data]);
+
+  useEffect(() => {
+    if (!hasNextPage || isFetching || typeof IntersectionObserver === "undefined") {
+      return;
+    }
+
+    const target = loadMoreRef.current;
+
+    if (!target) {
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          observer.disconnect();
+          void fetchNextPage();
+        }
+      },
+      {
+        rootMargin: "200px",
+      },
+    );
+
+    observer.observe(target);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [fetchNextPage, hasNextPage, isFetching]);
 
   if (isLoading) {
     return <PostsLoadingPlaceholder />;
@@ -48,6 +87,16 @@ export const PostsList = ({ feedType }: PostListProps) => {
             This placeholder is ready for the feed once post creation UI is connected.
           </p>
         </Card>
+      )}
+      {posts.length > 0 && hasNextPage && (
+        <>
+          <div aria-hidden className="h-px" ref={loadMoreRef} data-testid="posts-load-more-sentinel" />
+          {isFetchingNextPage && (
+            <p className="flex justify-center items-center gap-4" role="status">
+              Loading more posts... <LoaderCircle aria-hidden className="mr-2 h-4 w-4 animate-spin" />
+            </p>
+          )}
+        </>
       )}
     </section>
   );

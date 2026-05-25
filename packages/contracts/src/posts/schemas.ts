@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { paginatedResponseSchema, paginationQueryShape, validatePaginationQuery } from "../pagination";
+
 export const postVisibilitySchema = z.enum(["PUBLIC", "FRIENDS"]);
 
 const postContentSchema = z
@@ -37,9 +39,18 @@ export const listPostsQuerySchema = z
   .object({
     authorId: z.string().uuid().optional(),
     feed: postFeedSchema.optional(),
+    ...paginationQueryShape,
   })
-  .refine((input) => !(input.authorId && input.feed), {
-    message: "Use either authorId or feed, not both",
+  .superRefine((input, context) => {
+    validatePaginationQuery(input, context);
+
+    if (input.authorId && input.feed) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Use either authorId or feed, not both",
+        path: ["feed"],
+      });
+    }
   });
 
 export const PostAuthorSchema = z.object({
@@ -60,3 +71,5 @@ export const PostSchema = z.object({
 });
 
 export const PostsSchema = z.array(PostSchema);
+
+export const PaginatedPostsSchema = paginatedResponseSchema(PostSchema);

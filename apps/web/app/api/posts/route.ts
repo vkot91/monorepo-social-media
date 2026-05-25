@@ -8,7 +8,11 @@ export const GET = async (request: Request) => {
   const url = new URL(request.url);
   const input = listPostsQuerySchema.safeParse({
     authorId: url.searchParams.get("authorId") ?? undefined,
+    cursor: url.searchParams.get("cursor") ?? undefined,
     feed: url.searchParams.get("feed") ?? undefined,
+    limit: url.searchParams.get("limit") ?? undefined,
+    mode: url.searchParams.get("mode") ?? undefined,
+    page: url.searchParams.get("page") ?? undefined,
   });
 
   if (!input.success) {

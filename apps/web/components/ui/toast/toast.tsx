@@ -7,6 +7,8 @@ import { useEffect } from "react";
 import { Toast, ToastPosition, ToastTtl, ToastType, useToastStore } from "#/components/ui/toast/store/toast";
 import { cn } from "#/lib/utils";
 
+import { Button } from "../button";
+
 const toastPositions: ToastPosition[] = [
   "top-right",
   "top-left",
@@ -119,14 +121,9 @@ const ToastItem = ({ toast }: { toast: Toast }) => {
         {toast.title && <p className="m-0 font-extrabold leading-5">{toast.title}</p>}
         <p className={cn("m-0 leading-5 text-muted-text", toast.title && "mt-1")}>{toast.description}</p>
       </div>
-      <button
-        aria-label="Dismiss toast"
-        className="inline-flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-lg text-muted-text transition-colors hover:bg-subtle-surface hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-text/15"
-        onClick={() => dismissToast(toast.id)}
-        type="button"
-      >
+      <Button aria-label="Dismiss toast" variant="ghost" size="sm" onClick={() => dismissToast(toast.id)} type="button">
         <X aria-hidden className="h-4 w-4" />
-      </button>
+      </Button>
       {toast.autoClose && (
         <div aria-hidden className="absolute bottom-0 left-0 h-1 w-full bg-subtle-surface">
           <div

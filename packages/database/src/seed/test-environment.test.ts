@@ -7,7 +7,7 @@ import { testUsers } from "./users.seed";
 const prismaMock = vi.hoisted(() => ({
   $executeRawUnsafe: vi.fn(),
   post: {
-    create: vi.fn(),
+    createMany: vi.fn(),
   },
   user: {
     createMany: vi.fn(),
@@ -22,7 +22,7 @@ const createClientMock = () =>
   ({
     $executeRawUnsafe: vi.fn(),
     post: {
-      create: vi.fn(),
+      createMany: vi.fn(),
     },
     user: {
       createMany: vi.fn(),
@@ -78,7 +78,7 @@ describe("resetTestDatabase", () => {
 });
 
 describe("seedTestDatabase", () => {
-  it("creates deterministic users and a friends-only post", async () => {
+  it("creates deterministic users and friends-only posts", async () => {
     vi.stubEnv("NODE_ENV", "test");
     const client = createClientMock();
     const { seedTestDatabase } = await import("./test-environment");
@@ -96,15 +96,15 @@ describe("seedTestDatabase", () => {
         updatedAt: createdAt,
       })),
     });
-    expect(client.post.create).toHaveBeenCalledWith({
-      data: {
+    expect(client.post.createMany).toHaveBeenCalledWith({
+      data: testPosts.mayaFeedPage.map((post) => ({
         authorId: testUsers.login.id,
-        content: testPosts.mayaFeed.content,
-        createdAt,
-        id: testPosts.mayaFeed.id,
-        updatedAt: createdAt,
+        content: post.content,
+        createdAt: new Date(post.createdAt),
+        id: post.id,
+        updatedAt: new Date(post.createdAt),
         visibility: PostVisibility.FRIENDS,
-      },
+      })),
     });
   });
 });
@@ -121,7 +121,7 @@ describe("resetAndSeedTestDatabase", () => {
       vi.mocked(client.user.createMany).mock.invocationCallOrder[0] ?? 0,
     );
     expect(vi.mocked(client.user.createMany).mock.invocationCallOrder[0]).toBeLessThan(
-      vi.mocked(client.post.create).mock.invocationCallOrder[0] ?? 0,
+      vi.mocked(client.post.createMany).mock.invocationCallOrder[0] ?? 0,
     );
   });
 });

@@ -4,7 +4,7 @@ import { logger } from "#/lib/logger";
 
 import { ApiRequestError, AuthRequiredError } from "../utils/errors";
 import { appendQueryParams, createApiClient, parseJsonResponse } from "./request";
-import type { BackendApiRoutes,BffApiRoutes } from "./request.type";
+import type { BackendApiRoutes, BffApiRoutes } from "./request.type";
 
 vi.mock("#/env", () => ({
   getWebEnv: vi.fn(() => ({
@@ -272,18 +272,18 @@ describe("createApiClient", () => {
     const shouldRunTypeAssertions = Date.now() < 0;
 
     if (shouldRunTypeAssertions) {
-      void backendClient("/posts", "GET", {
+      backendClient("/posts", "GET", {
         queryParams: {},
       });
-      void bffClient("/api/posts", "GET", {
+      bffClient("/api/posts", "GET", {
         queryParams: {},
       });
       // @ts-expect-error backend clients cannot call BFF routes.
-      void backendClient("/api/posts", "GET", {
+      backendClient("/api/posts", "GET", {
         queryParams: {},
       });
       // @ts-expect-error BFF clients cannot call backend API routes.
-      void bffClient("/posts", "GET", {
+      bffClient("/posts", "GET", {
         queryParams: {},
       });
     }

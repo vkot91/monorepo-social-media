@@ -1,4 +1,4 @@
-import type { PostDto } from "@social/contracts";
+import type { PaginatedPostsDto, PostDto } from "@social/contracts";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { backendClient } from "#/lib/api/api-client/backend-client";
@@ -24,6 +24,16 @@ const post: PostDto = {
   visibility: "PUBLIC",
 };
 
+const paginatedPosts: PaginatedPostsDto = {
+  items: [post],
+  pageInfo: {
+    hasNextPage: false,
+    limit: 20,
+    mode: "cursor",
+    nextCursor: null,
+  },
+};
+
 const postRequest = (body: unknown) =>
   new Request("http://localhost/api/posts", {
     body: JSON.stringify(body),
@@ -39,16 +49,49 @@ describe("posts BFF routes", () => {
   });
 
   it("forwards typed feed queries to the backend", async () => {
-    vi.mocked(backendClient).mockResolvedValueOnce([post]);
+    vi.mocked(backendClient).mockResolvedValueOnce(paginatedPosts);
 
-    const response = await GET(new Request("http://localhost/api/posts?feed=all"));
+    const response = await GET(new Request("http://localhost/api/posts?feed=all&limit=20&mode=cursor"));
 
-    await expect(response.json()).resolves.toEqual([post]);
+    await expect(response.json()).resolves.toEqual(paginatedPosts);
     expect(response.status).toBe(200);
     expect(backendClient).toHaveBeenCalledWith("/posts", "GET", {
       queryParams: {
         authorId: undefined,
+        cursor: undefined,
         feed: "all",
+        limit: 20,
+        mode: "cursor",
+        page: undefined,
+      },
+    });
+  });
+
+  it("forwards offset pagination queries to the backend", async () => {
+    vi.mocked(backendClient).mockResolvedValueOnce({
+      items: [post],
+      pageInfo: {
+        hasNextPage: false,
+        hasPreviousPage: true,
+        limit: 10,
+        mode: "offset",
+        page: 2,
+        totalItems: 11,
+        totalPages: 2,
+      },
+    });
+
+    const response = await GET(new Request("http://localhost/api/posts?feed=all&limit=10&mode=offset&page=2"));
+
+    expect(response.status).toBe(200);
+    expect(backendClient).toHaveBeenCalledWith("/posts", "GET", {
+      queryParams: {
+        authorId: undefined,
+        cursor: undefined,
+        feed: "all",
+        limit: 10,
+        mode: "offset",
+        page: 2,
       },
     });
   });
