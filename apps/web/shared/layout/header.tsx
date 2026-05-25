@@ -80,7 +80,7 @@ export function Header({ theme }: ProtectedHeaderProps) {
               <span className="hidden max-w-28 truncate text-sm font-extrabold sm:inline">{user?.username}</span>
             </>
           }
-          triggerClassName=""
+          triggerClassName="border-0"
         />
       </div>
 

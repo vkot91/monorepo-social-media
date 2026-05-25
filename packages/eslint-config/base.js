@@ -33,6 +33,7 @@ export const config = [
       },
     },
     rules: {
+      "no-trailing-spaces": "error",
       "turbo/no-undeclared-env-vars": "warn",
       "no-console": "warn",
       // Auto-sorts and groups imports. Works great with --fix.
