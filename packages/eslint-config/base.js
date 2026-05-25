@@ -111,6 +111,8 @@ export const config = [
       ],
 
       // ─── Style ────────────────────────────────────────────────────────────
+      // Keep files compact by allowing at most one consecutive blank line.
+      "no-multiple-empty-lines": ["error", { max: 1, maxBOF: 0, maxEOF: 0 }],
       // All imports must be at the top of the file
       "import/first": "error",
       // Blank line required between imports and the rest of the code

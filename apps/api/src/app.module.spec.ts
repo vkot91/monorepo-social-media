@@ -5,4 +5,3 @@ describe("AppModule", () => {
     expect(new AppModule()).toBeInstanceOf(AppModule);
   });
 });
-
