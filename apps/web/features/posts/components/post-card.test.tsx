@@ -6,6 +6,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useAuthStore } from "#/features/auth/store/auth";
 import { bffClient } from "#/shared/lib/api/api-client/bff-client";
+import { useToastStore } from "#/shared/ui/toast/store/toast";
 import { createTestQueryClient, renderWithQueryClient } from "#/test/query-client";
 
 import { postsKeys } from "../api/routes";
@@ -85,6 +86,7 @@ describe("PostCard", () => {
     useAuthStore.setState({
       user: null,
     });
+    useToastStore.getState().clearToasts();
   });
 
   it("renders post author and content", () => {
@@ -144,6 +146,12 @@ describe("PostCard", () => {
         },
       }),
     );
+    expect(useToastStore.getState().toasts).toEqual([
+      expect.objectContaining({
+        description: "Post was successfully updated",
+        type: "success",
+      }),
+    ]);
   });
 
   it("optimistically updates cached infinite-feed posts while editing", async () => {
@@ -237,6 +245,12 @@ describe("PostCard", () => {
         },
       }),
     );
+    expect(useToastStore.getState().toasts).toEqual([
+      expect.objectContaining({
+        description: "Post was successfully removed",
+        type: "success",
+      }),
+    ]);
   });
 
   it("optimistically removes cached infinite-feed posts", async () => {

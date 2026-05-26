@@ -23,7 +23,7 @@ export type Toast = Required<Omit<ToastOptions, "title">> & {
   createdAt: number;
 };
 
-type AddToastOptions = ToastOptions & {
+export type AddToastOptions = ToastOptions & {
   id?: string;
 };
 

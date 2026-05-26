@@ -1,5 +1,5 @@
-import { PaginatedPostsDto, PostDto, UpdatePostInput } from "@social/contracts";
-import { InfiniteData, QueryKey, useQueryClient } from "@tanstack/react-query";
+import type { PaginatedPostsDto, PostDto, UpdatePostInput } from "@social/contracts";
+import type { InfiniteData, QueryKey, useQueryClient } from "@tanstack/react-query";
 
 export type PostsInfiniteData = InfiniteData<PaginatedPostsDto>;
 

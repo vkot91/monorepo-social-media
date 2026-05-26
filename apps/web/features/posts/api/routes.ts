@@ -68,3 +68,7 @@ export const postsKeys = {
   infiniteFeedRoot: ["posts", "infinite-feed"] as const,
   infiniteFeed: (query: ListPostsQueryInput) => [...postsKeys.infiniteFeedRoot, query] as const,
 };
+
+export const postMutationKeys = {
+  create: ["posts", "create"] as const,
+};

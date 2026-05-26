@@ -1,11 +1,14 @@
 import type { PostDto } from "@social/contracts";
-import { act, screen, waitFor } from "@testing-library/react";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import type { ReactElement } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { bffClient } from "#/shared/lib/api/api-client/bff-client";
 import { ApiRequestError } from "#/shared/lib/api/utils/errors";
-import { renderWithQueryClient } from "#/test/query-client";
+import { createTestQueryClient, renderWithQueryClient } from "#/test/query-client";
 
+import { CreatePostForm } from "./create-post-form";
 import { PostsList } from "./posts-list";
 
 vi.mock("#/shared/lib/api/api-client/bff-client", () => ({
@@ -53,6 +56,15 @@ const postsPage = (items: PostDto[] = [post]) => ({
     nextCursor: null,
   },
 });
+
+const renderWithClient = (ui: ReactElement) => {
+  const queryClient = createTestQueryClient();
+
+  return {
+    queryClient,
+    ...render(<QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>),
+  };
+};
 
 describe("PostsList", () => {
   beforeEach(() => {
@@ -186,5 +198,41 @@ describe("PostsList", () => {
 
     expect(await screen.findByRole("heading", { name: /feed is temporarily unavailable/i })).toBeInTheDocument();
     expect(screen.getByText(/feed service is down/i)).toBeInTheDocument();
+  });
+
+  it("keeps a masked pending post while the created post is refreshing into the feed", async () => {
+    let resolveCreate: (value: PostDto) => void = () => undefined;
+
+    vi.mocked(bffClient).mockResolvedValueOnce(postsPage()).mockReturnValueOnce(
+      new Promise<PostDto>((resolve) => {
+        resolveCreate = resolve;
+      }),
+    );
+
+    const { queryClient } = renderWithClient(
+      <>
+        <CreatePostForm />
+        <PostsList feedType="all" />
+      </>,
+    );
+    vi.spyOn(queryClient, "invalidateQueries").mockReturnValue(new Promise(() => undefined));
+
+    expect(await screen.findByText(/planning a weekend photo walk/i)).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText(/create post/i), {
+      target: {
+        value: "Post that is still being created.",
+      },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /^post$/i }));
+
+    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Posting post..."));
+
+    await act(async () => {
+      resolveCreate(post);
+    });
+
+    await waitFor(() => expect(screen.getByRole("button", { name: /^post$/i })).not.toHaveAttribute("aria-busy"));
+    expect(screen.getByRole("status")).toHaveTextContent("Posting post...");
   });
 });

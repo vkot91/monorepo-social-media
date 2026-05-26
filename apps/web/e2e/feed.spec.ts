@@ -55,6 +55,9 @@ test.describe("feed page", () => {
     await page.getByRole("button", { name: "Save changes" }).click();
 
     await expect(page.getByText("Updated from the web e2e test.", { exact: true })).toBeVisible();
+    await expect(page.getByRole("list", { name: "top right notifications" }).getByRole("status")).toContainText(
+      "Post was successfully updated",
+    );
     await expect
       .poll(async () => {
         const post = await prisma.post.findUnique({
@@ -81,6 +84,9 @@ test.describe("feed page", () => {
     await page.getByRole("button", { name: "Remove post" }).click();
 
     await expect(page.getByText(testPosts.mayaFeed.content, { exact: true })).toBeHidden();
+    await expect(page.getByRole("list", { name: "top right notifications" }).getByRole("status")).toContainText(
+      "Post was successfully removed",
+    );
     await expect
       .poll(async () => {
         const post = await prisma.post.findUnique({

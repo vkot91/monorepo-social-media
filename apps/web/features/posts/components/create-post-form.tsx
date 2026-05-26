@@ -1,8 +1,9 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { type CreatePostInput, createPostSchema } from "@social/contracts";
+import { type CreatePostInput, createPostSchema, type PostDto } from "@social/contracts";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 
 import { ApiRequestError } from "#/shared/lib/api/utils/errors";
@@ -10,30 +11,40 @@ import { Button } from "#/shared/ui/button";
 import { FieldError, FormCard, TextArea } from "#/shared/ui/form";
 
 import { createPost } from "../api/mutations";
-import { postsKeys } from "../api/routes";
+import { postMutationKeys, postsKeys } from "../api/routes";
+
+const createPostDefaultValues: CreatePostInput = {
+  content: "",
+  imageUrl: null,
+  visibility: "PUBLIC",
+};
 
 export const CreatePostForm = () => {
+  const [isCreateRequestPending, setIsCreateRequestPending] = useState(false);
   const queryClient = useQueryClient();
 
   const {
-    formState: { errors, isSubmitting },
+    formState: { errors },
     handleSubmit,
     register,
     reset,
     setError,
   } = useForm<CreatePostInput>({
-    defaultValues: {
-      content: "",
-      imageUrl: null,
-      visibility: "PUBLIC",
-    },
+    defaultValues: createPostDefaultValues,
     mode: "onTouched",
     resolver: zodResolver(createPostSchema),
   });
 
-  const createPostMutation = useMutation({
+  const createPostMutation = useMutation<PostDto, Error, CreatePostInput>({
+    mutationKey: postMutationKeys.create,
     mutationFn: createPost,
-    onError: (error) => {
+    onMutate: () => {
+      setIsCreateRequestPending(true);
+    },
+    onError: (error, values) => {
+      setIsCreateRequestPending(false);
+      reset(values);
+
       if (error instanceof ApiRequestError) {
         const message = error.errors.content?.[0];
 
@@ -44,14 +55,12 @@ export const CreatePostForm = () => {
         }
       }
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: postsKeys.infiniteFeedRoot });
-
-      reset({
-        content: "",
-        imageUrl: null,
-        visibility: "PUBLIC",
-      });
+    onSuccess() {
+      setIsCreateRequestPending(false);
+      reset(createPostDefaultValues);
+    },
+    onSettled() {
+      return queryClient.invalidateQueries({ queryKey: postsKeys.infiniteFeedRoot });
     },
   });
 
@@ -76,7 +85,7 @@ export const CreatePostForm = () => {
       <FieldError message={contentError} />
       <FieldError message={formError} />
       <div className="text-right">
-        <Button loading={isSubmitting || createPostMutation.isPending} type="submit">
+        <Button loading={isCreateRequestPending} type="submit">
           Post
         </Button>
       </div>

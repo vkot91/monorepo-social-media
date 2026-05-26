@@ -1,14 +1,15 @@
 "use client";
 
 import type { PostFeed } from "@social/contracts";
-import { useInfiniteQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useMutationState } from "@tanstack/react-query";
 import { LoaderCircle } from "lucide-react";
 import { useEffect, useMemo, useRef } from "react";
 
 import { Card } from "#/shared/ui";
 
 import { postsInfiniteQueryOptions } from "../api/queries";
-import { PostsLoadingPlaceholder } from "./loading-placeholder";
+import { postMutationKeys } from "../api/routes";
+import { PostLoadingPlaceholder, PostsLoadingPlaceholder } from "./loading-placeholder";
 import { PostCard } from "./post-card";
 
 interface PostListProps {
@@ -24,6 +25,15 @@ export const PostsList = ({ feedType }: PostListProps) => {
     }),
   );
   const posts = useMemo(() => data?.pages.flatMap((page) => page.items) ?? [], [data]);
+  const pendingPosts = useMutationState({
+    filters: {
+      mutationKey: postMutationKeys.create,
+      status: "pending",
+    },
+    select: (mutation) => ({
+      submittedAt: mutation.state.submittedAt,
+    }),
+  });
 
   useEffect(() => {
     if (!hasNextPage || isFetching || typeof IntersectionObserver === "undefined") {
@@ -68,8 +78,15 @@ export const PostsList = ({ feedType }: PostListProps) => {
             {error instanceof Error ? error.message : "Feed is temporarily unavailable."}
           </p>
         </Card>
-      ) : posts.length > 0 ? (
-        posts.map((post) => <PostCard key={post.id} post={post} />)
+      ) : posts.length > 0 || pendingPosts.length > 0 ? (
+        <>
+          {pendingPosts.map((post) => (
+            <PostLoadingPlaceholder key={post.submittedAt} statusText="Posting post..." />
+          ))}
+          {posts.map((post) => (
+            <PostCard key={post.id} post={post} />
+          ))}
+        </>
       ) : (
         <Card>
           <h2 className="mb-2 mt-0 text-xl font-extrabold">No posts yet</h2>

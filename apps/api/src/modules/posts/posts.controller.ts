@@ -40,6 +40,7 @@ export class PostsController {
     @CurrentUser() user: AuthTokenPayload,
     @Body(new ZodValidationPipe(createPostSchema)) input: CreatePostInput,
   ) {
+    await delay(2_000);
     return this.postsService.create(user.sub, input);
   }
 

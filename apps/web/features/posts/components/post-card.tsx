@@ -12,11 +12,12 @@ import { useDisclosure } from "#/shared/hooks/use-disclosure";
 import { ApiRequestError } from "#/shared/lib/api/utils/errors";
 import { Button, Card, DropdownMenu, Modal } from "#/shared/ui";
 import { FieldError, TextArea } from "#/shared/ui/form";
+import { type AddToastOptions, useToastStore } from "#/shared/ui/toast/store/toast";
 
 import {
   getOptimisticPost,
-  PostsInfiniteData,
-  PostsSnapshot,
+  type PostsInfiniteData,
+  type PostsSnapshot,
   removePostFromInfiniteData,
   restorePostsSnapshot,
   updatePostInInfiniteData,
@@ -32,6 +33,8 @@ export const PostCard = ({ post }: PostCardProps) => {
   const activeUser = useAuthStore((state) => state.user);
   const deleteModal = useDisclosure();
   const editModal = useDisclosure();
+  const toastStore = useToastStore();
+
   const isAuthor = post.author.id === activeUser?.id;
 
   return (
@@ -66,8 +69,18 @@ export const PostCard = ({ post }: PostCardProps) => {
         ) : null}
       </div>
       <p>{post.content}</p>
-      <EditPostModal onOpenChange={editModal.onOpenChange} open={editModal.isOpen} post={post} />
-      <DeletePostModal onOpenChange={deleteModal.onOpenChange} open={deleteModal.isOpen} post={post} />
+      <EditPostModal
+        addToast={toastStore.addToast}
+        onOpenChange={editModal.onOpenChange}
+        open={editModal.isOpen}
+        post={post}
+      />
+      <DeletePostModal
+        addToast={toastStore.addToast}
+        onOpenChange={deleteModal.onOpenChange}
+        open={deleteModal.isOpen}
+        post={post}
+      />
     </Card>
   );
 };
@@ -76,11 +89,13 @@ type PostModalProps = {
   onOpenChange: (open: boolean) => void;
   open: boolean;
   post: PostDto;
+  addToast: (toast: AddToastOptions) => string;
 };
 
-const EditPostModal = ({ onOpenChange, open, post }: PostModalProps) => {
+const EditPostModal = ({ onOpenChange, open, post, addToast }: PostModalProps) => {
   const formId = useId();
   const queryClient = useQueryClient();
+
   const {
     formState: { errors, isSubmitting },
     handleSubmit,
@@ -123,6 +138,9 @@ const EditPostModal = ({ onOpenChange, open, post }: PostModalProps) => {
           });
         }
       }
+    },
+    onSuccess: () => {
+      addToast({ type: "success", description: "Post was successfully updated" });
     },
     onSettled: () => {
       onOpenChange(false);
@@ -173,7 +191,7 @@ const EditPostModal = ({ onOpenChange, open, post }: PostModalProps) => {
   );
 };
 
-const DeletePostModal = ({ onOpenChange, open, post }: PostModalProps) => {
+const DeletePostModal = ({ onOpenChange, open, post, addToast }: PostModalProps) => {
   const queryClient = useQueryClient();
 
   const deletePostMutation = useMutation<null, Error, string, PostsSnapshot>({
@@ -193,6 +211,9 @@ const DeletePostModal = ({ onOpenChange, open, post }: PostModalProps) => {
     },
     onError: (_error, _postId, previousPosts) => {
       restorePostsSnapshot(queryClient, previousPosts);
+    },
+    onSuccess: () => {
+      addToast({ type: "success", description: "Post was successfully removed" });
     },
     onSettled: () => {
       onOpenChange(false);
