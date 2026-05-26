@@ -1,7 +1,7 @@
 import { type INestApplication } from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
 import { Test } from "@nestjs/testing";
-import type { PaginatedPostsDto } from "@social/contracts";
+import type { PaginatedPostsDto, PostDto } from "@social/contracts";
 import { prisma, testPosts, testUsers } from "@social/database";
 
 import { HttpExceptionFilter } from "#common/filters/http-exception.filter";
@@ -241,5 +241,110 @@ describe("API e2e", () => {
         },
       }),
     ).resolves.toBe(testPosts.mayaFeedPage.length + 1);
+  });
+
+  it("updates an owned post", async () => {
+    const { accessToken } = await login();
+    const authHeaders = {
+      authorization: `Bearer ${accessToken}`,
+    };
+    const updatedPost = await request<PostDto>(`/posts/${testPosts.mayaFeed.id}`, {
+      body: JSON.stringify({
+        content: "Updated from an e2e test.",
+        imageUrl: "https://example.com/updated-post.jpg",
+        visibility: "PUBLIC",
+      }),
+      headers: authHeaders,
+      method: "PATCH",
+    });
+
+    expect(updatedPost.response.status).toBe(200);
+    expect(updatedPost.body).toMatchObject({
+      author: expect.objectContaining({
+        id: testUsers.login.id,
+        username: testUsers.login.username,
+      }),
+      content: "Updated from an e2e test.",
+      id: testPosts.mayaFeed.id,
+      imageUrl: "https://example.com/updated-post.jpg",
+      visibility: "PUBLIC",
+    });
+
+    await expect(
+      prisma.post.findUnique({
+        where: {
+          id: testPosts.mayaFeed.id,
+        },
+      }),
+    ).resolves.toMatchObject({
+      content: "Updated from an e2e test.",
+      imageUrl: "https://example.com/updated-post.jpg",
+      visibility: "PUBLIC",
+    });
+  });
+
+  it("removes an owned post", async () => {
+    const { accessToken } = await login();
+    const authHeaders = {
+      authorization: `Bearer ${accessToken}`,
+    };
+    const createdPost = await request<PostDto>("/posts", {
+      body: JSON.stringify({
+        content: "Temporary post for delete coverage.",
+      }),
+      headers: authHeaders,
+      method: "POST",
+    });
+
+    expect(createdPost.response.status).toBe(201);
+
+    const removedPost = await request(`/posts/${createdPost.body.id}`, {
+      headers: authHeaders,
+      method: "DELETE",
+    });
+
+    expect(removedPost.response.status).toBe(204);
+    expect(removedPost.body).toBeNull();
+    await expect(
+      prisma.post.findUnique({
+        where: {
+          id: createdPost.body.id,
+        },
+      }),
+    ).resolves.toBeNull();
+  });
+
+  it("rejects edits and removals from non-authors", async () => {
+    const { accessToken } = await login(testUsers.empty.email);
+    const authHeaders = {
+      authorization: `Bearer ${accessToken}`,
+    };
+    const updateResponse = await request<{ message: string }>(`/posts/${testPosts.mayaFeed.id}`, {
+      body: JSON.stringify({
+        content: "Attempted overwrite.",
+      }),
+      headers: authHeaders,
+      method: "PATCH",
+    });
+
+    expect(updateResponse.response.status).toBe(403);
+    expect(updateResponse.body.message).toBe("You cannot modify this post");
+
+    const removeResponse = await request<{ message: string }>(`/posts/${testPosts.mayaFeed.id}`, {
+      headers: authHeaders,
+      method: "DELETE",
+    });
+
+    expect(removeResponse.response.status).toBe(403);
+    expect(removeResponse.body.message).toBe("You cannot modify this post");
+    await expect(
+      prisma.post.findUnique({
+        where: {
+          id: testPosts.mayaFeed.id,
+        },
+      }),
+    ).resolves.toMatchObject({
+      content: testPosts.mayaFeed.content,
+    });
   });
 });

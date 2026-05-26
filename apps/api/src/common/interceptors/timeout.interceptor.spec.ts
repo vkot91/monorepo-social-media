@@ -1,4 +1,4 @@
-import { type CallHandler, type ExecutionContext, RequestTimeoutException } from "@nestjs/common";
+import { type CallHandler, type ExecutionContext, GatewayTimeoutException } from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
 import { firstValueFrom, of, throwError, timer } from "rxjs";
 import { map } from "rxjs/operators";
@@ -34,9 +34,9 @@ describe("TimeoutInterceptor", () => {
       handle: () => timer(DEFAULT_REQUEST_TIMEOUT_MS + 1).pipe(map(() => "late")),
     } as CallHandler;
 
-    const result = expect(
-      firstValueFrom(interceptor.intercept(createContext(handler), next)),
-    ).rejects.toBeInstanceOf(RequestTimeoutException);
+    const result = expect(firstValueFrom(interceptor.intercept(createContext(handler), next))).rejects.toBeInstanceOf(
+      GatewayTimeoutException,
+    );
     await jest.advanceTimersByTimeAsync(DEFAULT_REQUEST_TIMEOUT_MS + 1);
 
     await result;
@@ -49,9 +49,9 @@ describe("TimeoutInterceptor", () => {
       handle: () => timer(6).pipe(map(() => "late")),
     } as CallHandler;
 
-    const result = expect(
-      firstValueFrom(interceptor.intercept(createContext(handler), next)),
-    ).rejects.toBeInstanceOf(RequestTimeoutException);
+    const result = expect(firstValueFrom(interceptor.intercept(createContext(handler), next))).rejects.toBeInstanceOf(
+      GatewayTimeoutException,
+    );
     await jest.advanceTimersByTimeAsync(6);
 
     await result;

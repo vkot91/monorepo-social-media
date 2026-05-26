@@ -1,14 +1,16 @@
 "use client";
 
-import { PostFeed } from "@social/contracts";
-import { useInfiniteQuery } from "@tanstack/react-query";
+import type { PostFeed } from "@social/contracts";
+import { useInfiniteQuery, useMutationState } from "@tanstack/react-query";
 import { LoaderCircle } from "lucide-react";
 import { useEffect, useMemo, useRef } from "react";
 
 import { Card } from "#/shared/ui";
 
 import { postsInfiniteQueryOptions } from "../api/queries";
-import { PostsLoadingPlaceholder } from "./loading-placeholder";
+import { postMutationKeys } from "../api/routes";
+import { PostLoadingPlaceholder, PostsLoadingPlaceholder } from "./loading-placeholder";
+import { PostCard } from "./post-card";
 
 interface PostListProps {
   feedType: PostFeed;
@@ -23,6 +25,15 @@ export const PostsList = ({ feedType }: PostListProps) => {
     }),
   );
   const posts = useMemo(() => data?.pages.flatMap((page) => page.items) ?? [], [data]);
+  const pendingPosts = useMutationState({
+    filters: {
+      mutationKey: postMutationKeys.create,
+      status: "pending",
+    },
+    select: (mutation) => ({
+      submittedAt: mutation.state.submittedAt,
+    }),
+  });
 
   useEffect(() => {
     if (!hasNextPage || isFetching || typeof IntersectionObserver === "undefined") {
@@ -67,19 +78,15 @@ export const PostsList = ({ feedType }: PostListProps) => {
             {error instanceof Error ? error.message : "Feed is temporarily unavailable."}
           </p>
         </Card>
-      ) : posts.length > 0 ? (
-        posts.map((post) => (
-          <Card className="grid gap-4" key={post.id}>
-            <div className="flex items-center gap-3.5">
-              <div className="h-11 w-11 shrink-0 rounded-full bg-warning" />
-              <div>
-                <strong>{post.author.displayName}</strong>
-                <p className="mt-1 text-muted-text">@{post.author.username}</p>
-              </div>
-            </div>
-            <p>{post.content}</p>
-          </Card>
-        ))
+      ) : posts.length > 0 || pendingPosts.length > 0 ? (
+        <>
+          {pendingPosts.map((post) => (
+            <PostLoadingPlaceholder key={post.submittedAt} statusText="Posting post..." />
+          ))}
+          {posts.map((post) => (
+            <PostCard key={post.id} post={post} />
+          ))}
+        </>
       ) : (
         <Card>
           <h2 className="mb-2 mt-0 text-xl font-extrabold">No posts yet</h2>

@@ -17,12 +17,12 @@ import {
 } from "./request.type";
 
 export type QueryValue = boolean | number | string | null | undefined;
+type RouteParams = Record<string, boolean | number | string>;
 
 type RetrySettings = {
   delayMs: number;
   maxDelayMs: number;
   retries: number;
-  retryServerErrors: boolean;
   retryStatuses: number[];
 };
 
@@ -30,7 +30,7 @@ const DEFAULT_RETRY = {
   delayMs: 250,
   maxDelayMs: 2_000,
   retries: 2,
-  retryStatuses: [408, 429],
+  retryStatuses: [429, 502, 503, 504],
 };
 
 export const appendQueryParams = (url: URL, query?: Record<string, QueryValue>) => {
@@ -42,6 +42,17 @@ export const appendQueryParams = (url: URL, query?: Record<string, QueryValue>) 
 
   return url;
 };
+
+export const interpolatePathParams = (path: string, params?: RouteParams) =>
+  path.replace(/\{([^}]+)\}/g, (_, key: string) => {
+    const value = params?.[key];
+
+    if (value === undefined) {
+      throw new Error(`Missing route param "${key}" for ${path}`);
+    }
+
+    return encodeURIComponent(String(value));
+  });
 
 export async function parseJsonResponse<TResponse>(response: Response): Promise<TResponse> {
   if (response.status === 204) {
@@ -83,15 +94,26 @@ export async function parseJsonResponse<TResponse>(response: Response): Promise<
 const buildRequestUrl = (
   path: string,
   origin: ApiClientOptions["origin"],
+  params?: RouteParams,
   queryParams?: Record<string, QueryValue>,
 ) => {
-  if (origin === "bff") {
-    const url = appendQueryParams(new URL(path, "http://bff.local"), queryParams);
+  const interpolatedPath = interpolatePathParams(path, params);
 
-    return `${url.pathname}${url.search}`;
+  if (origin === "bff") {
+    const qs = new URLSearchParams();
+
+    for (const [key, value] of Object.entries(queryParams ?? {})) {
+      if (value !== null && value !== undefined) {
+        qs.set(key, String(value));
+      }
+    }
+
+    const search = qs.size ? `?${qs}` : "";
+
+    return `${interpolatedPath}${search}`;
   }
 
-  return appendQueryParams(new URL(path, getWebEnv().NEXT_PUBLIC_API_URL), queryParams).toString();
+  return appendQueryParams(new URL(interpolatedPath, getWebEnv().NEXT_PUBLIC_API_URL), queryParams).toString();
 };
 
 const getRetrySettings = (method: ApiMethod, retry?: boolean | RetryOptions): RetrySettings | null => {
@@ -110,114 +132,96 @@ const getRetrySettings = (method: ApiMethod, retry?: boolean | RetryOptions): Re
     delayMs: options.delayMs ?? DEFAULT_RETRY.delayMs,
     maxDelayMs: options.maxDelayMs ?? DEFAULT_RETRY.maxDelayMs,
     retries: options.attempts ?? DEFAULT_RETRY.retries,
-    retryServerErrors: options.retryStatuses === undefined,
     retryStatuses: options.retryStatuses ?? DEFAULT_RETRY.retryStatuses,
   };
 };
 
-const isRetryableResponse = (response: Response, retry: RetrySettings) => {
-  if (retry.retryStatuses.includes(response.status)) {
-    return true;
-  }
+const isRetryableResponse = (response: Response, retry: RetrySettings) => retry.retryStatuses.includes(response.status);
 
-  return retry.retryServerErrors && response.status >= 500 && response.status < 600;
-};
+const isRetryableError = (error: unknown) =>
+  !(typeof error === "object" && error !== null && "name" in error && error.name === "AbortError");
 
-const isRetryableError = (error: unknown) => {
-  if (typeof error === "object" && error !== null && "name" in error && error.name === "AbortError") {
-    return false;
-  }
-
-  return true;
-};
-
-const getRetryDelayMs = (retryNumber: number, retry: RetrySettings) => {
-  return Math.min(retry.delayMs * 2 ** (retryNumber - 1), retry.maxDelayMs);
-};
+const getRetryDelayMs = (attempt: number, retry: RetrySettings) =>
+  Math.min(retry.delayMs * 2 ** (attempt - 1), retry.maxDelayMs);
 
 const sleep = (ms: number) =>
   new Promise<void>((resolve) => {
     setTimeout(resolve, ms);
   });
 
-const withRetrySignal = (init: RequestInit, retryNumber: number): RequestInit => {
-  if (retryNumber === 0) {
-    return init;
-  }
-
-  return {
-    ...init,
-    signal: new AbortController().signal,
-  };
-};
-
 const fetchWithRetry = async (
   url: string,
   init: RequestInit,
   retry: RetrySettings | null,
   requestId: string,
-  retryNumber = 0,
 ): Promise<Response> => {
-  try {
-    const response = await fetch(url, withRetrySignal(init, retryNumber));
-    if (!retry || retryNumber >= retry.retries || !isRetryableResponse(response, retry)) {
-      if (retry && retryNumber >= retry.retries && isRetryableResponse(response, retry)) {
-        logger.error("api_request_failed", {
-          attempts: retryNumber + 1,
-          method: init.method,
-          requestId,
-          statusCode: response.status,
-          url,
-        });
+  const maxAttempts = (retry?.retries ?? 0) + 1;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    const isLastAttempt = attempt === maxAttempts;
+    const fetchInit = attempt === 1 ? init : { ...init, signal: new AbortController().signal };
+
+    try {
+      const response = await fetch(url, fetchInit);
+
+      if (isLastAttempt || !retry || !isRetryableResponse(response, retry)) {
+        if (isLastAttempt && retry && isRetryableResponse(response, retry)) {
+          logger.error("api_request_failed", {
+            attempts: attempt,
+            method: init.method,
+            requestId,
+            statusCode: response.status,
+            url,
+          });
+        }
+
+        return response;
       }
 
-      return response;
-    }
+      const delayMs = getRetryDelayMs(attempt, retry);
 
-    const delayMs = getRetryDelayMs(retryNumber + 1, retry);
+      logger.warn("api_request_retry", {
+        attempt,
+        delayMs,
+        method: init.method,
+        requestId,
+        statusCode: response.status,
+        url,
+      });
 
-    logger.warn("api_request_retry", {
-      attempt: retryNumber + 1,
-      delayMs,
-      method: init.method,
-      requestId,
-      statusCode: response.status,
-      url,
-    });
+      await sleep(delayMs);
+    } catch (error) {
+      if (isLastAttempt || !retry || !isRetryableError(error)) {
+        if (isLastAttempt && retry && isRetryableError(error)) {
+          logger.error("api_request_failed", {
+            attempts: attempt,
+            errorName: error instanceof Error ? error.name : "UnknownError",
+            method: init.method,
+            requestId,
+            url,
+          });
+        }
 
-    await sleep(delayMs);
-
-    return fetchWithRetry(url, init, retry, requestId, retryNumber + 1);
-  } catch (error) {
-    if (!retry || retryNumber >= retry.retries || !isRetryableError(error)) {
-      if (retry && retryNumber >= retry.retries && isRetryableError(error)) {
-        logger.error("api_request_failed", {
-          attempts: retryNumber + 1,
-          errorName: error instanceof Error ? error.name : "UnknownError",
-          method: init.method,
-          requestId,
-          url,
-        });
+        throw error;
       }
 
-      throw error;
+      const delayMs = getRetryDelayMs(attempt, retry);
+
+      logger.warn("api_request_retry", {
+        attempt,
+        delayMs,
+        errorName: error instanceof Error ? error.name : "UnknownError",
+        method: init.method,
+        requestId,
+        url,
+      });
+
+      await sleep(delayMs);
     }
-
-    const delayMs = getRetryDelayMs(retryNumber + 1, retry);
-
-    logger.warn("api_request_retry", {
-      attempt: retryNumber + 1,
-      delayMs,
-      errorName: error instanceof Error ? error.name : "UnknownError",
-      method: init.method,
-      requestId,
-      url,
-    });
-
-    await sleep(delayMs);
-
-    return fetchWithRetry(url, init, retry, requestId, retryNumber + 1);
   }
+
+  // Unreachable but required for TypeScript
+  throw new Error("Unexpected end of fetchWithRetry");
 };
 
 export const createApiClient = <TRoutes extends ApiRoutes>({
@@ -236,10 +240,11 @@ export const createApiClient = <TRoutes extends ApiRoutes>({
     const requiresAuth = options.auth ?? true;
     const headers: HeadersInit = {};
     const body = "body" in options ? options.body : undefined;
+    const params = "params" in options ? options.params : undefined;
     const queryParams = "queryParams" in options ? options.queryParams : undefined;
 
     const retrySettings = origin === "backend" ? getRetrySettings(method, options.retry) : null;
-    const requestId = `request-${path}`;
+    const requestId = `request-${path}-${JSON.stringify(options)}`;
 
     if (body !== undefined) {
       headers["content-type"] = "application/json";
@@ -257,7 +262,13 @@ export const createApiClient = <TRoutes extends ApiRoutes>({
       headers.authorization = `Bearer ${accessToken}`;
     }
 
-    const url = buildRequestUrl(path, origin, queryParams as Record<string, QueryValue> | undefined);
+    const url = buildRequestUrl(
+      path,
+      origin,
+      params as RouteParams | undefined,
+      queryParams as Record<string, QueryValue> | undefined,
+    );
+
     const fetchOptions: RequestInit = {
       body: body !== undefined ? JSON.stringify(body) : undefined,
       cache: options.cache,
@@ -265,6 +276,7 @@ export const createApiClient = <TRoutes extends ApiRoutes>({
       headers,
       method,
     };
+
     const response = await fetchWithRetry(url, fetchOptions, retrySettings, requestId);
 
     if (response.status === 401 && origin === "backend" && requiresAuth && options.retryOnUnauthorized !== false) {

@@ -36,6 +36,7 @@ export type BaseRequestOptions = {
   cache?: RequestCache;
   retry?: boolean | RetryOptions;
   retryOnUnauthorized?: boolean;
+  signal?: AbortSignal;
 };
 
 export type AuthOption<TRoute> =
@@ -45,6 +46,11 @@ export type AuthOption<TRoute> =
 
 export type BodyOption<TRoute> =
   TRoute extends ApiRoute<{ body: infer TBody; response: unknown }> ? { body: TBody } : { body?: never };
+
+export type ParamsOption<TRoute> =
+  TRoute extends ApiRoute<{ params: infer TParams extends object; response: unknown }>
+    ? { params: TParams }
+    : { params?: never };
 
 export type QueryParamsOption<TRoute> =
   TRoute extends ApiRoute<{
@@ -57,6 +63,7 @@ export type QueryParamsOption<TRoute> =
 export type RequestOptions<TRoute> = BaseRequestOptions &
   AuthOption<TRoute> &
   BodyOption<TRoute> &
+  ParamsOption<TRoute> &
   QueryParamsOption<TRoute>;
 
 export type NoExtraKeys<TExpected, TActual> = TActual & Record<Exclude<keyof TActual, keyof TExpected>, never>;
@@ -78,9 +85,17 @@ export type StrictQueryParamsOption<TRoute, TOptions> =
       : { queryParams: TQuery }
     : { queryParams?: never };
 
+export type StrictParamsOption<TRoute, TOptions> =
+  TRoute extends ApiRoute<{ params: infer TParams extends object; response: unknown }>
+    ? TOptions extends { params: infer TActualParams }
+      ? { params: NoExtraKeys<TParams, TActualParams> }
+      : { params: TParams }
+    : { params?: never };
+
 export type StrictRequestOptions<TRoute, TOptions> = NoExtraKeys<RequestOptions<TRoute>, TOptions> &
-  Omit<RequestOptions<TRoute>, "body" | "queryParams"> &
+  Omit<RequestOptions<TRoute>, "body" | "params" | "queryParams"> &
   StrictBodyOption<TRoute, TOptions> &
+  StrictParamsOption<TRoute, TOptions> &
   StrictQueryParamsOption<TRoute, TOptions>;
 
 export type RouteResponse<TRoute> = TRoute extends ApiRoute<{ response: infer TResponse }> ? TResponse : never;

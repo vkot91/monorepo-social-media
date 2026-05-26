@@ -40,6 +40,7 @@ export class PostsController {
     @CurrentUser() user: AuthTokenPayload,
     @Body(new ZodValidationPipe(createPostSchema)) input: CreatePostInput,
   ) {
+    await delay(2_000);
     return this.postsService.create(user.sub, input);
   }
 
@@ -61,11 +62,13 @@ export class PostsController {
 
   @Patch(":id")
   @UseInterceptors(ZodResponseInterceptor(PostSchema))
-  update(
+  async update(
     @CurrentUser() user: AuthTokenPayload,
     @Param("id") postId: string,
     @Body(new ZodValidationPipe(updatePostSchema)) input: UpdatePostInput,
   ) {
+    await delay(1_000);
+
     return this.postsService.update(user.sub, postId, input);
   }
 

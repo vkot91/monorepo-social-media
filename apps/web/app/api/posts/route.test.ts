@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { backendClient } from "#/shared/lib/api/api-client/backend-client";
 
+import { DELETE, PATCH } from "./[postId]/route";
 import { GET, POST } from "./route";
 
 vi.mock("#/shared/lib/api/api-client/backend-client", () => ({
@@ -42,6 +43,12 @@ const postRequest = (body: unknown) =>
     },
     method: "POST",
   });
+
+const postRouteContext = {
+  params: Promise.resolve({
+    postId: "post-1",
+  }),
+};
 
 describe("posts BFF routes", () => {
   beforeEach(() => {
@@ -106,6 +113,18 @@ describe("posts BFF routes", () => {
     expect(backendClient).not.toHaveBeenCalled();
   });
 
+  it("maps feed backend failures to the feed fallback", async () => {
+    vi.mocked(backendClient).mockRejectedValueOnce(new Error("backend unavailable"));
+
+    const response = await GET(new Request("http://localhost/api/posts?feed=all&limit=20&mode=cursor"));
+
+    await expect(response.json()).resolves.toEqual({
+      errors: {},
+      message: "Feed is temporarily unavailable.",
+    });
+    expect(response.status).toBe(500);
+  });
+
   it("creates posts through the backend", async () => {
     vi.mocked(backendClient).mockResolvedValueOnce(post);
 
@@ -126,6 +145,111 @@ describe("posts BFF routes", () => {
         visibility: "PUBLIC",
       },
     });
+  });
+
+  it("maps create backend failures to the post creation fallback", async () => {
+    vi.mocked(backendClient).mockRejectedValueOnce(new Error("backend unavailable"));
+
+    const response = await POST(
+      postRequest({
+        content: "Planning a weekend photo walk downtown.",
+        imageUrl: null,
+        visibility: "PUBLIC",
+      }),
+    );
+
+    await expect(response.json()).resolves.toEqual({
+      errors: {},
+      message: "Post creation is unavailable right now.",
+    });
+    expect(response.status).toBe(500);
+  });
+
+  it("updates posts through the backend", async () => {
+    const updatedPost = {
+      ...post,
+      content: "Updated post content.",
+    };
+
+    vi.mocked(backendClient).mockResolvedValueOnce(updatedPost);
+
+    const response = await PATCH(
+      postRequest({
+        content: " Updated post content. ",
+      }),
+      postRouteContext,
+    );
+
+    await expect(response.json()).resolves.toEqual(updatedPost);
+    expect(response.status).toBe(200);
+    expect(backendClient).toHaveBeenCalledWith("/posts/{id}", "PATCH", {
+      body: {
+        content: "Updated post content.",
+      },
+      params: {
+        id: "post-1",
+      },
+    });
+  });
+
+  it("maps update backend failures to the post update fallback", async () => {
+    vi.mocked(backendClient).mockRejectedValueOnce(new Error("backend unavailable"));
+
+    const response = await PATCH(
+      postRequest({
+        content: "Updated post content.",
+      }),
+      postRouteContext,
+    );
+
+    await expect(response.json()).resolves.toEqual({
+      errors: {},
+      message: "Post update is unavailable right now.",
+    });
+    expect(response.status).toBe(500);
+  });
+
+  it("returns validation errors for invalid update requests", async () => {
+    const response = await PATCH(
+      postRequest({
+        content: "",
+      }),
+      postRouteContext,
+    );
+
+    await expect(response.json()).resolves.toMatchObject({
+      errors: {
+        content: expect.any(Array),
+      },
+      message: "Please check your post and try again.",
+    });
+    expect(response.status).toBe(400);
+    expect(backendClient).not.toHaveBeenCalled();
+  });
+
+  it("deletes posts through the backend", async () => {
+    vi.mocked(backendClient).mockResolvedValueOnce(null);
+
+    const response = await DELETE(new Request("http://localhost/api/posts/post-1"), postRouteContext);
+
+    expect(response.status).toBe(204);
+    expect(backendClient).toHaveBeenCalledWith("/posts/{id}", "DELETE", {
+      params: {
+        id: "post-1",
+      },
+    });
+  });
+
+  it("maps delete backend failures to the post removal fallback", async () => {
+    vi.mocked(backendClient).mockRejectedValueOnce(new Error("backend unavailable"));
+
+    const response = await DELETE(new Request("http://localhost/api/posts/post-1"), postRouteContext);
+
+    await expect(response.json()).resolves.toEqual({
+      errors: {},
+      message: "Post removal is unavailable right now.",
+    });
+    expect(response.status).toBe(500);
   });
 
   it("returns validation errors for invalid create requests", async () => {

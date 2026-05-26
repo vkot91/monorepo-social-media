@@ -97,9 +97,6 @@ describe("PostsService", () => {
           {
             AND: [
               {
-                visibility: PostVisibility.PUBLIC,
-              },
-              {
                 author: {
                   blockedUsers: {
                     none: {
@@ -108,41 +105,35 @@ describe("PostsService", () => {
                   },
                 },
               },
-            ],
-          },
-          {
-            AND: [
               {
-                author: {
-                  OR: [
-                    {
-                      sentFriendshipRequests: {
-                        some: {
-                          addresseeId: "user-1",
-                          status: FriendshipStatus.ACCEPTED,
-                        },
-                      },
-                    },
-                    {
-                      receivedFriendshipRequests: {
-                        some: {
-                          requesterId: "user-1",
-                          status: FriendshipStatus.ACCEPTED,
-                        },
-                      },
-                    },
-                  ],
-                },
-                visibility: PostVisibility.FRIENDS,
-              },
-              {
-                author: {
-                  blockedUsers: {
-                    none: {
-                      blockedId: "user-1",
-                    },
+                OR: [
+                  {
+                    visibility: PostVisibility.PUBLIC,
                   },
-                },
+                  {
+                    author: {
+                      OR: [
+                        {
+                          sentFriendshipRequests: {
+                            some: {
+                              addresseeId: "user-1",
+                              status: FriendshipStatus.ACCEPTED,
+                            },
+                          },
+                        },
+                        {
+                          receivedFriendshipRequests: {
+                            some: {
+                              requesterId: "user-1",
+                              status: FriendshipStatus.ACCEPTED,
+                            },
+                          },
+                        },
+                      ],
+                    },
+                    visibility: PostVisibility.FRIENDS,
+                  },
+                ],
               },
             ],
           },

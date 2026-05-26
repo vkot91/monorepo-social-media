@@ -1,10 +1,7 @@
 import type { ListPostsQueryInput } from "@social/contracts";
-import { FriendshipStatus, PostVisibility,type Prisma  } from "@social/database";
+import { FriendshipStatus, PostVisibility, type Prisma } from "@social/database";
 
-export function visiblePostsWhere(
-  viewerId: string,
-  query: ListPostsQueryInput,
-): Prisma.PostWhereInput {
+export function visiblePostsWhere(viewerId: string, query: ListPostsQueryInput): Prisma.PostWhereInput {
   if (query.authorId) {
     return authorPagePostsForViewer(viewerId, query.authorId);
   }
@@ -37,17 +34,19 @@ function authorPagePostsForViewer(viewerId: string, authorId: string): Prisma.Po
 function feedPagePosts(viewerId: string): Prisma.PostWhereInput {
   return {
     OR: [
-      postsByAuthor(viewerId),
-      {
-        AND: [publicPosts(), notBlockedByAuthor(viewerId)],
-      },
+      postsByAuthor(viewerId), // own posts, no block check needed
       {
         AND: [
+          notBlockedByAuthor(viewerId), // one JOIN, covers both remaining branches
           {
-            author: acceptedFriendOf(viewerId),
-            visibility: PostVisibility.FRIENDS,
+            OR: [
+              publicPosts(),
+              {
+                author: acceptedFriendOf(viewerId),
+                visibility: PostVisibility.FRIENDS,
+              },
+            ],
           },
-          notBlockedByAuthor(viewerId),
         ],
       },
     ],

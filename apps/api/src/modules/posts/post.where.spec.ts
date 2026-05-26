@@ -67,19 +67,18 @@ describe("visiblePostsWhere", () => {
         },
         {
           AND: [
-            {
-              visibility: PostVisibility.PUBLIC,
-            },
             notBlockedByAuthor,
-          ],
-        },
-        {
-          AND: [
             {
-              author: acceptedFriendOfViewer,
-              visibility: PostVisibility.FRIENDS,
+              OR: [
+                {
+                  visibility: PostVisibility.PUBLIC,
+                },
+                {
+                  author: acceptedFriendOfViewer,
+                  visibility: PostVisibility.FRIENDS,
+                },
+              ],
             },
-            notBlockedByAuthor,
           ],
         },
       ],
@@ -93,10 +92,14 @@ describe("visiblePostsWhere", () => {
       OR: expect.arrayContaining([
         {
           AND: [
-            {
-              visibility: PostVisibility.PUBLIC,
-            },
             notBlockedByAuthor,
+            {
+              OR: expect.arrayContaining([
+                {
+                  visibility: PostVisibility.PUBLIC,
+                },
+              ]),
+            },
           ],
         },
       ]),
@@ -110,11 +113,15 @@ describe("visiblePostsWhere", () => {
       OR: expect.arrayContaining([
         {
           AND: [
-            {
-              author: acceptedFriendOfViewer,
-              visibility: PostVisibility.FRIENDS,
-            },
             notBlockedByAuthor,
+            {
+              OR: expect.arrayContaining([
+                {
+                  author: acceptedFriendOfViewer,
+                  visibility: PostVisibility.FRIENDS,
+                },
+              ]),
+            },
           ],
         },
       ]),

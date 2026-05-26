@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { logger } from "#/shared/lib/logger";
 
 import { ApiRequestError, AuthRequiredError } from "../utils/errors";
-import { appendQueryParams, createApiClient, parseJsonResponse } from "./request";
+import { appendQueryParams, createApiClient, interpolatePathParams, parseJsonResponse } from "./request";
 import type { BackendApiRoutes, BffApiRoutes } from "./request.type";
 
 vi.mock("#/env", () => ({
@@ -40,6 +40,16 @@ describe("appendQueryParams", () => {
     });
 
     expect(url.toString()).toBe("http://localhost:3001/posts?feed=friends&includeDrafts=false&page=2");
+  });
+});
+
+describe("interpolatePathParams", () => {
+  it("replaces route params with encoded values", () => {
+    expect(interpolatePathParams("/posts/{id}", { id: "post/1" })).toBe("/posts/post%2F1");
+  });
+
+  it("throws when a route param is missing", () => {
+    expect(() => interpolatePathParams("/posts/{id}")).toThrow('Missing route param "id" for /posts/{id}');
   });
 });
 
@@ -182,6 +192,29 @@ describe("createApiClient", () => {
     );
   });
 
+  it("interpolates typed backend route params", async () => {
+    const request = createApiClient<BackendApiRoutes>({
+      origin: "backend",
+      resolveAccessToken: vi.fn().mockResolvedValue("access-token"),
+    });
+
+    await request("/posts/{id}", "PATCH", {
+      body: {
+        content: "Updated",
+      },
+      params: {
+        id: "post/1",
+      },
+    });
+
+    expect(fetch).toHaveBeenCalledWith(
+      "http://localhost:3001/posts/post%2F1",
+      expect.objectContaining({
+        method: "PATCH",
+      }),
+    );
+  });
+
   it("throws before fetching when an authenticated backend request has no token", async () => {
     const request = createApiClient<BackendApiRoutes>({
       origin: "backend",
@@ -241,6 +274,28 @@ describe("createApiClient", () => {
     });
   });
 
+  it("interpolates typed BFF route params", async () => {
+    const request = createApiClient<BffApiRoutes>({
+      origin: "bff",
+    });
+
+    await request("/api/posts/{id}", "DELETE", {
+      params: {
+        id: "post/1",
+      },
+    });
+
+    expect(fetch).toHaveBeenCalledWith("/api/posts/post%2F1", {
+      body: undefined,
+      cache: undefined,
+      credentials: "same-origin",
+      headers: {
+        "x-request-id": expect.any(String),
+      },
+      method: "DELETE",
+    });
+  });
+
   it("does not retry BFF requests", async () => {
     vi.useFakeTimers();
     const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 503, statusText: "Unavailable" }));
@@ -278,6 +333,19 @@ describe("createApiClient", () => {
       void bffClient("/api/posts", "GET", {
         queryParams: {},
       });
+      void backendClient("/posts/{id}", "PATCH", {
+        body: {
+          content: "Updated",
+        },
+        params: {
+          id: "post-1",
+        },
+      });
+      void bffClient("/api/posts/{id}", "DELETE", {
+        params: {
+          id: "post-1",
+        },
+      });
       // @ts-expect-error backend clients cannot call BFF routes.
       void backendClient("/api/posts", "GET", {
         queryParams: {},
@@ -285,6 +353,19 @@ describe("createApiClient", () => {
       // @ts-expect-error BFF clients cannot call backend API routes.
       void bffClient("/posts", "GET", {
         queryParams: {},
+      });
+      // @ts-expect-error route params are required for templated backend paths.
+      void backendClient("/posts/{id}", "PATCH", {
+        body: {
+          content: "Updated",
+        },
+      });
+      void bffClient("/api/posts/{id}", "DELETE", {
+        params: {
+          id: "post-1",
+          // @ts-expect-error route params cannot include undeclared keys.
+          slug: "post",
+        },
       });
     }
 
