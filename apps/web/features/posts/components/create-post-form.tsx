@@ -45,7 +45,7 @@ export const CreatePostForm = () => {
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: postsKeys.all });
+      queryClient.invalidateQueries({ queryKey: postsKeys.infiniteFeedRoot });
 
       reset({
         content: "",

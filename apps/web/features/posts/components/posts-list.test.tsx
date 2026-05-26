@@ -1,3 +1,4 @@
+import type { PostDto } from "@social/contracts";
 import { act, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -27,6 +28,31 @@ class MockIntersectionObserver implements IntersectionObserver {
     intersectionObserverCallbacks.push(callback);
   }
 }
+
+const post: PostDto = {
+  author: {
+    avatarUrl: null,
+    displayName: "Maya Johnson",
+    id: "author-1",
+    username: "maya",
+  },
+  content: "Planning a weekend photo walk downtown.",
+  createdAt: "2026-05-07T10:00:00.000Z",
+  id: "post-1",
+  imageUrl: null,
+  updatedAt: "2026-05-07T10:00:00.000Z",
+  visibility: "PUBLIC",
+};
+
+const postsPage = (items: PostDto[] = [post]) => ({
+  items,
+  pageInfo: {
+    hasNextPage: false,
+    limit: 20,
+    mode: "cursor" as const,
+    nextCursor: null,
+  },
+});
 
 describe("PostsList", () => {
   beforeEach(() => {
@@ -58,30 +84,7 @@ describe("PostsList", () => {
   });
 
   it("renders posts returned by the API", async () => {
-    vi.mocked(bffClient).mockResolvedValueOnce({
-      items: [
-        {
-          author: {
-            avatarUrl: null,
-            displayName: "Maya Johnson",
-            id: "author-1",
-            username: "maya",
-          },
-          content: "Planning a weekend photo walk downtown.",
-          createdAt: "2026-05-07T10:00:00.000Z",
-          id: "post-1",
-          imageUrl: null,
-          updatedAt: "2026-05-07T10:00:00.000Z",
-          visibility: "PUBLIC",
-        },
-      ],
-      pageInfo: {
-        hasNextPage: false,
-        limit: 20,
-        mode: "cursor",
-        nextCursor: null,
-      },
-    });
+    vi.mocked(bffClient).mockResolvedValueOnce(postsPage());
 
     renderWithQueryClient(<PostsList feedType="all" />);
 

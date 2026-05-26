@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { backendClient } from "#/shared/lib/api/api-client/backend-client";
 
+import { DELETE, PATCH } from "./[postId]/route";
 import { GET, POST } from "./route";
 
 vi.mock("#/shared/lib/api/api-client/backend-client", () => ({
@@ -42,6 +43,12 @@ const postRequest = (body: unknown) =>
     },
     method: "POST",
   });
+
+const postRouteContext = {
+  params: Promise.resolve({
+    postId: "post-1",
+  }),
+};
 
 describe("posts BFF routes", () => {
   beforeEach(() => {
@@ -124,6 +131,64 @@ describe("posts BFF routes", () => {
         content: "Planning a weekend photo walk downtown.",
         imageUrl: null,
         visibility: "PUBLIC",
+      },
+    });
+  });
+
+  it("updates posts through the backend", async () => {
+    const updatedPost = {
+      ...post,
+      content: "Updated post content.",
+    };
+
+    vi.mocked(backendClient).mockResolvedValueOnce(updatedPost);
+
+    const response = await PATCH(
+      postRequest({
+        content: " Updated post content. ",
+      }),
+      postRouteContext,
+    );
+
+    await expect(response.json()).resolves.toEqual(updatedPost);
+    expect(response.status).toBe(200);
+    expect(backendClient).toHaveBeenCalledWith("/posts/{id}", "PATCH", {
+      body: {
+        content: "Updated post content.",
+      },
+      params: {
+        id: "post-1",
+      },
+    });
+  });
+
+  it("returns validation errors for invalid update requests", async () => {
+    const response = await PATCH(
+      postRequest({
+        content: "",
+      }),
+      postRouteContext,
+    );
+
+    await expect(response.json()).resolves.toMatchObject({
+      errors: {
+        content: expect.any(Array),
+      },
+      message: "Please check your post and try again.",
+    });
+    expect(response.status).toBe(400);
+    expect(backendClient).not.toHaveBeenCalled();
+  });
+
+  it("deletes posts through the backend", async () => {
+    vi.mocked(backendClient).mockResolvedValueOnce(null);
+
+    const response = await DELETE(new Request("http://localhost/api/posts/post-1"), postRouteContext);
+
+    expect(response.status).toBe(204);
+    expect(backendClient).toHaveBeenCalledWith("/posts/{id}", "DELETE", {
+      params: {
+        id: "post-1",
       },
     });
   });

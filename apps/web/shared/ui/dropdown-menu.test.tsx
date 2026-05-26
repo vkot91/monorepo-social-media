@@ -18,9 +18,13 @@ describe("DropdownMenu", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: /open account menu/i }));
+    const trigger = screen.getByRole("button", { name: /open account menu/i });
+
+    fireEvent.click(trigger);
 
     expect(screen.getByRole("menu")).toBeInTheDocument();
+    expect(trigger).toHaveAttribute("data-state", "open");
+    expect(trigger).toHaveClass("bg-subtle-surface", "ring-2", "ring-text/10");
     expect(screen.getByRole("menuitem", { name: /profile/i })).toHaveAttribute(
       "href",
       "/profile",

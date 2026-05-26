@@ -1,9 +1,9 @@
 import {
   type CallHandler,
   type ExecutionContext,
+  GatewayTimeoutException,
   Injectable,
   type NestInterceptor,
-  RequestTimeoutException,
 } from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
 import { type Observable, throwError, TimeoutError } from "rxjs";
@@ -24,7 +24,7 @@ export class TimeoutInterceptor implements NestInterceptor {
     return next.handle().pipe(
       timeout(configuredTimeout),
       catchError((error: unknown) =>
-        error instanceof TimeoutError ? throwError(() => new RequestTimeoutException()) : throwError(() => error),
+        error instanceof TimeoutError ? throwError(() => new GatewayTimeoutException()) : throwError(() => error),
       ),
     );
   }

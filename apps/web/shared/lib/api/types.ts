@@ -6,6 +6,7 @@ export type ApiRoute<
   TConfig extends {
     auth?: boolean;
     body?: unknown;
+    params?: object;
     queryParams?: object;
     response: unknown;
   },

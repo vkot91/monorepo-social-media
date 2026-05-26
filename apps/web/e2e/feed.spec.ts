@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { testPosts, testUsers } from "@social/database";
+import { PostVisibility, prisma, testPosts, testUsers } from "@social/database";
 
 import { authenticate } from "./support/auth";
 import { resetDatabase } from "./support/database";
@@ -42,6 +42,73 @@ test.describe("feed page", () => {
     await expect(page.getByLabel("Create post")).toHaveAttribute("placeholder", "What are you building today?");
     await expect(page.getByLabel("Posts", { exact: true })).toContainText(testUsers.login.displayName);
     await expect(page.getByLabel("Posts", { exact: true })).toContainText(testPosts.mayaFeed.content);
+  });
+
+  test("edits an authored post from the feed", async ({ context, page, baseURL }) => {
+    await authenticate(context, baseURL!, "posts");
+
+    await page.goto("/feed");
+
+    await page.getByRole("button", { name: "Open post actions" }).first().click();
+    await page.getByRole("menuitem", { name: "Edit" }).click();
+    await page.getByLabel("Post content").fill("Updated from the web e2e test.");
+    await page.getByRole("button", { name: "Save changes" }).click();
+
+    await expect(page.getByText("Updated from the web e2e test.", { exact: true })).toBeVisible();
+    await expect
+      .poll(async () => {
+        const post = await prisma.post.findUnique({
+          where: {
+            id: testPosts.mayaFeed.id,
+          },
+        });
+
+        return post?.content;
+      })
+      .toBe("Updated from the web e2e test.");
+  });
+
+  test("removes an authored post from the feed", async ({ context, page, baseURL }) => {
+    await authenticate(context, baseURL!, "posts");
+
+    await page.goto("/feed");
+
+    await page.getByRole("button", { name: "Open post actions" }).first().click();
+    await page.getByRole("menuitem", { name: "Remove" }).click();
+
+    await expect(page.getByRole("dialog", { name: "Remove post?" })).toContainText("This action cannot be undone.");
+
+    await page.getByRole("button", { name: "Remove post" }).click();
+
+    await expect(page.getByText(testPosts.mayaFeed.content, { exact: true })).toBeHidden();
+    await expect
+      .poll(async () => {
+        const post = await prisma.post.findUnique({
+          where: {
+            id: testPosts.mayaFeed.id,
+          },
+        });
+
+        return post;
+      })
+      .toBeNull();
+  });
+
+  test("hides post edit and remove actions from non-authors", async ({ context, page, baseURL }) => {
+    await prisma.post.update({
+      data: {
+        visibility: PostVisibility.PUBLIC,
+      },
+      where: {
+        id: testPosts.mayaFeed.id,
+      },
+    });
+    await authenticate(context, baseURL!, "empty");
+
+    await page.goto("/feed");
+
+    await expect(page.getByText(testPosts.mayaFeed.content, { exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Open post actions" })).toBeHidden();
   });
 
   test("renders the empty feed state", async ({ context, page, baseURL }) => {

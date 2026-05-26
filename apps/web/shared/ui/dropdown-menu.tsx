@@ -83,7 +83,8 @@ export function DropdownMenu({ align = "end", className, items, label, trigger, 
         aria-expanded={open}
         aria-haspopup="menu"
         aria-label={label}
-        className={triggerClassName}
+        className={cn(triggerClassName, open && "bg-subtle-surface ring-2 ring-text/10")}
+        data-state={open ? "open" : "closed"}
         onClick={() => {
           if (open) {
             closeMenu();
