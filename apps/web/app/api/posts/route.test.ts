@@ -113,6 +113,18 @@ describe("posts BFF routes", () => {
     expect(backendClient).not.toHaveBeenCalled();
   });
 
+  it("maps feed backend failures to the feed fallback", async () => {
+    vi.mocked(backendClient).mockRejectedValueOnce(new Error("backend unavailable"));
+
+    const response = await GET(new Request("http://localhost/api/posts?feed=all&limit=20&mode=cursor"));
+
+    await expect(response.json()).resolves.toEqual({
+      errors: {},
+      message: "Feed is temporarily unavailable.",
+    });
+    expect(response.status).toBe(500);
+  });
+
   it("creates posts through the backend", async () => {
     vi.mocked(backendClient).mockResolvedValueOnce(post);
 
@@ -133,6 +145,24 @@ describe("posts BFF routes", () => {
         visibility: "PUBLIC",
       },
     });
+  });
+
+  it("maps create backend failures to the post creation fallback", async () => {
+    vi.mocked(backendClient).mockRejectedValueOnce(new Error("backend unavailable"));
+
+    const response = await POST(
+      postRequest({
+        content: "Planning a weekend photo walk downtown.",
+        imageUrl: null,
+        visibility: "PUBLIC",
+      }),
+    );
+
+    await expect(response.json()).resolves.toEqual({
+      errors: {},
+      message: "Post creation is unavailable right now.",
+    });
+    expect(response.status).toBe(500);
   });
 
   it("updates posts through the backend", async () => {
@@ -160,6 +190,23 @@ describe("posts BFF routes", () => {
         id: "post-1",
       },
     });
+  });
+
+  it("maps update backend failures to the post update fallback", async () => {
+    vi.mocked(backendClient).mockRejectedValueOnce(new Error("backend unavailable"));
+
+    const response = await PATCH(
+      postRequest({
+        content: "Updated post content.",
+      }),
+      postRouteContext,
+    );
+
+    await expect(response.json()).resolves.toEqual({
+      errors: {},
+      message: "Post update is unavailable right now.",
+    });
+    expect(response.status).toBe(500);
   });
 
   it("returns validation errors for invalid update requests", async () => {
@@ -191,6 +238,18 @@ describe("posts BFF routes", () => {
         id: "post-1",
       },
     });
+  });
+
+  it("maps delete backend failures to the post removal fallback", async () => {
+    vi.mocked(backendClient).mockRejectedValueOnce(new Error("backend unavailable"));
+
+    const response = await DELETE(new Request("http://localhost/api/posts/post-1"), postRouteContext);
+
+    await expect(response.json()).resolves.toEqual({
+      errors: {},
+      message: "Post removal is unavailable right now.",
+    });
+    expect(response.status).toBe(500);
   });
 
   it("returns validation errors for invalid create requests", async () => {
