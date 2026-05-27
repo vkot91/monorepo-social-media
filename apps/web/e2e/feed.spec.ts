@@ -146,7 +146,7 @@ test.describe("feed page", () => {
     await page.goto("/feed");
 
     await page.getByLabel("Create post").fill("This post should show an error toast.");
-    await page.getByRole("button", { name: "Post" }).click();
+    await page.getByRole("button", { name: "Post", exact: true }).click();
 
     await expect(page.getByRole("list", { name: "top right notifications" }).getByRole("alert")).toContainText(
       "Post creation is unavailable right now.",

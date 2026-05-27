@@ -1,5 +1,3 @@
-"use client";
-
 import type { ListPostsQueryInput, PaginatedPostsDto } from "@social/contracts";
 import { infiniteQueryOptions } from "@tanstack/react-query";
 

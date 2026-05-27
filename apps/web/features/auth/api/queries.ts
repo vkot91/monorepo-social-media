@@ -1,6 +1,4 @@
-"use client";
-
-import { queryOptions } from "@tanstack/react-query";
+import { queryOptions, useQuery } from "@tanstack/react-query";
 
 import { bffClient } from "#/shared/lib/api/api-client/bff-client";
 
@@ -12,4 +10,10 @@ export const activeUserQueryOptions = () =>
   queryOptions({
     queryFn: getActiveUser,
     queryKey: authKeys.me(),
+  });
+
+export const useUser = () =>
+  useQuery({
+    ...activeUserQueryOptions(),
+    staleTime: 60_000,
   });

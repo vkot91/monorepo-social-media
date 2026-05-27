@@ -7,7 +7,7 @@ import { Ellipsis, Pencil, Trash2 } from "lucide-react";
 import { useId } from "react";
 import { useForm } from "react-hook-form";
 
-import { useAuthStore } from "#/features/auth/store/auth";
+import { useUser } from "#/features/auth/api/queries";
 import { useDisclosure } from "#/shared/hooks/use-disclosure";
 import { ApiRequestError } from "#/shared/lib/api/utils/errors";
 import { Button, Card, DropdownMenu, Modal } from "#/shared/ui";
@@ -30,7 +30,7 @@ type PostCardProps = {
 };
 
 export const PostCard = ({ post }: PostCardProps) => {
-  const activeUser = useAuthStore((state) => state.user);
+  const { data: activeUser } = useUser();
   const deleteModal = useDisclosure();
   const editModal = useDisclosure();
   const toastStore = useToastStore();

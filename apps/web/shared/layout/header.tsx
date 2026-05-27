@@ -5,8 +5,8 @@ import { LogOut, Search, User, UserCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 import { logout } from "#/features/auth/api/mutations";
+import { useUser } from "#/features/auth/api/queries";
 import { authKeys } from "#/features/auth/api/routes";
-import { useAuthStore } from "#/features/auth/store/auth";
 import { AppNavigation, ThemeToggle } from "#/shared/layout";
 import type { ThemePreference } from "#/shared/lib/theme";
 import { DropdownMenu, Logo } from "#/shared/ui";
@@ -19,13 +19,12 @@ type ProtectedHeaderProps = {
 export function Header({ theme }: ProtectedHeaderProps) {
   const queryClient = useQueryClient();
   const router = useRouter();
-  const { clearUser, user } = useAuthStore();
+  const { data: user } = useUser();
 
   const logoutMutation = useMutation({
     mutationFn: logout,
     onSuccess: () => {
       queryClient.removeQueries({ queryKey: authKeys.all });
-      clearUser();
       router.replace("/login");
       router.refresh();
     },

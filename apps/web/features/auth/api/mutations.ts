@@ -1,5 +1,3 @@
-"use client";
-
 import type { LoginInput, RegisterInput } from "@social/contracts";
 
 import { bffClient } from "#/shared/lib/api/api-client/bff-client";

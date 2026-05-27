@@ -4,9 +4,10 @@ import { act, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import type { ReactElement } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { authKeys } from "#/features/auth/api/routes";
 import { bffClient } from "#/shared/lib/api/api-client/bff-client";
 import { ApiRequestError } from "#/shared/lib/api/utils/errors";
-import { createTestQueryClient, renderWithQueryClient } from "#/test/query-client";
+import { createTestQueryClient } from "#/test/query-client";
 
 import { CreatePostForm } from "./create-post-form";
 import { PostsList } from "./posts-list";
@@ -21,6 +22,7 @@ class MockIntersectionObserver implements IntersectionObserver {
   readonly root = null;
   readonly rootMargin = "";
   readonly thresholds = [];
+  readonly scrollMargin = "";
 
   disconnect = vi.fn();
   observe = vi.fn();
@@ -60,6 +62,8 @@ const postsPage = (items: PostDto[] = [post]) => ({
 const renderWithClient = (ui: ReactElement) => {
   const queryClient = createTestQueryClient();
 
+  queryClient.setQueryData(authKeys.me(), null);
+
   return {
     queryClient,
     ...render(<QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>),
@@ -84,7 +88,7 @@ describe("PostsList", () => {
       },
     });
 
-    renderWithQueryClient(<PostsList feedType="all" />);
+    renderWithClient(<PostsList feedType="all" />);
 
     expect(await screen.findByRole("heading", { name: /no posts yet/i })).toBeInTheDocument();
     expect(bffClient).toHaveBeenCalledWith("/api/posts", "GET", {
@@ -98,7 +102,7 @@ describe("PostsList", () => {
   it("renders posts returned by the API", async () => {
     vi.mocked(bffClient).mockResolvedValueOnce(postsPage());
 
-    renderWithQueryClient(<PostsList feedType="all" />);
+    renderWithClient(<PostsList feedType="all" />);
 
     expect(await screen.findByText(/maya johnson/i)).toBeInTheDocument();
     expect(screen.getByText(/planning a weekend photo walk/i)).toBeInTheDocument();
@@ -155,7 +159,7 @@ describe("PostsList", () => {
         },
       });
 
-    renderWithQueryClient(<PostsList feedType="all" />);
+    renderWithClient(<PostsList feedType="all" />);
 
     const sentinel = await screen.findByTestId("posts-load-more-sentinel");
 
@@ -194,7 +198,7 @@ describe("PostsList", () => {
   it("renders the API error message when the feed request fails", async () => {
     vi.mocked(bffClient).mockRejectedValueOnce(new ApiRequestError("Feed service is down", 503));
 
-    renderWithQueryClient(<PostsList feedType="all" />);
+    renderWithClient(<PostsList feedType="all" />);
 
     expect(await screen.findByRole("heading", { name: /feed is temporarily unavailable/i })).toBeInTheDocument();
     expect(screen.getByText(/feed service is down/i)).toBeInTheDocument();
@@ -203,11 +207,13 @@ describe("PostsList", () => {
   it("keeps a masked pending post while the created post is refreshing into the feed", async () => {
     let resolveCreate: (value: PostDto) => void = () => undefined;
 
-    vi.mocked(bffClient).mockResolvedValueOnce(postsPage()).mockReturnValueOnce(
-      new Promise<PostDto>((resolve) => {
-        resolveCreate = resolve;
-      }),
-    );
+    vi.mocked(bffClient)
+      .mockResolvedValueOnce(postsPage())
+      .mockReturnValueOnce(
+        new Promise<PostDto>((resolve) => {
+          resolveCreate = resolve;
+        }),
+      );
 
     const { queryClient } = renderWithClient(
       <>
