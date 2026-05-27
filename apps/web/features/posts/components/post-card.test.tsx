@@ -4,10 +4,10 @@ import { act, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import type { ReactElement } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { useAuthStore } from "#/features/auth/store/auth";
+import { authKeys } from "#/features/auth/api/routes";
 import { bffClient } from "#/shared/lib/api/api-client/bff-client";
 import { useToastStore } from "#/shared/ui/toast/store/toast";
-import { createTestQueryClient, renderWithQueryClient } from "#/test/query-client";
+import { createTestQueryClient } from "#/test/query-client";
 
 import { postsKeys } from "../api/routes";
 import { PostCard } from "./post-card";
@@ -71,8 +71,12 @@ const infinitePostsData = (items: PostDto[] = [post]): InfiniteData<PaginatedPos
   pages: [postsPage(items)],
 });
 
-const renderWithClient = (ui: ReactElement) => {
+const renderWithClient = (ui: ReactElement, activeUser: AuthUserDto | null = null) => {
   const queryClient = createTestQueryClient();
+
+  if (activeUser !== undefined) {
+    queryClient.setQueryData(authKeys.me(), activeUser);
+  }
 
   return {
     queryClient,
@@ -83,14 +87,11 @@ const renderWithClient = (ui: ReactElement) => {
 describe("PostCard", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    useAuthStore.setState({
-      user: null,
-    });
     useToastStore.getState().clearToasts();
   });
 
   it("renders post author and content", () => {
-    renderWithQueryClient(<PostCard post={post} />);
+    renderWithClient(<PostCard post={post} />);
 
     expect(screen.getByText(/maya johnson/i)).toBeInTheDocument();
     expect(screen.getByText(/@maya/i)).toBeInTheDocument();
@@ -98,34 +99,23 @@ describe("PostCard", () => {
   });
 
   it("shows post actions only for the author", () => {
-    useAuthStore.setState({
-      user: authorUser,
-    });
-
-    const { unmount } = renderWithQueryClient(<PostCard post={post} />);
+    const { unmount } = renderWithClient(<PostCard post={post} />, authorUser);
 
     expect(screen.getByRole("button", { name: /open post actions/i })).toBeInTheDocument();
     unmount();
 
-    useAuthStore.setState({
-      user: otherUser,
-    });
-
-    renderWithQueryClient(<PostCard post={post} />);
+    renderWithClient(<PostCard post={post} />, otherUser);
 
     expect(screen.queryByRole("button", { name: /open post actions/i })).not.toBeInTheDocument();
   });
 
   it("opens the edit modal and updates an authored post", async () => {
-    useAuthStore.setState({
-      user: authorUser,
-    });
     vi.mocked(bffClient).mockResolvedValueOnce({
       ...post,
       content: "Updated post content.",
     });
 
-    renderWithQueryClient(<PostCard post={post} />);
+    renderWithClient(<PostCard post={post} />, authorUser);
 
     fireEvent.click(screen.getByRole("button", { name: /open post actions/i }));
     fireEvent.click(screen.getByRole("menuitem", { name: /edit/i }));
@@ -155,10 +145,7 @@ describe("PostCard", () => {
   });
 
   it("optimistically updates cached infinite-feed posts while editing", async () => {
-    useAuthStore.setState({
-      user: authorUser,
-    });
-    const { queryClient } = renderWithClient(<PostCard post={post} />);
+    const { queryClient } = renderWithClient(<PostCard post={post} />, authorUser);
     let resolveUpdate: (value: PostDto) => void = () => undefined;
     const invalidateQueries = vi.spyOn(queryClient, "invalidateQueries");
 
@@ -199,10 +186,7 @@ describe("PostCard", () => {
   });
 
   it("rolls back optimistic edit updates when the request fails", async () => {
-    useAuthStore.setState({
-      user: authorUser,
-    });
-    const { queryClient } = renderWithClient(<PostCard post={post} />);
+    const { queryClient } = renderWithClient(<PostCard post={post} />, authorUser);
 
     queryClient.setQueryData(infinitePostsKey, infinitePostsData());
     vi.mocked(bffClient).mockRejectedValueOnce(new Error("Update failed"));
@@ -224,12 +208,9 @@ describe("PostCard", () => {
   });
 
   it("confirms before removing an authored post", async () => {
-    useAuthStore.setState({
-      user: authorUser,
-    });
     vi.mocked(bffClient).mockResolvedValueOnce(null);
 
-    renderWithQueryClient(<PostCard post={post} />);
+    renderWithClient(<PostCard post={post} />, authorUser);
 
     fireEvent.click(screen.getByRole("button", { name: /open post actions/i }));
     fireEvent.click(screen.getByRole("menuitem", { name: /remove/i }));
@@ -254,10 +235,7 @@ describe("PostCard", () => {
   });
 
   it("optimistically removes cached infinite-feed posts", async () => {
-    useAuthStore.setState({
-      user: authorUser,
-    });
-    const { queryClient } = renderWithClient(<PostCard post={post} />);
+    const { queryClient } = renderWithClient(<PostCard post={post} />, authorUser);
     let resolveDelete: (value: null) => void = () => undefined;
 
     queryClient.setQueryData(infinitePostsKey, infinitePostsData());

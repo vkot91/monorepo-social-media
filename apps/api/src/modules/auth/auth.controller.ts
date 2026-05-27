@@ -14,6 +14,7 @@ import {
 
 import { ZodResponseInterceptor } from "#common/interceptors/response.interceptor";
 import { ZodValidationPipe } from "#common/pipes/zod-validation.pipe";
+import { delay } from "#common/utils/delay";
 
 import { AuthService } from "./auth.service";
 import { PublicRoute, RefreshTokenRoute } from "./decorators/auth-route-type.decorator";
@@ -41,7 +42,9 @@ export class AuthController {
 
   @Get("me")
   @UseInterceptors(ZodResponseInterceptor(AuthUserSchema))
-  me(@CurrentUser() user: AuthTokenPayload) {
+  async me(@CurrentUser() user: AuthTokenPayload) {
+    await delay(1_000);
+
     return this.authService.getCurrentUser(user.sub);
   }
 

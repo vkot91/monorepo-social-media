@@ -1,8 +1,10 @@
 import { useMutation } from "@tanstack/react-query";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import type { ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { ApiRequestError } from "#/shared/lib/api/utils/errors";
+import { ToastViewport } from "#/shared/ui";
 import { useToastStore } from "#/shared/ui/toast/store/toast";
 
 import { QueryProvider, shouldRetryQuery } from "./query-provider";
@@ -28,6 +30,14 @@ const FailingMutationButton = ({
   );
 };
 
+const renderQueryProvider = (children: ReactNode) =>
+  render(
+    <QueryProvider>
+      {children}
+      <ToastViewport />
+    </QueryProvider>,
+  );
+
 describe("QueryProvider", () => {
   afterEach(() => {
     act(() => {
@@ -37,11 +47,7 @@ describe("QueryProvider", () => {
   });
 
   it("shows an API error toast when a mutation fails", async () => {
-    render(
-      <QueryProvider>
-        <FailingMutationButton />
-      </QueryProvider>,
-    );
+    renderQueryProvider(<FailingMutationButton />);
 
     await act(async () => {
       fireEvent.click(screen.getByRole("button", { name: /fail mutation/i }));
@@ -51,14 +57,12 @@ describe("QueryProvider", () => {
   });
 
   it("does not show an error toast when mutation meta disables it", async () => {
-    render(
-      <QueryProvider>
-        <FailingMutationButton
-          meta={{
-            toastOnError: false,
-          }}
-        />
-      </QueryProvider>,
+    renderQueryProvider(
+      <FailingMutationButton
+        meta={{
+          toastOnError: false,
+        }}
+      />,
     );
 
     await act(async () => {
@@ -72,19 +76,17 @@ describe("QueryProvider", () => {
   });
 
   it("uses custom mutation toast metadata", async () => {
-    render(
-      <QueryProvider>
-        <FailingMutationButton
-          error={new Error("Original failure")}
-          meta={{
-            toastAutoClose: false,
-            toastErrorMessage: "Custom failure",
-            toastErrorTitle: "Could not save changes",
-            toastPosition: "bottom-right",
-            toastTtl: 8_000,
-          }}
-        />
-      </QueryProvider>,
+    renderQueryProvider(
+      <FailingMutationButton
+        error={new Error("Original failure")}
+        meta={{
+          toastAutoClose: false,
+          toastErrorMessage: "Custom failure",
+          toastErrorTitle: "Could not save changes",
+          toastPosition: "bottom-right",
+          toastTtl: 8_000,
+        }}
+      />,
     );
 
     await act(async () => {

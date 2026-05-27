@@ -6,7 +6,6 @@ import { type ReactNode, useState } from "react";
 
 import { ApiRequestError } from "#/shared/lib/api/utils/errors";
 import { showMutationErrorToast } from "#/shared/lib/query/mutation-toast";
-import { ToastViewport } from "#/shared/ui/toast/toast";
 
 type QueryProviderProps = {
   children: ReactNode;
@@ -44,7 +43,6 @@ export const QueryProvider = ({ children }: QueryProviderProps) => {
   return (
     <QueryClientProvider client={queryClient}>
       {children}
-      <ToastViewport />
       <ReactQueryDevtools initialIsOpen={false} />
     </QueryClientProvider>
   );
