@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   addPostToInfiniteData,
   type PostsInfiniteData,
+  type PostsSnapshot,
   removePostFromInfiniteData,
   restorePostsSnapshot,
   updatePostInInfiniteData,
@@ -48,8 +49,8 @@ describe("addPostToInfiniteData", () => {
 
     const result = addPostToInfiniteData(data, newPost);
 
-    expect(result?.pages[0].items[0]).toEqual(newPost);
-    expect(result?.pages[0].items[1]).toEqual(existingPost);
+    expect(result?.pages[0]?.items[0]).toEqual(newPost);
+    expect(result?.pages[0]?.items[1]).toEqual(existingPost);
   });
 
   it("deduplicates if the new post already exists in the first page", () => {
@@ -58,8 +59,8 @@ describe("addPostToInfiniteData", () => {
 
     const result = addPostToInfiniteData(data, post);
 
-    expect(result?.pages[0].items).toHaveLength(1);
-    expect(result?.pages[0].items[0]).toEqual(post);
+    expect(result?.pages[0]?.items).toHaveLength(1);
+    expect(result?.pages[0]?.items[0]).toEqual(post);
   });
 
   it("only prepends to the first page, leaving subsequent pages unchanged", () => {
@@ -70,8 +71,8 @@ describe("addPostToInfiniteData", () => {
 
     const result = addPostToInfiniteData(data, newPost);
 
-    expect(result?.pages[0].items[0]).toEqual(newPost);
-    expect(result?.pages[1].items).toEqual([page2Post]);
+    expect(result?.pages[0]?.items[0]).toEqual(newPost);
+    expect(result?.pages[1]?.items).toEqual([page2Post]);
   });
 
   it("returns undefined unchanged when data is undefined", () => {
@@ -87,7 +88,7 @@ describe("updatePostInInfiniteData", () => {
 
     const result = updatePostInInfiniteData(data, updatedPost);
 
-    expect(result?.pages[0].items[0]).toEqual(updatedPost);
+    expect(result?.pages[0]?.items[0]).toEqual(updatedPost);
   });
 
   it("updates matching post on a later page", () => {
@@ -98,8 +99,8 @@ describe("updatePostInInfiniteData", () => {
 
     const result = updatePostInInfiniteData(data, updatedPost);
 
-    expect(result?.pages[1].items[0]).toEqual(updatedPost);
-    expect(result?.pages[0].items[0]).toEqual(page1Post);
+    expect(result?.pages[1]?.items[0]).toEqual(updatedPost);
+    expect(result?.pages[0]?.items[0]).toEqual(page1Post);
   });
 
   it("returns undefined unchanged when data is undefined", () => {
@@ -115,7 +116,7 @@ describe("removePostFromInfiniteData", () => {
 
     const result = removePostFromInfiniteData(data, "post-1");
 
-    expect(result?.pages[0].items).toEqual([post2]);
+    expect(result?.pages[0]?.items).toEqual([post2]);
   });
 
   it("removes matching post from a later page", () => {
@@ -125,8 +126,8 @@ describe("removePostFromInfiniteData", () => {
 
     const result = removePostFromInfiniteData(data, "post-2");
 
-    expect(result?.pages[0].items).toEqual([page1Post]);
-    expect(result?.pages[1].items).toEqual([]);
+    expect(result?.pages[0]?.items).toEqual([page1Post]);
+    expect(result?.pages[1]?.items).toEqual([]);
   });
 
   it("returns undefined unchanged when data is undefined", () => {
@@ -139,7 +140,7 @@ describe("restorePostsSnapshot", () => {
     const queryClient = {
       setQueryData: vi.fn(),
     };
-    const snapshot: Array<[unknown, PostsInfiniteData | undefined]> = [
+    const snapshot: PostsSnapshot = [
       [["posts", "feed"], buildInfiniteData([buildPage([buildPost()])])],
       [["posts", "other"], undefined],
     ];
@@ -147,8 +148,8 @@ describe("restorePostsSnapshot", () => {
     restorePostsSnapshot(queryClient as never, snapshot);
 
     expect(queryClient.setQueryData).toHaveBeenCalledTimes(2);
-    expect(queryClient.setQueryData).toHaveBeenCalledWith(snapshot[0][0], snapshot[0][1]);
-    expect(queryClient.setQueryData).toHaveBeenCalledWith(snapshot[1][0], snapshot[1][1]);
+    expect(queryClient.setQueryData).toHaveBeenCalledWith(snapshot[0]![0], snapshot[0]![1]);
+    expect(queryClient.setQueryData).toHaveBeenCalledWith(snapshot[1]![0], snapshot[1]![1]);
   });
 
   it("does nothing when previousPosts is undefined", () => {
