@@ -9,6 +9,7 @@ import { useForm } from "react-hook-form";
 import { ApiRequestError } from "#/shared/lib/api/utils/errors";
 import { Button } from "#/shared/ui/button";
 import { FieldError, FormCard, TextArea } from "#/shared/ui/form";
+import { useToastStore } from "#/shared/ui/toast/store/toast";
 
 import { addPostToInfiniteData, type PostsInfiniteData } from "../api/helpers/cache";
 import { createPost, type CreatePostMutationInput } from "../api/mutations";
@@ -22,11 +23,11 @@ const createPostDefaultValues: CreatePostInput = {
 
 export const CreatePostForm = () => {
   const [images, setImages] = useState<ManagedPostImage[]>([]);
-  const [isCreateRequestPending, setIsCreateRequestPending] = useState(false);
   const queryClient = useQueryClient();
+  const { addToast } = useToastStore();
 
   const {
-    formState: { errors, isDirty },
+    formState: { errors },
     handleSubmit,
     register,
     reset,
@@ -40,16 +41,7 @@ export const CreatePostForm = () => {
   const createPostMutation = useMutation<PostDto, Error, CreatePostMutationInput>({
     mutationKey: postMutationKeys.create,
     mutationFn: createPost,
-    onMutate: () => {
-      setIsCreateRequestPending(true);
-    },
-    onError: (error, values) => {
-      setIsCreateRequestPending(false);
-      reset({
-        content: values.content,
-        visibility: values.visibility,
-      });
-
+    onError: (error) => {
       if (error instanceof ApiRequestError) {
         const message = error.errors.content?.[0];
 
@@ -61,12 +53,12 @@ export const CreatePostForm = () => {
       }
     },
     onSuccess(createdPost) {
-      setIsCreateRequestPending(false);
       queryClient.setQueriesData<PostsInfiniteData>({ queryKey: postsKeys.infiniteFeedRoot }, (data) =>
         addPostToInfiniteData(data, createdPost),
       );
       reset(createPostDefaultValues);
       setImages([]);
+      addToast({ type: "success", description: "Post was successfully created" });
     },
     onSettled(_createdPost, error) {
       void queryClient.invalidateQueries({
@@ -78,7 +70,6 @@ export const CreatePostForm = () => {
 
   const contentError = errors.content?.message;
   const formError = createPostMutation.error instanceof ApiRequestError ? createPostMutation.error.message : undefined;
-  const hasImages = images.length > 0;
 
   const onSubmit = (values: CreatePostInput) => {
     createPostMutation.mutate({
@@ -99,10 +90,10 @@ export const CreatePostForm = () => {
         {...register("content")}
       />
       <FieldError message={contentError} />
-      <PostImageManager disabled={isCreateRequestPending} images={images} onChange={setImages} />
+      <PostImageManager disabled={createPostMutation.isPending} images={images} onChange={setImages} />
       <FieldError message={formError} />
       <div className="text-right">
-        <Button disabled={!isDirty && !hasImages} loading={isCreateRequestPending} type="submit">
+        <Button loading={createPostMutation.isPending} type="submit">
           Post
         </Button>
       </div>

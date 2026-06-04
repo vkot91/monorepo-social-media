@@ -46,7 +46,7 @@ export class PostsController {
     @Body(new ZodValidationPipe(createPostSchema)) input: CreatePostInput,
     @UploadedFiles(new PostImageFilesPipe()) files: Express.Multer.File[],
   ) {
-    await delay(2_000);
+    await delay(1_000);
     return this.postsService.create(user.sub, input, files);
   }
 
@@ -56,7 +56,7 @@ export class PostsController {
     @CurrentUser() user: AuthTokenPayload,
     @Query(new ZodValidationPipe(listPostsQuerySchema)) query: ListPostsQueryInput,
   ) {
-    await delay(6_000);
+    await delay(2_000);
 
     return await this.postsService.list(user.sub, query);
   }

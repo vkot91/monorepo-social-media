@@ -31,7 +31,7 @@ export const QueryProvider = ({ children }: QueryProviderProps) => {
         }),
         mutationCache: new MutationCache({
           onError: (error, _variables, _context, mutation) => {
-            if (is401(error)) {
+            if (is401(error) && !mutation.meta?.isPublicEndpoint) {
               redirectToLogin();
               return;
             }

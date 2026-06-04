@@ -59,6 +59,7 @@ const LoginAuthForm = () => {
   const loginMutation = useMutation({
     mutationFn: login,
     meta: {
+      isPublicEndpoint: true,
       toastErrorTitle: "Sign in failed",
     },
     onSuccess: () => {
@@ -112,6 +113,7 @@ const RegisterAuthForm = () => {
   const registerMutation = useMutation({
     mutationFn: registerAccount,
     meta: {
+      isPublicEndpoint: true,
       toastErrorTitle: "Account creation failed",
     },
     onSuccess: () => {
