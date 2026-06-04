@@ -5,6 +5,9 @@ import type {
   createPostSchema,
   PostAuthorSchema,
   postFeedSchema,
+  postImageInputSchema,
+  postImageOrderItemSchema,
+  postImageSchema,
   PostSchema,
   postVisibilitySchema,
   updatePostSchema,
@@ -14,9 +17,15 @@ export type PostVisibility = z.infer<typeof postVisibilitySchema>;
 
 export type CreatePostInput = z.input<typeof createPostSchema>;
 
-export type UpdatePostInput = z.input<typeof updatePostSchema>;
+export type UpdatePostInput = z.output<typeof updatePostSchema>;
 
 export type PostFeed = z.infer<typeof postFeedSchema>;
+
+export type PostImageInput = z.infer<typeof postImageInputSchema>;
+
+export type PostImageOrderItemInput = z.infer<typeof postImageOrderItemSchema>;
+
+export type PostImageDto = z.infer<typeof postImageSchema>;
 
 export type ListPostsQueryInput = {
   authorId?: string;

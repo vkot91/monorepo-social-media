@@ -11,6 +11,14 @@ export const postWithAuthor = {
         username: true,
       },
     },
+    images: {
+      include: {
+        mediaAsset: true,
+      },
+      orderBy: {
+        position: "asc",
+      },
+    },
   },
 } satisfies Prisma.PostDefaultArgs;
 
@@ -22,7 +30,12 @@ export function serializePost(post: PostWithAuthorRecord): PostDto {
     content: post.content,
     createdAt: post.createdAt.toISOString(),
     id: post.id,
-    imageUrl: post.imageUrl,
+    images: post.images.map((image) => ({
+      id: image.mediaAssetId,
+      imageId: image.mediaAsset.storageKey,
+      imageUrl: image.mediaAsset.url,
+      position: image.position,
+    })),
     updatedAt: post.updatedAt.toISOString(),
     visibility: post.visibility,
   };

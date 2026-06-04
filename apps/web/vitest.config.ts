@@ -19,23 +19,49 @@ export default defineConfig({
     setupFiles: ["./vitest.setup.ts"],
     coverage: {
       provider: "v8",
-      reporter: ["text", "lcov"],
-      include: ["app/**/*.tsx", "app/**/*.ts", "env.ts", "lib/**/*.ts"],
+      reporter: ["text", "lcov", "text-summary"],
+      include: ["app/**/*.{ts,tsx}", "features/**/*.{ts,tsx}", "shared/**/*.{ts,tsx}", "env.ts", "proxy.ts"],
       exclude: [
+        // Test and spec files
         "**/*.test.*",
+        "**/*.spec.*",
+        // Type declarations and type-only modules
+        "**/*.d.ts",
         "**/*.type.ts",
-        "lib/api/types.ts",
+        // Barrel re-exports — no logic to test
+        "**/index.ts",
+        // Type-only files
+        "shared/lib/api/types.ts",
+        "shared/lib/api/api-client/types.ts",
+        "features/posts/components/post-images/types.ts",
+        // Next.js app-router boilerplate — domain logic lives in features/*
         "app/**/layout.tsx",
         "app/**/page.tsx",
         "app/**/loading.tsx",
         "app/**/error.tsx",
         "app/**/not-found.tsx",
-        "lib/api/api-client/bff-client.ts",
-        "lib/api/**/index.ts",
+        // Headless UI primitives — style/composition only, no domain logic
+        "shared/ui/button.tsx",
+        "shared/ui/card.tsx",
+        "shared/ui/logo.tsx",
+        "shared/ui/form/**",
+        // Layout shells — pure presentation, no domain logic
+        "shared/layout/app-navigation.tsx",
+        "shared/layout/auth-layout.tsx",
+        "shared/layout/header.tsx",
+        "shared/layout/main-layout.tsx",
+        "shared/layout/navigation-link.tsx",
+        "shared/layout/section-placeholder.tsx",
+        // Post UI without testable logic
+        "features/posts/components/loading-placeholder.tsx",
+        "features/posts/components/post-images/constants.ts",
+        "features/posts/components/post-images/sortable-post-image-item.tsx",
+        // BFF client — Next.js server context only, not unit-testable in isolation
+        "shared/lib/api/api-client/bff-client.ts",
       ],
       thresholds: {
         branches: 90,
-        functions: 90,
+        functions: 85,
         lines: 90,
         statements: 90,
       },

@@ -1,13 +1,13 @@
 import { useMutation } from "@tanstack/react-query";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ApiRequestError } from "#/shared/lib/api/utils/errors";
 import { ToastViewport } from "#/shared/ui";
 import { useToastStore } from "#/shared/ui/toast/store/toast";
 
-import { QueryProvider, shouldRetryQuery } from "./query-provider";
+import { QueryProvider } from "./query-provider";
 
 const FailingMutationButton = ({
   error = new ApiRequestError("The request failed", 422),
@@ -44,6 +44,56 @@ describe("QueryProvider", () => {
       useToastStore.getState().clearToasts();
     });
     vi.useRealTimers();
+  });
+
+  describe("401 handling in mutations", () => {
+    beforeEach(() => {
+      vi.spyOn(window, "location", "get").mockReturnValue({
+        ...window.location,
+        href: "",
+      } as Location);
+    });
+
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    it("redirects to login and suppresses toast when a private mutation gets a 401", async () => {
+      const locationMock = { href: "" };
+      vi.spyOn(window, "location", "get").mockReturnValue(locationMock as unknown as Location);
+
+      renderQueryProvider(
+        <FailingMutationButton error={new ApiRequestError("Unauthorized", 401)} />,
+      );
+
+      await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: /fail mutation/i }));
+      });
+
+      await waitFor(() => {
+        expect(locationMock.href).toBe("/login");
+      });
+      expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    });
+
+    it("shows an error toast and does not redirect when a public mutation gets a 401", async () => {
+      const locationMock = { href: "" };
+      vi.spyOn(window, "location", "get").mockReturnValue(locationMock as unknown as Location);
+
+      renderQueryProvider(
+        <FailingMutationButton
+          error={new ApiRequestError("Invalid credentials", 401)}
+          meta={{ isPublicEndpoint: true }}
+        />,
+      );
+
+      await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: /fail mutation/i }));
+      });
+
+      expect(await screen.findByRole("alert")).toHaveTextContent("Invalid credentials");
+      expect(locationMock.href).toBe("");
+    });
   });
 
   it("shows an API error toast when a mutation fails", async () => {
@@ -102,15 +152,5 @@ describe("QueryProvider", () => {
       ttl: 8_000,
       type: "error",
     });
-  });
-
-  it("does not retry API response errors from BFF routes", () => {
-    expect(shouldRetryQuery(0, new ApiRequestError("Feed is unavailable", 503))).toBe(false);
-  });
-
-  it("retries non-API query failures up to the configured limit", () => {
-    expect(shouldRetryQuery(0, new TypeError("Failed to fetch"))).toBe(true);
-    expect(shouldRetryQuery(2, new TypeError("Failed to fetch"))).toBe(true);
-    expect(shouldRetryQuery(3, new TypeError("Failed to fetch"))).toBe(false);
   });
 });

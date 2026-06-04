@@ -1,10 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { getAccessToken, getRefreshToken } from "#/shared/lib/api/auth/cookies";
+import { persistAuthSession } from "#/shared/lib/api/auth/session";
 import { logger } from "#/shared/lib/logger";
 
 import { ApiRequestError, AuthRequiredError } from "../utils/errors";
-import { appendQueryParams, createApiClient, interpolatePathParams, parseJsonResponse } from "./request";
-import type { BackendApiRoutes, BffApiRoutes } from "./request.type";
+import { backendClient } from "./backend-client";
+import { bffClient } from "./bff-client";
+import { parseJsonResponse } from "./response";
+import { appendQueryParams, interpolatePathParams } from "./url";
 
 vi.mock("#/env", () => ({
   getWebEnv: vi.fn(() => ({
@@ -21,13 +25,29 @@ vi.mock("#/shared/lib/logger", () => ({
   },
 }));
 
+vi.mock("#/shared/lib/api/auth/cookies", () => ({
+  getAccessToken: vi.fn(),
+  getRefreshToken: vi.fn(),
+}));
+
+vi.mock("#/shared/lib/api/auth/session", () => ({
+  persistAuthSession: vi.fn(),
+}));
+
 const jsonResponse = (body: unknown, init?: ResponseInit) =>
   new Response(JSON.stringify(body), {
-    headers: {
-      "content-type": "application/json",
-    },
+    headers: { "content-type": "application/json" },
     ...init,
   });
+
+const createPostFormData = () => {
+  const formData = new FormData();
+  formData.append("content", "Hello");
+  formData.append("visibility", "PUBLIC");
+  return formData;
+};
+
+// ─── url.ts ──────────────────────────────────────────────────────────────────
 
 describe("appendQueryParams", () => {
   it("serializes defined values and skips nullish values", () => {
@@ -53,6 +73,8 @@ describe("interpolatePathParams", () => {
   });
 });
 
+// ─── response.ts ─────────────────────────────────────────────────────────────
+
 describe("parseJsonResponse", () => {
   it("returns null for no-content responses", async () => {
     await expect(parseJsonResponse(new Response(null, { status: 204 }))).resolves.toBeNull();
@@ -69,12 +91,7 @@ describe("parseJsonResponse", () => {
     await expect(
       parseJsonResponse(
         jsonResponse(
-          {
-            errors: {
-              email: ["Enter a valid email."],
-            },
-            message: ["email: Enter a valid email."],
-          },
+          { errors: { email: ["Enter a valid email."] }, message: ["email: Enter a valid email."] },
           { status: 400 },
         ),
       ),
@@ -85,20 +102,11 @@ describe("parseJsonResponse", () => {
     await expect(
       parseJsonResponse(
         jsonResponse(
-          {
-            errors: {
-              email: ["Email or password is incorrect."],
-            },
-            message: "Invalid credentials",
-          },
+          { errors: { email: ["Email or password is incorrect."] }, message: "Invalid credentials" },
           { status: 401 },
         ),
       ),
-    ).rejects.toEqual(
-      new ApiRequestError("Invalid credentials", 401, {
-        email: ["Email or password is incorrect."],
-      }),
-    );
+    ).rejects.toEqual(new ApiRequestError("Invalid credentials", 401, { email: ["Email or password is incorrect."] }));
   });
 
   it("falls back to the status text when the error body is not JSON", async () => {
@@ -108,9 +116,14 @@ describe("parseJsonResponse", () => {
   });
 });
 
-describe("createApiClient", () => {
+// ─── backendClient ────────────────────────────────────────────────────────────
+
+describe("backendClient", () => {
   beforeEach(() => {
     vi.useRealTimers();
+    vi.mocked(getAccessToken).mockResolvedValue("access-token");
+    vi.mocked(getRefreshToken).mockResolvedValue(null);
+    vi.mocked(persistAuthSession).mockResolvedValue(undefined);
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse({ id: "post-1" })));
   });
 
@@ -119,287 +132,193 @@ describe("createApiClient", () => {
     vi.clearAllMocks();
   });
 
-  it("builds authenticated backend requests against the API origin", async () => {
-    const request = createApiClient<BackendApiRoutes>({
-      origin: "backend",
-      resolveAccessToken: vi.fn().mockResolvedValue("access-token"),
-    });
+  it("builds JSON backend requests against the API origin", async () => {
+    vi.mocked(getAccessToken).mockResolvedValue(null); // auth: false route
 
-    await request("/posts", "POST", {
-      body: {
-        content: "Hello",
-        imageUrl: null,
-        visibility: "PUBLIC",
-      },
+    await backendClient("/auth/login", "POST", {
+      auth: false,
+      body: { email: "maya@example.com", password: "password123" },
       cache: "no-store",
     });
+
+    expect(fetch).toHaveBeenCalledWith("http://localhost:3001/auth/login", {
+      body: JSON.stringify({ email: "maya@example.com", password: "password123" }),
+      cache: "no-store",
+      headers: { "content-type": "application/json", "x-request-id": expect.any(String) },
+      method: "POST",
+    });
+  });
+
+  it("builds authenticated FormData backend requests without forcing a content type", async () => {
+    const formData = createPostFormData();
+
+    await backendClient("/posts", "POST", { body: formData, cache: "no-store" });
 
     expect(fetch).toHaveBeenCalledWith("http://localhost:3001/posts", {
-      body: JSON.stringify({
-        content: "Hello",
-        imageUrl: null,
-        visibility: "PUBLIC",
-      }),
+      body: formData,
       cache: "no-store",
-      credentials: undefined,
-      headers: {
-        authorization: "Bearer access-token",
-        "content-type": "application/json",
-        "x-request-id": expect.any(String),
-      },
+      headers: { authorization: "Bearer access-token", "x-request-id": expect.any(String) },
       method: "POST",
     });
   });
 
   it("adds one request id to outbound requests", async () => {
-    const request = createApiClient<BackendApiRoutes>({
-      origin: "backend",
-      resolveAccessToken: vi.fn().mockResolvedValue("access-token"),
-    });
-
-    await request("/posts", "GET", {
-      queryParams: {},
-    });
+    await backendClient("/posts", "GET", { queryParams: {} });
 
     expect(fetch).toHaveBeenCalledWith(
       "http://localhost:3001/posts",
       expect.objectContaining({
-        headers: expect.objectContaining({
-          "x-request-id": expect.any(String),
-        }),
+        headers: expect.objectContaining({ "x-request-id": expect.any(String) }),
       }),
     );
   });
 
   it("adds query params and omits nullish values", async () => {
-    const request = createApiClient<BackendApiRoutes>({
-      origin: "backend",
-      resolveAccessToken: vi.fn().mockResolvedValue("access-token"),
-    });
-
-    await request("/posts", "GET", {
-      queryParams: {
-        authorId: undefined,
-        feed: "friends",
-      },
-    });
+    await backendClient("/posts", "GET", { queryParams: { authorId: undefined, feed: "friends" } });
 
     expect(fetch).toHaveBeenCalledWith(
       "http://localhost:3001/posts?feed=friends",
-      expect.objectContaining({
-        method: "GET",
-      }),
+      expect.objectContaining({ method: "GET" }),
     );
   });
 
   it("interpolates typed backend route params", async () => {
-    const request = createApiClient<BackendApiRoutes>({
-      origin: "backend",
-      resolveAccessToken: vi.fn().mockResolvedValue("access-token"),
-    });
-
-    await request("/posts/{id}", "PATCH", {
-      body: {
-        content: "Updated",
-      },
-      params: {
-        id: "post/1",
-      },
-    });
+    await backendClient("/posts/{id}", "PATCH", { body: createPostFormData(), params: { id: "post/1" } });
 
     expect(fetch).toHaveBeenCalledWith(
       "http://localhost:3001/posts/post%2F1",
-      expect.objectContaining({
-        method: "PATCH",
-      }),
+      expect.objectContaining({ method: "PATCH" }),
     );
   });
 
   it("throws before fetching when an authenticated backend request has no token", async () => {
-    const request = createApiClient<BackendApiRoutes>({
-      origin: "backend",
-      resolveAccessToken: vi.fn().mockResolvedValue(null),
-    });
+    vi.mocked(getAccessToken).mockResolvedValue(null);
 
-    await expect(
-      request("/posts", "GET", {
-        queryParams: {},
-      }),
-    ).rejects.toBeInstanceOf(AuthRequiredError);
+    await expect(backendClient("/posts", "GET", { queryParams: {} })).rejects.toBeInstanceOf(AuthRequiredError);
     expect(fetch).not.toHaveBeenCalled();
   });
 
   it("does not require tokens for public auth paths", async () => {
-    const resolveAccessToken = vi.fn();
-    const request = createApiClient<BackendApiRoutes>({
-      origin: "backend",
-      resolveAccessToken,
-    });
+    vi.mocked(getAccessToken).mockResolvedValue(null);
 
-    await request("/auth/logout", "POST", {
-      body: {
-        refreshToken: "refresh-token",
-      },
-      auth: false,
-    });
+    await backendClient("/auth/logout", "POST", { body: { refreshToken: "refresh-token" }, auth: false });
 
-    expect(resolveAccessToken).not.toHaveBeenCalled();
+    expect(getAccessToken).not.toHaveBeenCalled();
     expect(fetch).toHaveBeenCalledWith(
       "http://localhost:3001/auth/logout",
-      expect.objectContaining({
-        headers: expect.objectContaining({
-          "content-type": "application/json",
-        }),
-      }),
+      expect.objectContaining({ headers: expect.objectContaining({ "content-type": "application/json" }) }),
     );
   });
 
-  it("uses relative URLs and same-origin credentials for BFF requests", async () => {
-    const request = createApiClient<BffApiRoutes>({
-      origin: "bff",
-    });
+  it("passes configured abort signals to fetch", async () => {
+    const abortController = new AbortController();
 
-    await request("/api/auth/logout", "POST", {
-      auth: false,
-    });
+    await backendClient("/posts", "GET", { queryParams: {}, signal: abortController.signal });
 
-    expect(fetch).toHaveBeenCalledWith("/api/auth/logout", {
-      body: undefined,
-      cache: undefined,
-      credentials: "same-origin",
-      headers: {
-        "x-request-id": expect.any(String),
-      },
-      method: "POST",
-    });
-  });
-
-  it("interpolates typed BFF route params", async () => {
-    const request = createApiClient<BffApiRoutes>({
-      origin: "bff",
-    });
-
-    await request("/api/posts/{id}", "DELETE", {
-      params: {
-        id: "post/1",
-      },
-    });
-
-    expect(fetch).toHaveBeenCalledWith("/api/posts/post%2F1", {
-      body: undefined,
-      cache: undefined,
-      credentials: "same-origin",
-      headers: {
-        "x-request-id": expect.any(String),
-      },
-      method: "DELETE",
-    });
-  });
-
-  it("does not retry BFF requests", async () => {
-    vi.useFakeTimers();
-    const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 503, statusText: "Unavailable" }));
-    vi.stubGlobal("fetch", fetchMock);
-    const request = createApiClient<BffApiRoutes>({
-      origin: "bff",
-    });
-
-    await expect(
-      request("/api/posts", "GET", {
-        queryParams: {},
-        retry: {
-          attempts: 1,
-        },
-      }),
-    ).rejects.toEqual(new ApiRequestError("Unavailable", 503));
-    expect(fetchMock).toHaveBeenCalledTimes(1);
-  });
-
-  it("keeps backend and BFF route maps distinct at compile time", () => {
-    const backendClient = createApiClient<BackendApiRoutes>({
-      origin: "backend",
-      resolveAccessToken: vi.fn().mockResolvedValue("access-token"),
-    });
-    const bffClient = createApiClient<BffApiRoutes>({
-      origin: "bff",
-    });
-
-    const shouldRunTypeAssertions = Date.now() < 0;
-
-    if (shouldRunTypeAssertions) {
-      void backendClient("/posts", "GET", {
-        queryParams: {},
-      });
-      void bffClient("/api/posts", "GET", {
-        queryParams: {},
-      });
-      void backendClient("/posts/{id}", "PATCH", {
-        body: {
-          content: "Updated",
-        },
-        params: {
-          id: "post-1",
-        },
-      });
-      void bffClient("/api/posts/{id}", "DELETE", {
-        params: {
-          id: "post-1",
-        },
-      });
-      // @ts-expect-error backend clients cannot call BFF routes.
-      void backendClient("/api/posts", "GET", {
-        queryParams: {},
-      });
-      // @ts-expect-error BFF clients cannot call backend API routes.
-      void bffClient("/posts", "GET", {
-        queryParams: {},
-      });
-      // @ts-expect-error route params are required for templated backend paths.
-      void backendClient("/posts/{id}", "PATCH", {
-        body: {
-          content: "Updated",
-        },
-      });
-      void bffClient("/api/posts/{id}", "DELETE", {
-        params: {
-          id: "post-1",
-          // @ts-expect-error route params cannot include undeclared keys.
-          slug: "post",
-        },
-      });
-    }
-
-    expect(backendClient).toBeTypeOf("function");
-    expect(bffClient).toBeTypeOf("function");
+    expect(fetch).toHaveBeenCalledWith(
+      "http://localhost:3001/posts",
+      expect.objectContaining({ signal: abortController.signal }),
+    );
   });
 
   it("converts unauthorized authenticated server responses into auth-required errors", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(null, { status: 401 })));
-    const request = createApiClient<BackendApiRoutes>({
-      origin: "backend",
-      resolveAccessToken: vi.fn().mockResolvedValue("expired-token"),
-    });
 
-    await expect(
-      request("/posts", "GET", {
-        queryParams: {},
-      }),
-    ).rejects.toBeInstanceOf(AuthRequiredError);
+    await expect(backendClient("/posts", "GET", { queryParams: {} })).rejects.toBeInstanceOf(AuthRequiredError);
   });
 
   it("can surface unauthorized API responses when retry handling is disabled", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse({ message: "Unauthorized" }, { status: 401 })));
-    const request = createApiClient<BackendApiRoutes>({
-      origin: "backend",
-      resolveAccessToken: vi.fn().mockResolvedValue("expired-token"),
-    });
+
+    await expect(backendClient("/posts", "GET", { queryParams: {}, retryOnUnauthorized: false })).rejects.toEqual(
+      new ApiRequestError("Unauthorized", 401),
+    );
+  });
+
+  it("refreshes the session and retries once when an authenticated backend request is unauthorized", async () => {
+    vi.mocked(getRefreshToken).mockResolvedValue("old-refresh-token");
+    vi.mocked(persistAuthSession).mockResolvedValue(undefined);
+
+    const fetchMock = vi.fn((url: string, init: RequestInit) =>
+      Promise.resolve(
+        url.includes("/auth/refresh")
+          ? jsonResponse({ accessToken: "new-token", refreshToken: "new-refresh" })
+          : (init.headers as Record<string, string>).authorization === "Bearer new-token"
+            ? jsonResponse({ id: "post-1" })
+            : new Response(null, { status: 401 }),
+      ),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(backendClient("/posts", "POST", { body: createPostFormData() })).resolves.toEqual({ id: "post-1" });
+    expect(getRefreshToken).toHaveBeenCalledTimes(1);
+    expect(persistAuthSession).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledTimes(3); // initial + refresh + retry
+  });
+
+  it("throws an auth-required error without retrying when the session refresh fails", async () => {
+    vi.mocked(getRefreshToken).mockResolvedValue("old-refresh-token");
+    const fetchMock = vi.fn((url: string) =>
+      Promise.resolve(
+        url.includes("/auth/refresh") ? new Response(null, { status: 401 }) : new Response(null, { status: 401 }),
+      ),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(backendClient("/posts", "POST", { body: createPostFormData() })).rejects.toBeInstanceOf(
+      AuthRequiredError,
+    );
+    expect(getRefreshToken).toHaveBeenCalledTimes(1);
+  });
+
+  it("retries at most once when the request stays unauthorized after a refresh", async () => {
+    vi.mocked(getRefreshToken).mockResolvedValue("old-refresh-token");
+
+    const fetchMock = vi.fn((url: string) =>
+      Promise.resolve(
+        url.includes("/auth/refresh")
+          ? jsonResponse({ accessToken: "new-token", refreshToken: "new-refresh" })
+          : new Response(null, { status: 401 }),
+      ),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(backendClient("/posts", "POST", { body: createPostFormData() })).rejects.toBeInstanceOf(
+      AuthRequiredError,
+    );
+    expect(getRefreshToken).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not refresh the session when unauthorized handling is disabled", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse({ message: "Unauthorized" }, { status: 401 })));
+
+    await expect(backendClient("/posts", "GET", { queryParams: {}, retryOnUnauthorized: false })).rejects.toEqual(
+      new ApiRequestError("Unauthorized", 401),
+    );
+    expect(getRefreshToken).not.toHaveBeenCalled();
+  });
+
+  it("refreshes only once when concurrent requests are unauthorized", async () => {
+    vi.mocked(getRefreshToken).mockResolvedValue("old-refresh-token");
+
+    const fetchMock = vi.fn((url: string, init: RequestInit) =>
+      Promise.resolve(
+        url.includes("/auth/refresh")
+          ? jsonResponse({ accessToken: "new-token", refreshToken: "new-refresh" })
+          : (init.headers as Record<string, string>).authorization === "Bearer new-token"
+            ? jsonResponse({ id: "post-1" })
+            : new Response(null, { status: 401 }),
+      ),
+    );
+    vi.stubGlobal("fetch", fetchMock);
 
     await expect(
-      request("/posts", "GET", {
-        queryParams: {},
-        retryOnUnauthorized: false,
-      }),
-    ).rejects.toEqual(new ApiRequestError("Unauthorized", 401));
+      Promise.all([
+        backendClient("/posts", "POST", { body: createPostFormData() }),
+        backendClient("/posts", "POST", { body: createPostFormData() }),
+      ]),
+    ).resolves.toEqual([{ id: "post-1" }, { id: "post-1" }]);
+    expect(getRefreshToken).toHaveBeenCalledTimes(1);
   });
 
   it("retries GET requests after a network error", async () => {
@@ -409,14 +328,8 @@ describe("createApiClient", () => {
       .mockRejectedValueOnce(new TypeError("network unavailable"))
       .mockResolvedValueOnce(jsonResponse({ id: "post-1" }));
     vi.stubGlobal("fetch", fetchMock);
-    const request = createApiClient<BackendApiRoutes>({
-      origin: "backend",
-      resolveAccessToken: vi.fn().mockResolvedValue("access-token"),
-    });
 
-    const response = request("/posts", "GET", {
-      queryParams: {},
-    });
+    const response = backendClient("/posts", "GET", { queryParams: {} });
 
     await vi.advanceTimersByTimeAsync(0);
     expect(fetchMock).toHaveBeenCalledTimes(1);
@@ -429,7 +342,6 @@ describe("createApiClient", () => {
         attempt: 1,
         errorName: "TypeError",
         method: "GET",
-        requestId: expect.any(String),
         url: "http://localhost:3001/posts",
       }),
     );
@@ -442,14 +354,8 @@ describe("createApiClient", () => {
       .mockResolvedValueOnce(new Response(null, { status: 503, statusText: "Unavailable" }))
       .mockResolvedValueOnce(jsonResponse({ id: "post-1" }));
     vi.stubGlobal("fetch", fetchMock);
-    const request = createApiClient<BackendApiRoutes>({
-      origin: "backend",
-      resolveAccessToken: vi.fn().mockResolvedValue("access-token"),
-    });
 
-    const response = request("/posts", "GET", {
-      queryParams: {},
-    });
+    const response = backendClient("/posts", "GET", { queryParams: {} });
 
     await vi.advanceTimersByTimeAsync(0);
     expect(fetchMock).toHaveBeenCalledTimes(1);
@@ -465,22 +371,14 @@ describe("createApiClient", () => {
       .mockResolvedValueOnce(new Response(null, { status: 503, statusText: "Unavailable" }))
       .mockResolvedValueOnce(jsonResponse({ id: "post-1" }));
     vi.stubGlobal("fetch", fetchMock);
-    const request = createApiClient<BackendApiRoutes>({
-      origin: "backend",
-      resolveAccessToken: vi.fn().mockResolvedValue("access-token"),
-    });
 
-    const response = request("/posts", "GET", {
-      queryParams: {},
-    });
+    const response = backendClient("/posts", "GET", { queryParams: {} });
 
     await vi.advanceTimersByTimeAsync(0);
     expect(fetchMock).toHaveBeenNthCalledWith(
       1,
       "http://localhost:3001/posts",
-      expect.not.objectContaining({
-        signal: expect.any(AbortSignal),
-      }),
+      expect.not.objectContaining({ signal: expect.any(AbortSignal) }),
     );
 
     await vi.advanceTimersByTimeAsync(250);
@@ -488,14 +386,10 @@ describe("createApiClient", () => {
     expect(fetchMock).toHaveBeenNthCalledWith(
       2,
       "http://localhost:3001/posts",
-      expect.objectContaining({
-        signal: expect.any(AbortSignal),
-      }),
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
     );
     expect(fetchMock.mock.calls[0]?.[1]).toMatchObject({
-      headers: {
-        "x-request-id": fetchMock.mock.calls[1]?.[1]?.headers["x-request-id"],
-      },
+      headers: { "x-request-id": fetchMock.mock.calls[1]?.[1]?.headers["x-request-id"] },
     });
     expect(logger.warn).toHaveBeenCalledWith(
       "api_request_retry",
@@ -509,35 +403,17 @@ describe("createApiClient", () => {
     );
   });
 
-  it("retries rate-limited responses using Retry-After capped by maxDelayMs", async () => {
+  it("retries rate-limited responses using maxDelayMs as the cap", async () => {
     vi.useFakeTimers();
     const fetchMock = vi
       .fn()
       .mockResolvedValueOnce(
-        jsonResponse(
-          { message: "Too many requests" },
-          {
-            headers: {
-              "retry-after": "10",
-            },
-            status: 429,
-          },
-        ),
+        jsonResponse({ message: "Too many requests" }, { headers: { "retry-after": "10" }, status: 429 }),
       )
       .mockResolvedValueOnce(jsonResponse({ id: "post-1" }));
     vi.stubGlobal("fetch", fetchMock);
-    const request = createApiClient<BackendApiRoutes>({
-      origin: "backend",
-      resolveAccessToken: vi.fn().mockResolvedValue("access-token"),
-    });
 
-    const response = request("/posts", "GET", {
-      queryParams: {},
-      retry: {
-        attempts: 1,
-        maxDelayMs: 100,
-      },
-    });
+    const response = backendClient("/posts", "GET", { queryParams: {}, retry: { attempts: 1, maxDelayMs: 100 } });
 
     await vi.advanceTimersByTimeAsync(0);
     expect(fetchMock).toHaveBeenCalledTimes(1);
@@ -552,17 +428,10 @@ describe("createApiClient", () => {
     vi.useFakeTimers();
     const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 503, statusText: "Unavailable" }));
     vi.stubGlobal("fetch", fetchMock);
-    const request = createApiClient<BackendApiRoutes>({
-      origin: "backend",
-      resolveAccessToken: vi.fn().mockResolvedValue("access-token"),
-    });
 
-    await expect(
-      request("/posts", "GET", {
-        queryParams: {},
-        retry: false,
-      }),
-    ).rejects.toEqual(new ApiRequestError("Unavailable", 503));
+    await expect(backendClient("/posts", "GET", { queryParams: {}, retry: false })).rejects.toEqual(
+      new ApiRequestError("Unavailable", 503),
+    );
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
@@ -570,20 +439,10 @@ describe("createApiClient", () => {
     vi.useFakeTimers();
     const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 503, statusText: "Unavailable" }));
     vi.stubGlobal("fetch", fetchMock);
-    const request = createApiClient<BackendApiRoutes>({
-      origin: "backend",
-      resolveAccessToken: vi.fn().mockResolvedValue("access-token"),
-    });
 
-    await expect(
-      request("/posts", "POST", {
-        body: {
-          content: "Hello",
-          imageUrl: null,
-          visibility: "PUBLIC",
-        },
-      }),
-    ).rejects.toEqual(new ApiRequestError("Unavailable", 503));
+    await expect(backendClient("/posts", "POST", { body: createPostFormData() })).rejects.toEqual(
+      new ApiRequestError("Unavailable", 503),
+    );
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
@@ -594,19 +453,8 @@ describe("createApiClient", () => {
       .mockResolvedValueOnce(new Response(null, { status: 503, statusText: "Unavailable" }))
       .mockResolvedValueOnce(jsonResponse({ id: "post-1" }));
     vi.stubGlobal("fetch", fetchMock);
-    const request = createApiClient<BackendApiRoutes>({
-      origin: "backend",
-      resolveAccessToken: vi.fn().mockResolvedValue("access-token"),
-    });
 
-    const response = request("/posts", "POST", {
-      body: {
-        content: "Hello",
-        imageUrl: null,
-        visibility: "PUBLIC",
-      },
-      retry: true,
-    });
+    const response = backendClient("/posts", "POST", { body: createPostFormData(), retry: true });
 
     await vi.advanceTimersByTimeAsync(0);
     expect(fetchMock).toHaveBeenCalledTimes(1);
@@ -619,16 +467,8 @@ describe("createApiClient", () => {
     vi.useFakeTimers();
     const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 401 }));
     vi.stubGlobal("fetch", fetchMock);
-    const request = createApiClient<BackendApiRoutes>({
-      origin: "backend",
-      resolveAccessToken: vi.fn().mockResolvedValue("expired-token"),
-    });
 
-    await expect(
-      request("/posts", "GET", {
-        queryParams: {},
-      }),
-    ).rejects.toBeInstanceOf(AuthRequiredError);
+    await expect(backendClient("/posts", "GET", { queryParams: {} })).rejects.toBeInstanceOf(AuthRequiredError);
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
@@ -636,21 +476,10 @@ describe("createApiClient", () => {
     vi.useFakeTimers();
     const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ message: "Invalid content" }, { status: 400 }));
     vi.stubGlobal("fetch", fetchMock);
-    const request = createApiClient<BackendApiRoutes>({
-      origin: "backend",
-      resolveAccessToken: vi.fn().mockResolvedValue("access-token"),
-    });
 
-    await expect(
-      request("/posts", "POST", {
-        body: {
-          content: "",
-          imageUrl: null,
-          visibility: "PUBLIC",
-        },
-        retry: true,
-      }),
-    ).rejects.toEqual(new ApiRequestError("Invalid content", 400));
+    await expect(backendClient("/posts", "POST", { body: createPostFormData(), retry: true })).rejects.toEqual(
+      new ApiRequestError("Invalid content", 400),
+    );
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
@@ -659,35 +488,17 @@ describe("createApiClient", () => {
     const abortError = new DOMException("The operation was aborted.", "AbortError");
     const fetchMock = vi.fn().mockRejectedValue(abortError);
     vi.stubGlobal("fetch", fetchMock);
-    const request = createApiClient<BackendApiRoutes>({
-      origin: "backend",
-      resolveAccessToken: vi.fn().mockResolvedValue("access-token"),
-    });
 
-    await expect(
-      request("/posts", "GET", {
-        queryParams: {},
-      }),
-    ).rejects.toBe(abortError);
+    await expect(backendClient("/posts", "GET", { queryParams: {} })).rejects.toBe(abortError);
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
   it("stops after configured retry attempts and parses the final failed response", async () => {
     vi.useFakeTimers();
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValueOnce(new Response(null, { status: 503, statusText: "Unavailable" }))
-      .mockResolvedValueOnce(new Response(null, { status: 503, statusText: "Unavailable" }))
-      .mockResolvedValueOnce(new Response(null, { status: 503, statusText: "Unavailable" }));
+    const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 503, statusText: "Unavailable" }));
     vi.stubGlobal("fetch", fetchMock);
-    const request = createApiClient<BackendApiRoutes>({
-      origin: "backend",
-      resolveAccessToken: vi.fn().mockResolvedValue("access-token"),
-    });
 
-    const response = request("/posts", "GET", {
-      queryParams: {},
-    });
+    const response = backendClient("/posts", "GET", { queryParams: {} });
     const assertion = expect(response).rejects.toEqual(new ApiRequestError("Unavailable", 503));
 
     await vi.advanceTimersByTimeAsync(250);
@@ -696,13 +507,7 @@ describe("createApiClient", () => {
     expect(fetchMock).toHaveBeenCalledTimes(3);
     expect(logger.error).toHaveBeenCalledWith(
       "api_request_failed",
-      expect.objectContaining({
-        attempts: 3,
-        method: "GET",
-        requestId: expect.any(String),
-        statusCode: 503,
-        url: "http://localhost:3001/posts",
-      }),
+      expect.objectContaining({ attempts: 3, method: "GET", statusCode: 503, url: "http://localhost:3001/posts" }),
     );
   });
 
@@ -711,14 +516,8 @@ describe("createApiClient", () => {
     const networkError = new TypeError("network unavailable");
     const fetchMock = vi.fn().mockRejectedValue(networkError);
     vi.stubGlobal("fetch", fetchMock);
-    const request = createApiClient<BackendApiRoutes>({
-      origin: "backend",
-      resolveAccessToken: vi.fn().mockResolvedValue("access-token"),
-    });
 
-    const response = request("/posts", "GET", {
-      queryParams: {},
-    });
+    const response = backendClient("/posts", "GET", { queryParams: {} });
     const assertion = expect(response).rejects.toBe(networkError);
 
     await vi.advanceTimersByTimeAsync(250);
@@ -731,7 +530,6 @@ describe("createApiClient", () => {
         attempts: 3,
         errorName: "TypeError",
         method: "GET",
-        requestId: expect.any(String),
         url: "http://localhost:3001/posts",
       }),
     );
@@ -741,18 +539,8 @@ describe("createApiClient", () => {
     vi.useFakeTimers();
     const fetchMock = vi.fn().mockRejectedValue("network unavailable");
     vi.stubGlobal("fetch", fetchMock);
-    const request = createApiClient<BackendApiRoutes>({
-      origin: "backend",
-      resolveAccessToken: vi.fn().mockResolvedValue("access-token"),
-    });
 
-    const response = request("/posts", "GET", {
-      queryParams: {},
-      retry: {
-        attempts: 1,
-        delayMs: 1,
-      },
-    });
+    const response = backendClient("/posts", "GET", { queryParams: {}, retry: { attempts: 1, delayMs: 1 } });
     const assertion = expect(response).rejects.toBe("network unavailable");
 
     await vi.advanceTimersByTimeAsync(1);
@@ -760,13 +548,74 @@ describe("createApiClient", () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(logger.error).toHaveBeenCalledWith(
       "api_request_failed",
-      expect.objectContaining({
-        attempts: 2,
-        errorName: "UnknownError",
-        method: "GET",
-        requestId: expect.any(String),
-        url: "http://localhost:3001/posts",
-      }),
+      expect.objectContaining({ attempts: 2, errorName: "UnknownError" }),
     );
+  });
+});
+
+// ─── bffClient ───────────────────────────────────────────────────────────────
+
+describe("bffClient", () => {
+  beforeEach(() => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify(null), { status: 200 })));
+  });
+
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("uses relative URLs and same-origin credentials for BFF requests", async () => {
+    await bffClient("/api/auth/logout", "POST", { auth: false });
+
+    expect(fetch).toHaveBeenCalledWith("/api/auth/logout", {
+      body: undefined,
+      cache: undefined,
+      credentials: "same-origin",
+      headers: { "x-request-id": expect.any(String) },
+      method: "POST",
+      signal: undefined,
+    });
+  });
+
+  it("interpolates typed BFF route params", async () => {
+    await bffClient("/api/posts/{id}", "DELETE", { params: { id: "post/1" } });
+
+    expect(fetch).toHaveBeenCalledWith("/api/posts/post%2F1", expect.objectContaining({ method: "DELETE" }));
+  });
+
+  it("does not retry BFF requests", async () => {
+    vi.useFakeTimers();
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(null, { status: 503, statusText: "Unavailable" })));
+
+    await expect(bffClient("/api/posts", "GET", { queryParams: {} })).rejects.toEqual(
+      new ApiRequestError("Unavailable", 503),
+    );
+    expect(fetch).toHaveBeenCalledTimes(1);
+    vi.useRealTimers();
+  });
+
+  it("keeps backend and BFF route maps distinct at compile time", () => {
+    const shouldRunTypeAssertions = Date.now() < 0;
+
+    if (shouldRunTypeAssertions) {
+      void backendClient("/posts", "GET", { queryParams: {} });
+      void bffClient("/api/posts", "GET", { queryParams: {} });
+      // @ts-expect-error backend clients cannot call BFF routes.
+      void backendClient("/api/posts", "GET", { queryParams: {} });
+      // @ts-expect-error BFF clients cannot call backend API routes.
+      void bffClient("/posts", "GET", { queryParams: {} });
+      // @ts-expect-error route params are required for templated backend paths.
+      void backendClient("/posts/{id}", "PATCH", { body: createPostFormData() });
+      void bffClient("/api/posts/{id}", "DELETE", {
+        params: {
+          id: "post-1",
+          // @ts-expect-error route params cannot include undeclared keys.
+          slug: "post",
+        },
+      });
+    }
+
+    expect(backendClient).toBeTypeOf("function");
+    expect(bffClient).toBeTypeOf("function");
   });
 });

@@ -17,4 +17,6 @@ export const testUsers = {
     id: "00000000-0000-4000-8000-000000000002",
     username: "taken",
   },
-};
+} as const;
+
+export const developmentUsers = Object.values(testUsers);

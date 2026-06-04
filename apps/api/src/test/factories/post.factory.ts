@@ -22,7 +22,7 @@ export function buildPersistedPost(
     content: "Hello world",
     createdAt: new Date("2026-05-05T10:00:00.000Z"),
     id: "post-1",
-    imageUrl: null,
+    images: [],
     updatedAt: new Date("2026-05-05T10:30:00.000Z"),
     visibility: PostVisibility.PUBLIC,
     ...overrides,

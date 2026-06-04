@@ -9,19 +9,22 @@ import { useForm } from "react-hook-form";
 import { ApiRequestError } from "#/shared/lib/api/utils/errors";
 import { Button } from "#/shared/ui/button";
 import { FieldError, FormCard, TextArea } from "#/shared/ui/form";
+import { useToastStore } from "#/shared/ui/toast/store/toast";
 
-import { createPost } from "../api/mutations";
+import { addPostToInfiniteData, type PostsInfiniteData } from "../api/helpers/cache";
+import { createPost, type CreatePostMutationInput } from "../api/mutations";
 import { postMutationKeys, postsKeys } from "../api/routes";
+import { type ManagedPostImage, PostImageManager } from "./post-images";
 
 const createPostDefaultValues: CreatePostInput = {
   content: "",
-  imageUrl: null,
   visibility: "PUBLIC",
 };
 
 export const CreatePostForm = () => {
-  const [isCreateRequestPending, setIsCreateRequestPending] = useState(false);
+  const [images, setImages] = useState<ManagedPostImage[]>([]);
   const queryClient = useQueryClient();
+  const { addToast } = useToastStore();
 
   const {
     formState: { errors },
@@ -35,16 +38,10 @@ export const CreatePostForm = () => {
     resolver: zodResolver(createPostSchema),
   });
 
-  const createPostMutation = useMutation<PostDto, Error, CreatePostInput>({
+  const createPostMutation = useMutation<PostDto, Error, CreatePostMutationInput>({
     mutationKey: postMutationKeys.create,
     mutationFn: createPost,
-    onMutate: () => {
-      setIsCreateRequestPending(true);
-    },
-    onError: (error, values) => {
-      setIsCreateRequestPending(false);
-      reset(values);
-
+    onError: (error) => {
       if (error instanceof ApiRequestError) {
         const message = error.errors.content?.[0];
 
@@ -55,12 +52,19 @@ export const CreatePostForm = () => {
         }
       }
     },
-    onSuccess() {
-      setIsCreateRequestPending(false);
+    onSuccess(createdPost) {
+      queryClient.setQueriesData<PostsInfiniteData>({ queryKey: postsKeys.infiniteFeedRoot }, (data) =>
+        addPostToInfiniteData(data, createdPost),
+      );
       reset(createPostDefaultValues);
+      setImages([]);
+      addToast({ type: "success", description: "Post was successfully created" });
     },
-    onSettled() {
-      return queryClient.invalidateQueries({ queryKey: postsKeys.infiniteFeedRoot });
+    onSettled(_createdPost, error) {
+      void queryClient.invalidateQueries({
+        queryKey: postsKeys.infiniteFeedRoot,
+        refetchType: error ? "none" : "active",
+      });
     },
   });
 
@@ -68,7 +72,10 @@ export const CreatePostForm = () => {
   const formError = createPostMutation.error instanceof ApiRequestError ? createPostMutation.error.message : undefined;
 
   const onSubmit = (values: CreatePostInput) => {
-    createPostMutation.mutate(values);
+    createPostMutation.mutate({
+      ...values,
+      images: images.filter((image) => image.kind === "local").map((image) => image.file),
+    });
   };
 
   return (
@@ -83,9 +90,10 @@ export const CreatePostForm = () => {
         {...register("content")}
       />
       <FieldError message={contentError} />
+      <PostImageManager disabled={createPostMutation.isPending} images={images} onChange={setImages} />
       <FieldError message={formError} />
       <div className="text-right">
-        <Button loading={isCreateRequestPending} type="submit">
+        <Button loading={createPostMutation.isPending} type="submit">
           Post
         </Button>
       </div>

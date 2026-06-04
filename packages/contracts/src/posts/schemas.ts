@@ -11,23 +11,57 @@ const postContentSchema = z
     message: "Please provide a content",
   })
   .max(5000);
-const postImageUrlSchema = z.string().url().nullable();
+
+export const postImageInputSchema = z.object({
+  id: z.string().uuid(),
+});
+
+const jsonField = (value: unknown) => {
+  if (value === undefined || typeof value !== "string") {
+    return value;
+  }
+
+  try {
+    return JSON.parse(value) as unknown;
+  } catch {
+    return value;
+  }
+};
+
+export const postImageOrderItemSchema = z.discriminatedUnion("type", [
+  z.object({
+    id: z.string().uuid(),
+    type: z.literal("existing"),
+  }),
+  z.object({
+    fileIndex: z.number().int().nonnegative(),
+    type: z.literal("upload"),
+  }),
+]);
+
+export const postImageSchema = z.object({
+  id: z.string(),
+  imageId: z.string(),
+  imageUrl: z.string().url(),
+  position: z.number().int().nonnegative(),
+});
 
 export const createPostSchema = z.object({
   content: postContentSchema,
-  imageUrl: postImageUrlSchema.optional(),
   visibility: postVisibilitySchema.default("PUBLIC"),
 });
 
 export const updatePostSchema = z
   .object({
     content: postContentSchema.optional(),
-    imageUrl: postImageUrlSchema.optional(),
+    imageOrder: z.preprocess(jsonField, z.array(postImageOrderItemSchema).max(4).optional()),
     visibility: postVisibilitySchema.optional(),
   })
   .refine(
     (input) =>
-      input.content !== undefined || input.visibility !== undefined || input.imageUrl !== undefined,
+      input.content !== undefined ||
+      input.visibility !== undefined ||
+      input.imageOrder !== undefined,
     {
       message: "At least one field must be provided",
     },
@@ -65,7 +99,7 @@ export const PostSchema = z.object({
   content: z.string(),
   createdAt: z.string().datetime(),
   id: z.string(),
-  imageUrl: z.string().nullable(),
+  images: z.array(postImageSchema),
   updatedAt: z.string().datetime(),
   visibility: postVisibilitySchema,
 });

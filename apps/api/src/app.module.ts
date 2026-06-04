@@ -7,10 +7,19 @@ import { AuthModule } from "./modules/auth/auth.module";
 import { FriendshipsModule } from "./modules/friendships/friendships.module";
 import { HealthModule } from "./modules/health/health.module";
 import { MaintenanceModule } from "./modules/maintenance/maintenance.module";
+import { MediaModule } from "./modules/media/media.module";
 import { PostsModule } from "./modules/posts/posts.module";
 
 @Module({
-  imports: [LoggingModule, AuthModule, FriendshipsModule, HealthModule, MaintenanceModule, PostsModule],
+  imports: [
+    LoggingModule,
+    AuthModule,
+    FriendshipsModule,
+    HealthModule,
+    MaintenanceModule,
+    MediaModule,
+    PostsModule,
+  ],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {

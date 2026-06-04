@@ -20,21 +20,30 @@ enum FriendshipStatus {
   REJECTED
 }
 
+enum MediaAssetKind {
+  IMAGE
+}
+
 model User {
-  id           String   @id @default(uuid()) @db.Uuid
-  email        String   @unique
-  username     String   @unique @db.VarChar(32)
-  passwordHash String   @map("password_hash")
-  displayName  String   @map("display_name") @db.VarChar(80)
-  bio          String?
-  avatarUrl    String?  @map("avatar_url")
-  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  id                     String   @id @default(uuid()) @db.Uuid
+  email                  String   @unique
+  username               String   @unique @db.VarChar(32)
+  passwordHash           String   @map("password_hash")
+  displayName            String   @map("display_name") @db.VarChar(80)
+  bio                    String?
+  avatarUrl              String?  @map("avatar_url")
+  avatarMediaAssetId     String?  @unique @map("avatar_media_asset_id") @db.Uuid
+  backgroundMediaAssetId String?  @unique @map("background_media_asset_id") @db.Uuid
+  createdAt              DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt              DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   refreshTokens              RefreshToken[]
   posts                      Post[]
   comments                   Comment[]
   postLikes                  PostLike[]
+  ownedMediaAssets           MediaAsset[]   @relation("MediaAssetOwner")
+  avatarMediaAsset           MediaAsset?    @relation("UserAvatarMediaAsset", fields: [avatarMediaAssetId], references: [id], onDelete: SetNull)
+  backgroundMediaAsset       MediaAsset?    @relation("UserBackgroundMediaAsset", fields: [backgroundMediaAssetId], references: [id], onDelete: SetNull)
   sentFriendshipRequests     Friendship[]   @relation("FriendshipRequester")
   receivedFriendshipRequests Friendship[]   @relation("FriendshipAddressee")
   blockedUsers               UserBlock[]    @relation("UserBlockBlocker")
@@ -62,18 +71,55 @@ model Post {
   id         String         @id @default(uuid()) @db.Uuid
   authorId   String         @map("author_id") @db.Uuid
   content    String
-  imageUrl   String?        @map("image_url")
   visibility PostVisibility @default(PUBLIC)
   createdAt  DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt  DateTime       @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  author   User       @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  author   User        @relation(fields: [authorId], references: [id], onDelete: Cascade)
   comments Comment[]
+  images   PostImage[]
   likes    PostLike[]
 
   @@index([authorId, createdAt])
   @@index([visibility, createdAt])
   @@map("posts")
+}
+
+model MediaAsset {
+  id              String           @id @default(uuid()) @db.Uuid
+  ownerId         String           @map("owner_id") @db.Uuid
+  kind            MediaAssetKind
+  storageProvider String           @default("cloudinary") @map("storage_provider")
+  storageKey      String           @unique @map("storage_key")
+  url             String
+  mimeType        String           @map("mime_type")
+  sizeBytes       Int              @map("size_bytes")
+  createdAt       DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime         @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  owner             User       @relation("MediaAssetOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  avatarForUser     User?      @relation("UserAvatarMediaAsset")
+  backgroundForUser User?      @relation("UserBackgroundMediaAsset")
+  postImage         PostImage?
+
+  @@index([ownerId])
+  @@index([kind])
+  @@map("media_assets")
+}
+
+model PostImage {
+  id           String   @id @default(uuid()) @db.Uuid
+  postId       String   @map("post_id") @db.Uuid
+  mediaAssetId String   @unique @map("media_asset_id") @db.Uuid
+  position     Int
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  mediaAsset MediaAsset @relation(fields: [mediaAssetId], references: [id], onDelete: Cascade)
+  post       Post       @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, position])
+  @@index([postId, position])
+  @@map("post_images")
 }
 
 model Comment {

@@ -4,6 +4,7 @@ import { X } from "lucide-react";
 import { type ReactNode, useEffect, useId } from "react";
 import { createPortal } from "react-dom";
 
+import { useBodyScrollLock } from "#/shared/hooks/use-body-scroll-lock";
 import { cn } from "#/shared/lib/utils";
 import { Button } from "#/shared/ui/button";
 
@@ -16,27 +17,6 @@ type ModalProps = {
   onOpenChange: (open: boolean) => void;
   open: boolean;
   title: string;
-};
-
-let openModalCount = 0;
-let previousBodyOverflow: string | null = null;
-
-const lockBodyScroll = () => {
-  if (openModalCount === 0) {
-    previousBodyOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-  }
-
-  openModalCount += 1;
-};
-
-const unlockBodyScroll = () => {
-  openModalCount = Math.max(0, openModalCount - 1);
-
-  if (openModalCount === 0) {
-    document.body.style.overflow = previousBodyOverflow ?? "";
-    previousBodyOverflow = null;
-  }
 };
 
 export const Modal = ({
@@ -52,17 +32,7 @@ export const Modal = ({
   const descriptionId = useId();
   const titleId = useId();
 
-  useEffect(() => {
-    if (!open) {
-      return;
-    }
-
-    lockBodyScroll();
-
-    return () => {
-      unlockBodyScroll();
-    };
-  }, [open]);
+  useBodyScrollLock(open);
 
   useEffect(() => {
     if (!open) {

@@ -1,4 +1,4 @@
-import { ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
 import type {
   CreatePostInput,
   ListPostsQueryInput,
@@ -10,6 +10,9 @@ import { PostVisibility, type Prisma, prisma } from "@social/database";
 import { z } from "zod";
 
 import { PaginationService } from "#common/pagination/pagination.service";
+import { validatePostImageOrderInput } from "#modules/media/inputs/post-image-input.validator";
+import { MediaAssetsService, type UploadedMediaFile } from "#modules/media/services/media-assets.service";
+import { PostImagesService } from "#modules/media/services/post-images.service";
 
 import { visiblePostsWhere } from "./post.where";
 import { postWithAuthor, serializePost } from "./posts.serializer";
@@ -22,18 +25,35 @@ const postCursorSchema = z.object({
 
 @Injectable()
 export class PostsService {
-  constructor(private readonly paginationService: PaginationService) {}
+  constructor(
+    private readonly paginationService: PaginationService,
+    private readonly mediaAssetsService: MediaAssetsService,
+    private readonly postImagesService: PostImagesService,
+  ) {}
 
-  async create(authorId: string, input: CreatePostInput): Promise<PostDto> {
-    const post = await prisma.post.create({
-      ...postWithAuthor,
-      data: {
-        authorId,
-        content: input.content,
-        imageUrl: input.imageUrl ?? null,
-        visibility: input.visibility ?? PostVisibility.PUBLIC,
-      },
-    });
+  async create(authorId: string, input: CreatePostInput, files: Express.Multer.File[] = []): Promise<PostDto> {
+    const post = await this.withUploadedPostImages(authorId, files, (uploadedFiles) =>
+      prisma.post.create({
+        ...postWithAuthor,
+        data: {
+          authorId,
+          content: input.content,
+          ...(uploadedFiles.length === 0
+            ? {}
+            : {
+                images: {
+                  create: uploadedFiles.map((uploadedFile, position) => ({
+                    mediaAsset: {
+                      create: this.mediaAssetsService.toImageAssetCreateData(authorId, uploadedFile),
+                    },
+                    position,
+                  })),
+                },
+              }),
+          visibility: input.visibility ?? PostVisibility.PUBLIC,
+        },
+      }),
+    );
 
     return serializePost(post);
   }
@@ -80,18 +100,65 @@ export class PostsService {
     return serializePost(post);
   }
 
-  async update(authorId: string, postId: string, input: UpdatePostInput): Promise<PostDto> {
+  async update(
+    authorId: string,
+    postId: string,
+    input: UpdatePostInput,
+    files: Express.Multer.File[] = [],
+  ): Promise<PostDto> {
     await this.assertCanMutate(authorId, postId);
 
-    const post = await prisma.post.update({
-      ...postWithAuthor,
-      data: {
-        ...input,
-      },
-      where: {
-        id: postId,
-      },
-    });
+    if (input.imageOrder === undefined) {
+      if (files.length > 0) {
+        throw new BadRequestException("imageOrder is required when uploading images");
+      }
+
+      const post = await prisma.post.update({
+        ...postWithAuthor,
+        data: this.toPostUpdateData(input),
+        where: {
+          id: postId,
+        },
+      });
+
+      return serializePost(post);
+    }
+
+    const imageOrder = input.imageOrder;
+
+    validatePostImageOrderInput(imageOrder, files.length);
+
+    const transactionResult = await this.withUploadedPostImages(authorId, files, (uploadedFiles) =>
+      prisma.$transaction(async (tx) => {
+        if (input.content !== undefined || input.visibility !== undefined) {
+          await tx.post.update({
+            data: this.toPostUpdateData(input),
+            where: {
+              id: postId,
+            },
+          });
+        }
+
+        const uploadedAssets = await this.mediaAssetsService.createImageAssets(tx, authorId, uploadedFiles);
+        const removedAssets = await this.postImagesService.replaceImages(
+          tx,
+          authorId,
+          postId,
+          imageOrder,
+          uploadedAssets,
+        );
+        const post = await this.findPostOrThrow(tx, postId);
+
+        return {
+          post,
+          removedAssets,
+        };
+      }),
+    );
+
+    const { post, removedAssets } = transactionResult;
+
+    await this.mediaAssetsService.deleteStorageFilesBestEffort(removedAssets);
 
     return serializePost(post);
   }
@@ -99,7 +166,58 @@ export class PostsService {
   async remove(authorId: string, postId: string): Promise<void> {
     await this.assertCanMutate(authorId, postId);
 
-    await prisma.post.delete({
+    const removedAssets = await prisma.$transaction(async (tx) => {
+      const post = await tx.post.findUnique({
+        include: {
+          images: {
+            include: {
+              mediaAsset: true,
+            },
+          },
+        },
+        where: {
+          id: postId,
+        },
+      });
+
+      if (!post) {
+        throw new NotFoundException("Post not found");
+      }
+
+      const mediaAssets = post.images.map((image) => image.mediaAsset);
+
+      await tx.post.delete({
+        where: {
+          id: postId,
+        },
+      });
+
+      await this.mediaAssetsService.deleteAssetRows(tx, mediaAssets);
+
+      return mediaAssets;
+    });
+
+    await this.mediaAssetsService.deleteStorageFilesBestEffort(removedAssets);
+  }
+
+  private async withUploadedPostImages<T>(
+    authorId: string,
+    files: Express.Multer.File[],
+    operation: (uploadedFiles: UploadedMediaFile[]) => Promise<T>,
+  ): Promise<T> {
+    const uploadedFiles = await this.mediaAssetsService.uploadPostImageFiles(authorId, files);
+
+    try {
+      return await operation(uploadedFiles);
+    } catch (error) {
+      await this.mediaAssetsService.deleteStorageFilesBestEffort(uploadedFiles);
+      throw error;
+    }
+  }
+
+  private findPostOrThrow(tx: Prisma.TransactionClient, postId: string) {
+    return tx.post.findUniqueOrThrow({
+      ...postWithAuthor,
       where: {
         id: postId,
       },
@@ -152,6 +270,13 @@ export class PostsService {
           ],
         },
       ],
+    };
+  }
+
+  private toPostUpdateData(input: UpdatePostInput): Prisma.PostUpdateInput {
+    return {
+      ...(input.content === undefined ? {} : { content: input.content }),
+      ...(input.visibility === undefined ? {} : { visibility: input.visibility }),
     };
   }
 }

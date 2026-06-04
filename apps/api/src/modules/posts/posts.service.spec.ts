@@ -1,7 +1,9 @@
-import { ForbiddenException, NotFoundException } from "@nestjs/common";
-import { FriendshipStatus, PostVisibility } from "@social/database";
+import { BadRequestException, ForbiddenException, NotFoundException } from "@nestjs/common";
+import { FriendshipStatus, MediaAssetKind, PostVisibility } from "@social/database";
 
 import { PaginationService } from "#common/pagination/pagination.service";
+import { MediaAssetsService } from "#modules/media/services/media-assets.service";
+import { PostImagesService } from "#modules/media/services/post-images.service";
 import { buildPersistedPost, buildPostDto } from "#test/factories/post.factory";
 import { mockedPrisma } from "#test/prisma.mock";
 
@@ -9,23 +11,63 @@ import { PostsService } from "./posts.service";
 
 const persistedPost = buildPersistedPost();
 
+function createMediaAssetsService() {
+  return {
+    createImageAssets: jest.fn().mockResolvedValue([]),
+    deleteAssetRows: jest.fn().mockResolvedValue(undefined),
+    deleteStorageFilesBestEffort: jest.fn().mockResolvedValue(undefined),
+    toImageAssetCreateData: jest.fn((ownerId, uploadedFile) => ({
+      kind: MediaAssetKind.IMAGE,
+      mimeType: uploadedFile.mimeType,
+      owner: {
+        connect: {
+          id: ownerId,
+        },
+      },
+      sizeBytes: uploadedFile.sizeBytes,
+      storageKey: uploadedFile.storageKey,
+      url: uploadedFile.url,
+    })),
+    uploadPostImageFiles: jest.fn().mockResolvedValue([]),
+  } as unknown as jest.Mocked<MediaAssetsService>;
+}
+
+function createPostImagesService() {
+  return {
+    replaceImages: jest.fn().mockResolvedValue([]),
+  } as unknown as jest.Mocked<PostImagesService>;
+}
+
 function createService() {
+  const mediaAssetsService = createMediaAssetsService();
+  const postImagesService = createPostImagesService();
+
+  mockedPrisma.$transaction.mockImplementation((async (callback) => {
+    if (typeof callback === "function") {
+      return callback(mockedPrisma);
+    }
+
+    return Promise.all(callback);
+  }) as typeof mockedPrisma.$transaction);
   mockedPrisma.post.create.mockResolvedValue(persistedPost);
   mockedPrisma.post.count.mockResolvedValue(1);
   mockedPrisma.post.findMany.mockResolvedValue([persistedPost]);
   mockedPrisma.post.findFirst.mockResolvedValue(persistedPost);
   mockedPrisma.post.findUnique.mockResolvedValue(persistedPost);
+  mockedPrisma.post.findUniqueOrThrow.mockResolvedValue(persistedPost);
   mockedPrisma.post.update.mockResolvedValue({
     ...persistedPost,
     content: "Updated",
-    imageUrl: "https://example.com/image.jpg",
     visibility: PostVisibility.FRIENDS,
   });
   mockedPrisma.post.delete.mockResolvedValue(persistedPost);
+  mockedPrisma.mediaAsset.deleteMany.mockResolvedValue({ count: 0 });
 
   return {
+    mediaAssetsService,
+    postImagesService,
     prisma: mockedPrisma,
-    service: new PostsService(new PaginationService()),
+    service: new PostsService(new PaginationService(), mediaAssetsService, postImagesService),
   };
 }
 
@@ -43,13 +85,12 @@ describe("PostsService", () => {
     });
 
     expect(prisma.post.create).toHaveBeenCalledWith({
+      include: expect.any(Object),
       data: {
         authorId: "user-1",
         content: "Hello world",
-        imageUrl: null,
         visibility: "PUBLIC",
       },
-      include: expect.any(Object),
     });
     expect(result).toEqual(buildPostDto());
   });
@@ -62,13 +103,69 @@ describe("PostsService", () => {
     });
 
     expect(prisma.post.create).toHaveBeenCalledWith({
+      include: expect.any(Object),
       data: {
         authorId: "user-1",
         content: "Hello world",
-        imageUrl: null,
         visibility: "PUBLIC",
       },
+    });
+  });
+
+  it("attaches uploaded images while creating a post", async () => {
+    const { mediaAssetsService, prisma, service } = createService();
+    const file = {
+      buffer: Buffer.from("image"),
+      mimetype: "image/png",
+      size: 1234,
+    } as Express.Multer.File;
+    const uploadedImage = {
+      mimeType: "image/png",
+      sizeBytes: 1234,
+      storageKey: "storage-key-1",
+      url: "https://example.com/storage-key-1.png",
+    };
+
+    mediaAssetsService.uploadPostImageFiles.mockResolvedValue([uploadedImage]);
+
+    await service.create(
+      "user-1",
+      {
+        content: "Hello world",
+      },
+      [file],
+    );
+
+    expect(mediaAssetsService.uploadPostImageFiles).toHaveBeenCalledWith("user-1", [file]);
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+    expect(prisma.post.create).toHaveBeenCalledWith({
       include: expect.any(Object),
+      data: {
+        authorId: "user-1",
+        content: "Hello world",
+        images: {
+          create: [
+            {
+              mediaAsset: {
+                create: {
+                  kind: MediaAssetKind.IMAGE,
+                  mimeType: "image/png",
+                  owner: {
+                    connect: {
+                      id: "user-1",
+                    },
+                  },
+                  sizeBytes: 1234,
+                  storageKey: "storage-key-1",
+                  url: "https://example.com/storage-key-1.png",
+                },
+              },
+              position: 0,
+            },
+          ],
+        },
+        visibility: "PUBLIC",
+      },
     });
   });
 
@@ -390,14 +487,12 @@ describe("PostsService", () => {
     const result = await service.update("user-1", "post-1", {
       content: "Updated",
       visibility: "FRIENDS",
-      imageUrl: "https://example.com/image.jpg",
     });
 
     expect(prisma.post.update).toHaveBeenCalledWith({
       data: {
         content: "Updated",
         visibility: "FRIENDS",
-        imageUrl: "https://example.com/image.jpg",
       },
       include: expect.any(Object),
       where: {
@@ -407,7 +502,7 @@ describe("PostsService", () => {
     expect(result).toMatchObject({
       content: "Updated",
       visibility: "FRIENDS",
-      imageUrl: "https://example.com/image.jpg",
+      images: [],
     });
   });
 
@@ -447,22 +542,93 @@ describe("PostsService", () => {
     });
   });
 
-  it("updates only the imageUrl", async () => {
-    const { prisma, service } = createService();
+  it("replaces images inside a transaction when image order is provided", async () => {
+    const { mediaAssetsService, postImagesService, prisma, service } = createService();
+    const removedAsset = {
+      createdAt: new Date("2026-05-05T10:00:00.000Z"),
+      id: "removed-asset-1",
+      kind: MediaAssetKind.IMAGE,
+      mimeType: "image/jpeg",
+      ownerId: "user-1",
+      sizeBytes: 1234,
+      storageKey: "removed-storage-key",
+      storageProvider: "cloudinary",
+      updatedAt: new Date("2026-05-05T10:00:00.000Z"),
+      url: "https://example.com/removed.jpg",
+    };
+    const imageOrder = [{ id: "20000000-0000-4000-8000-000000000001", type: "existing" as const }];
+
+    postImagesService.replaceImages.mockResolvedValue([removedAsset]);
 
     await service.update("user-1", "post-1", {
-      imageUrl: "https://example.com/image.jpg",
+      imageOrder,
     });
 
-    expect(prisma.post.update).toHaveBeenCalledWith({
-      data: {
-        imageUrl: "https://example.com/image.jpg",
-      },
+    expect(prisma.$transaction).toHaveBeenCalledWith(expect.any(Function));
+    expect(prisma.post.update).not.toHaveBeenCalled();
+    expect(mediaAssetsService.uploadPostImageFiles).toHaveBeenCalledWith("user-1", []);
+    expect(mediaAssetsService.createImageAssets).toHaveBeenCalledWith(prisma, "user-1", []);
+    expect(postImagesService.replaceImages).toHaveBeenCalledWith(
+      prisma,
+      "user-1",
+      "post-1",
+      imageOrder,
+      [],
+    );
+    expect(prisma.post.findUniqueOrThrow).toHaveBeenCalledWith({
       include: expect.any(Object),
       where: {
         id: "post-1",
       },
     });
+    expect(mediaAssetsService.deleteStorageFilesBestEffort).toHaveBeenCalledWith([removedAsset]);
+  });
+
+  it("updates content and replaces images in the same transaction", async () => {
+    const { postImagesService, prisma, service } = createService();
+    const imageOrder = [{ id: "20000000-0000-4000-8000-000000000001", type: "existing" as const }];
+
+    await service.update("user-1", "post-1", {
+      content: "Updated",
+      imageOrder,
+    });
+
+    expect(prisma.post.update).toHaveBeenCalledWith({
+      data: {
+        content: "Updated",
+      },
+      where: {
+        id: "post-1",
+      },
+    });
+    expect(postImagesService.replaceImages).toHaveBeenCalledWith(
+      prisma,
+      "user-1",
+      "post-1",
+      imageOrder,
+      [],
+    );
+  });
+
+  it("rejects uploaded files without image order", async () => {
+    const { mediaAssetsService, service } = createService();
+    const file = {
+      buffer: Buffer.from("image"),
+      mimetype: "image/png",
+      size: 1234,
+    } as Express.Multer.File;
+
+    await expect(
+      service.update(
+        "user-1",
+        "post-1",
+        {
+          content: "Updated",
+        },
+        [file],
+      ),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(mediaAssetsService.uploadPostImageFiles).not.toHaveBeenCalled();
   });
 
   it("rejects updates to another user's post", async () => {
@@ -492,15 +658,66 @@ describe("PostsService", () => {
   });
 
   it("deletes an owned post", async () => {
-    const { prisma, service } = createService();
+    const { mediaAssetsService, prisma, service } = createService();
 
     await service.remove("user-1", "post-1");
 
+    expect(prisma.post.findUnique).toHaveBeenLastCalledWith({
+      include: {
+        images: {
+          include: {
+            mediaAsset: true,
+          },
+        },
+      },
+      where: {
+        id: "post-1",
+      },
+    });
     expect(prisma.post.delete).toHaveBeenCalledWith({
       where: {
         id: "post-1",
       },
     });
+    expect(mediaAssetsService.deleteAssetRows).toHaveBeenCalledWith(prisma, []);
+    expect(mediaAssetsService.deleteStorageFilesBestEffort).toHaveBeenCalledWith([]);
+  });
+
+  it("deletes attached media asset rows and files when deleting a post", async () => {
+    const { mediaAssetsService, prisma, service } = createService();
+    const mediaAsset = {
+      createdAt: new Date("2026-05-05T10:00:00.000Z"),
+      id: "media-asset-1",
+      kind: MediaAssetKind.IMAGE,
+      mimeType: "image/jpeg",
+      ownerId: "user-1",
+      sizeBytes: 1234,
+      storageKey: "attached-storage-key",
+      storageProvider: "cloudinary",
+      updatedAt: new Date("2026-05-05T10:00:00.000Z"),
+      url: "https://example.com/attached.jpg",
+    };
+
+    prisma.post.findUnique
+      .mockResolvedValueOnce(persistedPost)
+      .mockResolvedValueOnce({
+        ...persistedPost,
+        images: [
+          {
+            createdAt: new Date("2026-05-05T10:00:00.000Z"),
+            id: "post-image-1",
+            mediaAsset,
+            mediaAssetId: mediaAsset.id,
+            position: 0,
+            postId: "post-1",
+          },
+        ],
+      } as never);
+
+    await service.remove("user-1", "post-1");
+
+    expect(mediaAssetsService.deleteAssetRows).toHaveBeenCalledWith(prisma, [mediaAsset]);
+    expect(mediaAssetsService.deleteStorageFilesBestEffort).toHaveBeenCalledWith([mediaAsset]);
   });
 
   it("rejects deleting another user's post", async () => {

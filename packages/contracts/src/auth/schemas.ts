@@ -3,7 +3,7 @@ import { z } from "zod";
 export const registerSchema = z.object({
   displayName: z.string().trim().min(2).max(80),
   email: z.string().trim().toLowerCase().email(),
-  password: z.string().min(8).max(72),
+  password: z.string().min(8, "Password must be at least 8 characters long").max(72),
   username: z
     .string()
     .trim()
@@ -15,7 +15,7 @@ export const registerSchema = z.object({
 
 export const loginSchema = z.object({
   email: z.string().trim().toLowerCase().email(),
-  password: z.string().min(8).max(72),
+  password: z.string().min(8, "Password must be at least 8 characters long").max(72),
 });
 
 export const refreshTokenSchema = z.object({

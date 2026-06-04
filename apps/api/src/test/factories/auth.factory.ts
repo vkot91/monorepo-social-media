@@ -9,6 +9,8 @@ export type StoredRefreshTokenRecord = RefreshToken & {
 export function buildAuthUserRecord(overrides: Partial<User> = {}): User {
   return {
     avatarUrl: null,
+    avatarMediaAssetId: null,
+    backgroundMediaAssetId: null,
     bio: null,
     createdAt: new Date("2026-05-05T10:00:00.000Z"),
     displayName: "Ada Lovelace",

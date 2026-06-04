@@ -1,9 +1,7 @@
 import type {
-  CreatePostInput,
   ListPostsQueryInput,
   PaginatedPostsDto,
   PostDto,
-  UpdatePostInput,
 } from "@social/contracts";
 
 import type { ApiRoute } from "#/shared/lib/api/types";
@@ -15,7 +13,7 @@ export type PostsBackendApiRoutes = {
       response: PaginatedPostsDto;
     }>;
     POST: ApiRoute<{
-      body: CreatePostInput;
+      body: FormData;
       response: PostDto;
     }>;
   };
@@ -27,7 +25,7 @@ export type PostsBackendApiRoutes = {
       response: null;
     }>;
     PATCH: ApiRoute<{
-      body: UpdatePostInput;
+      body: FormData;
       params: {
         id: string;
       };
@@ -43,7 +41,7 @@ export type PostsBffApiRoutes = {
       response: PaginatedPostsDto;
     }>;
     POST: ApiRoute<{
-      body: CreatePostInput;
+      body: FormData;
       response: PostDto;
     }>;
   };
@@ -55,7 +53,7 @@ export type PostsBffApiRoutes = {
       response: null;
     }>;
     PATCH: ApiRoute<{
-      body: UpdatePostInput;
+      body: FormData;
       params: {
         id: string;
       };
