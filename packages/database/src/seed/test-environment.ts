@@ -1,7 +1,7 @@
 import { prisma } from "../client";
 import { PostVisibility, type PrismaClient } from "../generated/prisma/client";
-import { testPosts } from "./posts.seed";
-import { testUsers } from "./users.seed";
+import { testPosts } from "./post.seed";
+import { testUsers } from "./user.seed";
 
 const passwordHash = "$2b$10$iUCaPH6R8EJ0O6.GzZmPEO93OjzZQtxBlMnlMXaJmuwfCqiADzSiS";
 

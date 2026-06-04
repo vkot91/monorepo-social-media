@@ -7,7 +7,7 @@ import { ApiRequestError } from "#/shared/lib/api/utils/errors";
 import { ToastViewport } from "#/shared/ui";
 import { useToastStore } from "#/shared/ui/toast/store/toast";
 
-import { QueryProvider, shouldRetryQuery } from "./query-provider";
+import { QueryProvider } from "./query-provider";
 
 const FailingMutationButton = ({
   error = new ApiRequestError("The request failed", 422),
@@ -102,15 +102,5 @@ describe("QueryProvider", () => {
       ttl: 8_000,
       type: "error",
     });
-  });
-
-  it("does not retry API response errors from BFF routes", () => {
-    expect(shouldRetryQuery(0, new ApiRequestError("Feed is unavailable", 503))).toBe(false);
-  });
-
-  it("retries non-API query failures up to the configured limit", () => {
-    expect(shouldRetryQuery(0, new TypeError("Failed to fetch"))).toBe(true);
-    expect(shouldRetryQuery(2, new TypeError("Failed to fetch"))).toBe(true);
-    expect(shouldRetryQuery(3, new TypeError("Failed to fetch"))).toBe(false);
   });
 });

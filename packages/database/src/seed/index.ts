@@ -1,3 +1,4 @@
-export * from "./posts.seed";
+export * from "./development-environment";
+export * from "./post.seed";
 export * from "./test-environment";
-export * from "./users.seed";
+export * from "./user.seed";

@@ -5,7 +5,9 @@ export type PrismaMock = DeepMockProxy<PrismaClient>;
 
 const prismaMockImplementation = {
   friendship: mockDeep<PrismaClient["friendship"]>(),
+  mediaAsset: mockDeep<PrismaClient["mediaAsset"]>(),
   post: mockDeep<PrismaClient["post"]>(),
+  postImage: mockDeep<PrismaClient["postImage"]>(),
   refreshToken: mockDeep<PrismaClient["refreshToken"]>(),
   user: mockDeep<PrismaClient["user"]>(),
   userBlock: mockDeep<PrismaClient["userBlock"]>(),

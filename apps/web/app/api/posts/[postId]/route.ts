@@ -1,8 +1,7 @@
-import { updatePostSchema } from "@social/contracts";
 import { NextResponse } from "next/server";
 
 import { backendClient } from "#/shared/lib/api/api-client/backend-client";
-import { apiErrorResponse, parseJsonBody, zodValidationErrorResponse } from "#/shared/lib/api/api-client/route-handler";
+import { apiErrorResponse } from "#/shared/lib/api/api-client/route-handler";
 
 type PostRouteContext = {
   params: Promise<{
@@ -12,16 +11,11 @@ type PostRouteContext = {
 
 export const PATCH = async (request: Request, context: PostRouteContext) => {
   const { postId } = await context.params;
-  const input = updatePostSchema.safeParse(await parseJsonBody(request));
-
-  if (!input.success) {
-    return zodValidationErrorResponse("Please check your post and try again.", input.error);
-  }
 
   try {
     return NextResponse.json(
       await backendClient("/posts/{id}", "PATCH", {
-        body: input.data,
+        body: await request.formData(),
         params: {
           id: postId,
         },

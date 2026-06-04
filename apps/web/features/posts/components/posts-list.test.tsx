@@ -44,7 +44,7 @@ const post: PostDto = {
   content: "Planning a weekend photo walk downtown.",
   createdAt: "2026-05-07T10:00:00.000Z",
   id: "post-1",
-  imageUrl: null,
+  images: [],
   updatedAt: "2026-05-07T10:00:00.000Z",
   visibility: "PUBLIC",
 };
@@ -122,7 +122,7 @@ describe("PostsList", () => {
             content: "Planning a weekend photo walk downtown.",
             createdAt: "2026-05-07T10:00:00.000Z",
             id: "post-1",
-            imageUrl: null,
+            images: [],
             updatedAt: "2026-05-07T10:00:00.000Z",
             visibility: "PUBLIC",
           },
@@ -146,7 +146,7 @@ describe("PostsList", () => {
             content: "Second page post.",
             createdAt: "2026-05-06T10:00:00.000Z",
             id: "post-2",
-            imageUrl: null,
+            images: [],
             updatedAt: "2026-05-06T10:00:00.000Z",
             visibility: "PUBLIC",
           },
@@ -204,8 +204,49 @@ describe("PostsList", () => {
     expect(screen.getByText(/feed service is down/i)).toBeInTheDocument();
   });
 
-  it("keeps a masked pending post while the created post is refreshing into the feed", async () => {
+  it("does not refetch the active feed immediately when post creation fails", async () => {
+    vi.mocked(bffClient)
+      .mockResolvedValueOnce(postsPage())
+      .mockRejectedValueOnce(new ApiRequestError("Post creation is unavailable right now.", 500));
+
+    renderWithClient(
+      <>
+        <CreatePostForm />
+        <PostsList feedType="all" />
+      </>,
+    );
+
+    expect(await screen.findByText(/planning a weekend photo walk/i)).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText(/create post/i), {
+      target: {
+        value: "Post while server is down.",
+      },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /^post$/i }));
+
+    expect(await screen.findByText("Post creation is unavailable right now.")).toBeInTheDocument();
+    expect(bffClient).toHaveBeenCalledTimes(2);
+    expect(bffClient).toHaveBeenNthCalledWith(1, "/api/posts", "GET", {
+      queryParams: {
+        feed: "all",
+        mode: "cursor",
+      },
+    });
+    expect(bffClient).toHaveBeenNthCalledWith(2, "/api/posts", "POST", {
+      body: expect.any(FormData),
+    });
+  });
+
+  it("shows the cached created post while the feed refresh continues", async () => {
     let resolveCreate: (value: PostDto) => void = () => undefined;
+    const createdFeedPost: PostDto = {
+      ...post,
+      content: "Post that is still being created.",
+      createdAt: "2026-05-08T10:00:00.000Z",
+      id: "post-2",
+      updatedAt: "2026-05-08T10:00:00.000Z",
+    };
 
     vi.mocked(bffClient)
       .mockResolvedValueOnce(postsPage())
@@ -235,10 +276,11 @@ describe("PostsList", () => {
     await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Posting post..."));
 
     await act(async () => {
-      resolveCreate(post);
+      resolveCreate(createdFeedPost);
     });
 
     await waitFor(() => expect(screen.getByRole("button", { name: /^post$/i })).not.toHaveAttribute("aria-busy"));
-    expect(screen.getByRole("status")).toHaveTextContent("Posting post...");
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+    expect(screen.getByText("Post that is still being created.")).toBeInTheDocument();
   });
 });

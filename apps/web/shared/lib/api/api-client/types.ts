@@ -7,12 +7,16 @@ export type ApiMethod = "DELETE" | "GET" | "PATCH" | "POST" | "PUT";
 
 export type QueryValue = boolean | number | string | null | undefined;
 
+// Aggregate route maps — add new feature routes here as the app grows.
 export type BackendApiRoutes = AuthBackendApiRoutes & PostsBackendApiRoutes;
 export type BffApiRoutes = AuthBffApiRoutes & PostsBffApiRoutes;
 
 export type ApiRoutes = BffApiRoutes | BackendApiRoutes;
 
+// --- Path / method helpers ---
+
 export type ApiPath<TRoutes extends ApiRoutes> = Extract<keyof TRoutes, string>;
+
 export type MethodFor<TRoutes extends ApiRoutes, TPath extends ApiPath<TRoutes>> = Extract<
   keyof TRoutes[TPath],
   ApiMethod
@@ -23,6 +27,10 @@ export type RouteConfig<
   TPath extends ApiPath<TRoutes>,
   TMethod extends MethodFor<TRoutes, TPath>,
 > = TRoutes[TPath][TMethod];
+
+export type RouteResponse<TRoute> = TRoute extends ApiRoute<{ response: infer TResponse }> ? TResponse : never;
+
+// --- Request option helpers ---
 
 export type RetryOptions = {
   attempts?: number;
@@ -53,10 +61,7 @@ export type ParamsOption<TRoute> =
     : { params?: never };
 
 export type QueryParamsOption<TRoute> =
-  TRoute extends ApiRoute<{
-    queryParams: infer TQuery extends object;
-    response: unknown;
-  }>
+  TRoute extends ApiRoute<{ queryParams: infer TQuery extends object; response: unknown }>
     ? { queryParams: TQuery }
     : { queryParams?: never };
 
@@ -66,31 +71,30 @@ export type RequestOptions<TRoute> = BaseRequestOptions &
   ParamsOption<TRoute> &
   QueryParamsOption<TRoute>;
 
-export type NoExtraKeys<TExpected, TActual> = TActual & Record<Exclude<keyof TActual, keyof TExpected>, never>;
+// --- Strict option helpers (forbid extra keys) ---
 
-export type StrictBodyOption<TRoute, TOptions> =
+type NoExtraKeys<TExpected, TActual> = TActual & Record<Exclude<keyof TActual, keyof TExpected>, never>;
+
+type StrictBodyOption<TRoute, TOptions> =
   TRoute extends ApiRoute<{ body: infer TBody; response: unknown }>
     ? TOptions extends { body: infer TActualBody }
       ? { body: NoExtraKeys<TBody, TActualBody> }
       : { body: TBody }
     : { body?: never };
 
-export type StrictQueryParamsOption<TRoute, TOptions> =
-  TRoute extends ApiRoute<{
-    queryParams: infer TQuery extends object;
-    response: unknown;
-  }>
-    ? TOptions extends { queryParams: infer TActualQueryParams }
-      ? { queryParams: NoExtraKeys<TQuery, TActualQueryParams> }
-      : { queryParams: TQuery }
-    : { queryParams?: never };
-
-export type StrictParamsOption<TRoute, TOptions> =
+type StrictParamsOption<TRoute, TOptions> =
   TRoute extends ApiRoute<{ params: infer TParams extends object; response: unknown }>
     ? TOptions extends { params: infer TActualParams }
       ? { params: NoExtraKeys<TParams, TActualParams> }
       : { params: TParams }
     : { params?: never };
+
+type StrictQueryParamsOption<TRoute, TOptions> =
+  TRoute extends ApiRoute<{ queryParams: infer TQuery extends object; response: unknown }>
+    ? TOptions extends { queryParams: infer TActualQueryParams }
+      ? { queryParams: NoExtraKeys<TQuery, TActualQueryParams> }
+      : { queryParams: TQuery }
+    : { queryParams?: never };
 
 export type StrictRequestOptions<TRoute, TOptions> = NoExtraKeys<RequestOptions<TRoute>, TOptions> &
   Omit<RequestOptions<TRoute>, "body" | "params" | "queryParams"> &
@@ -98,12 +102,7 @@ export type StrictRequestOptions<TRoute, TOptions> = NoExtraKeys<RequestOptions<
   StrictParamsOption<TRoute, TOptions> &
   StrictQueryParamsOption<TRoute, TOptions>;
 
-export type RouteResponse<TRoute> = TRoute extends ApiRoute<{ response: infer TResponse }> ? TResponse : never;
-
-export type ApiClientOptions = {
-  origin: "bff" | "backend";
-  resolveAccessToken?: () => Promise<string | null>;
-};
+// --- Client signature ---
 
 export type ApiClient<TRoutes extends ApiRoutes> = <
   const TPath extends ApiPath<TRoutes>,

@@ -1,29 +1,16 @@
 "use client";
 
-import { zodResolver } from "@hookform/resolvers/zod";
-import { type PostDto, type UpdatePostInput, updatePostSchema } from "@social/contracts";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import type { PostDto } from "@social/contracts";
 import { Ellipsis, Pencil, Trash2 } from "lucide-react";
-import { useId } from "react";
-import { useForm } from "react-hook-form";
 
 import { useUser } from "#/features/auth/api/queries";
 import { useDisclosure } from "#/shared/hooks/use-disclosure";
-import { ApiRequestError } from "#/shared/lib/api/utils/errors";
-import { Button, Card, DropdownMenu, Modal } from "#/shared/ui";
-import { FieldError, TextArea } from "#/shared/ui/form";
-import { type AddToastOptions, useToastStore } from "#/shared/ui/toast/store/toast";
+import { Card, DropdownMenu } from "#/shared/ui";
+import { useToastStore } from "#/shared/ui/toast/store/toast";
 
-import {
-  getOptimisticPost,
-  type PostsInfiniteData,
-  type PostsSnapshot,
-  removePostFromInfiniteData,
-  restorePostsSnapshot,
-  updatePostInInfiniteData,
-} from "../api/helpers/cache";
-import { deletePost, updatePost } from "../api/mutations";
-import { postsKeys } from "../api/routes";
+import { DeletePostModal } from "./delete-post-modal";
+import { EditPostModal } from "./edit-post-modal";
+import { PostImageGallery } from "./post-images";
 
 type PostCardProps = {
   post: PostDto;
@@ -69,181 +56,23 @@ export const PostCard = ({ post }: PostCardProps) => {
         ) : null}
       </div>
       <p>{post.content}</p>
-      <EditPostModal
-        addToast={toastStore.addToast}
-        onOpenChange={editModal.onOpenChange}
-        open={editModal.isOpen}
-        post={post}
-      />
-      <DeletePostModal
-        addToast={toastStore.addToast}
-        onOpenChange={deleteModal.onOpenChange}
-        open={deleteModal.isOpen}
-        post={post}
-      />
-    </Card>
-  );
-};
-
-type PostModalProps = {
-  onOpenChange: (open: boolean) => void;
-  open: boolean;
-  post: PostDto;
-  addToast: (toast: AddToastOptions) => string;
-};
-
-const EditPostModal = ({ onOpenChange, open, post, addToast }: PostModalProps) => {
-  const formId = useId();
-  const queryClient = useQueryClient();
-
-  const {
-    formState: { errors, isSubmitting },
-    handleSubmit,
-    register,
-    setError,
-  } = useForm<UpdatePostInput>({
-    defaultValues: {
-      content: post.content,
-    },
-    mode: "onTouched",
-    resolver: zodResolver(updatePostSchema),
-  });
-
-  const updatePostMutation = useMutation<PostDto, Error, { input: UpdatePostInput; postId: string }, PostsSnapshot>({
-    mutationFn: updatePost,
-
-    onMutate: async ({ input }) => {
-      await queryClient.cancelQueries({ queryKey: postsKeys.infiniteFeedRoot });
-
-      const previousPosts = queryClient.getQueriesData<PostsInfiniteData>({
-        queryKey: postsKeys.infiniteFeedRoot,
-      });
-      const optimisticPost = getOptimisticPost(post, input);
-
-      queryClient.setQueriesData<PostsInfiniteData>({ queryKey: postsKeys.infiniteFeedRoot }, (data) =>
-        updatePostInInfiniteData(data, optimisticPost),
-      );
-
-      return previousPosts;
-    },
-    onError: (error, _variables, previousPosts) => {
-      restorePostsSnapshot(queryClient, previousPosts);
-
-      if (error instanceof ApiRequestError) {
-        const message = error.errors.content?.[0];
-
-        if (message) {
-          setError("content", {
-            message,
-          });
-        }
-      }
-    },
-    onSuccess: () => {
-      addToast({ type: "success", description: "Post was successfully updated" });
-    },
-    onSettled: () => {
-      onOpenChange(false);
-      queryClient.invalidateQueries({ queryKey: postsKeys.infiniteFeedRoot });
-    },
-  });
-
-  const contentError = errors.content?.message;
-  const formError = updatePostMutation?.error;
-  const onSubmit = (values: UpdatePostInput) => {
-    updatePostMutation.mutate({
-      input: {
-        content: values.content,
-      },
-      postId: post.id,
-    });
-  };
-
-  return (
-    <Modal
-      description="Update the content of your post."
-      footer={
-        <>
-          <Button onClick={() => onOpenChange(false)} variant="secondary">
-            Cancel
-          </Button>
-          <Button form={formId} loading={isSubmitting || updatePostMutation.isPending} type="submit">
-            Save changes
-          </Button>
-        </>
-      }
-      onOpenChange={onOpenChange}
-      open={open}
-      title="Edit post"
-    >
-      <form className="grid gap-4" id={formId} onSubmit={handleSubmit(onSubmit)}>
-        <TextArea
-          invalid={!!contentError}
-          minRows={4}
-          aria-label="Post content"
-          radius="xl"
-          variant="bordered"
-          {...register("content")}
+      <PostImageGallery images={post.images} />
+      {editModal.isOpen ? (
+        <EditPostModal
+          addToast={toastStore.addToast}
+          onOpenChange={editModal.onOpenChange}
+          open={editModal.isOpen}
+          post={post}
         />
-        <FieldError message={contentError || formError?.message} />
-      </form>
-    </Modal>
-  );
-};
-
-const DeletePostModal = ({ onOpenChange, open, post, addToast }: PostModalProps) => {
-  const queryClient = useQueryClient();
-
-  const deletePostMutation = useMutation<null, Error, string, PostsSnapshot>({
-    mutationFn: deletePost,
-    onMutate: async (postId) => {
-      await queryClient.cancelQueries({ queryKey: postsKeys.infiniteFeedRoot });
-
-      const previousPosts = queryClient.getQueriesData<PostsInfiniteData>({
-        queryKey: postsKeys.infiniteFeedRoot,
-      });
-
-      queryClient.setQueriesData<PostsInfiniteData>({ queryKey: postsKeys.infiniteFeedRoot }, (data) =>
-        removePostFromInfiniteData(data, postId),
-      );
-
-      return previousPosts;
-    },
-    onError: (_error, _postId, previousPosts) => {
-      restorePostsSnapshot(queryClient, previousPosts);
-    },
-    onSuccess: () => {
-      addToast({ type: "success", description: "Post was successfully removed" });
-    },
-    onSettled: () => {
-      onOpenChange(false);
-      queryClient.invalidateQueries({ queryKey: postsKeys.infiniteFeedRoot });
-    },
-  });
-
-  return (
-    <Modal
-      description="This action cannot be undone."
-      footer={
-        <>
-          <Button onClick={() => onOpenChange(false)} variant="secondary">
-            Cancel
-          </Button>
-          <Button
-            loading={deletePostMutation.isPending}
-            onClick={() => deletePostMutation.mutate(post.id)}
-            variant="danger"
-          >
-            Remove post
-          </Button>
-        </>
-      }
-      onOpenChange={onOpenChange}
-      open={open}
-      title="Remove post?"
-    >
-      <p className="m-0 text-muted-text">Remove this post from the feed?</p>
-      <FieldError message={deletePostMutation.error?.message} />
-    </Modal>
+      ) : null}
+      {deleteModal.isOpen ? (
+        <DeletePostModal
+          addToast={toastStore.addToast}
+          onOpenChange={deleteModal.onOpenChange}
+          open={deleteModal.isOpen}
+          post={post}
+        />
+      ) : null}
+    </Card>
   );
 };

@@ -3,7 +3,7 @@
   "compilerOptions": {
     "outDir": "./dist",
     "strictNullChecks": true,
-    "types": ["node", "jest"],
+    "types": ["node", "jest", "multer"],
     "paths": {
       "#modules/*": ["./src/modules/*"],
       "#config/*": ["./src/config/*"],

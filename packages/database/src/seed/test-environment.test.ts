@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { PostVisibility, type PrismaClient } from "../generated/prisma/client";
-import { testPosts } from "./posts.seed";
-import { testUsers } from "./users.seed";
+import { testPosts } from "./post.seed";
+import { testUsers } from "./user.seed";
 
 const prismaMock = vi.hoisted(() => ({
   $executeRawUnsafe: vi.fn(),

@@ -23,7 +23,7 @@ async function request<TBody = unknown>(path: string, init: RequestInit = {}): P
   const response = await fetch(`${baseUrl}${path}`, {
     ...init,
     headers: {
-      ...(init.body ? { "content-type": "application/json" } : {}),
+      ...(typeof init.body === "string" ? { "content-type": "application/json" } : {}),
       ...init.headers,
     },
   });
@@ -35,7 +35,7 @@ async function request<TBody = unknown>(path: string, init: RequestInit = {}): P
   };
 }
 
-async function login(email = testUsers.login.email, password = "password123") {
+async function login(email: string = testUsers.login.email, password = "password123") {
   const { body, response } = await request<{ accessToken: string; refreshToken: string }>("/auth/login", {
     body: JSON.stringify({ email, password }),
     method: "POST",
@@ -221,10 +221,11 @@ describe("API e2e", () => {
       },
     });
 
+    const formData = new FormData();
+    formData.append("content", testPosts.createdPost.content);
+
     const createdPost = await request<{ content: string }>("/posts", {
-      body: JSON.stringify({
-        content: testPosts.createdPost.content,
-      }),
+      body: formData,
       headers: authHeaders,
       method: "POST",
     });
@@ -248,12 +249,12 @@ describe("API e2e", () => {
     const authHeaders = {
       authorization: `Bearer ${accessToken}`,
     };
+    const formData = new FormData();
+    formData.append("content", "Updated from an e2e test.");
+    formData.append("visibility", "PUBLIC");
+
     const updatedPost = await request<PostDto>(`/posts/${testPosts.mayaFeed.id}`, {
-      body: JSON.stringify({
-        content: "Updated from an e2e test.",
-        imageUrl: "https://example.com/updated-post.jpg",
-        visibility: "PUBLIC",
-      }),
+      body: formData,
       headers: authHeaders,
       method: "PATCH",
     });
@@ -266,19 +267,27 @@ describe("API e2e", () => {
       }),
       content: "Updated from an e2e test.",
       id: testPosts.mayaFeed.id,
-      imageUrl: "https://example.com/updated-post.jpg",
       visibility: "PUBLIC",
     });
 
     await expect(
       prisma.post.findUnique({
+        include: {
+          images: {
+            include: {
+              mediaAsset: true,
+            },
+            orderBy: {
+              position: "asc",
+            },
+          },
+        },
         where: {
           id: testPosts.mayaFeed.id,
         },
       }),
     ).resolves.toMatchObject({
       content: "Updated from an e2e test.",
-      imageUrl: "https://example.com/updated-post.jpg",
       visibility: "PUBLIC",
     });
   });
@@ -288,10 +297,11 @@ describe("API e2e", () => {
     const authHeaders = {
       authorization: `Bearer ${accessToken}`,
     };
+    const formData = new FormData();
+    formData.append("content", "Temporary post for delete coverage.");
+
     const createdPost = await request<PostDto>("/posts", {
-      body: JSON.stringify({
-        content: "Temporary post for delete coverage.",
-      }),
+      body: formData,
       headers: authHeaders,
       method: "POST",
     });
@@ -312,6 +322,73 @@ describe("API e2e", () => {
         },
       }),
     ).resolves.toBeNull();
+  });
+
+  it("refreshes tokens using a valid refresh token", async () => {
+    const { refreshToken } = await login();
+    const { body, response } = await request<{ accessToken: string; refreshToken: string }>("/auth/refresh", {
+      body: JSON.stringify({ refreshToken }),
+      method: "POST",
+    });
+
+    expect(response.status).toBe(200);
+    expect(body.accessToken).toEqual(expect.any(String));
+    expect(body.refreshToken).toEqual(expect.any(String));
+  });
+
+  it("rejects refresh requests with an invalid token", async () => {
+    const { response } = await request<{ message: string }>("/auth/refresh", {
+      body: JSON.stringify({ refreshToken: "not-a-valid-token" }),
+      method: "POST",
+    });
+
+    expect(response.status).toBe(401);
+  });
+
+  it("logs out and invalidates the refresh token", async () => {
+    const { accessToken, refreshToken } = await login();
+    const authHeaders = { authorization: `Bearer ${accessToken}` };
+
+    const logoutResponse = await request("/auth/logout", {
+      body: JSON.stringify({ refreshToken }),
+      headers: authHeaders,
+      method: "POST",
+    });
+
+    expect(logoutResponse.response.status).toBe(204);
+
+    const secondRefresh = await request("/auth/refresh", {
+      body: JSON.stringify({ refreshToken }),
+      method: "POST",
+    });
+
+    expect(secondRefresh.response.status).toBe(401);
+  });
+
+  it("sends and accepts a friendship request", async () => {
+    const senderTokens = await login(testUsers.login.email);
+    const receiverTokens = await login(testUsers.empty.email);
+    const senderHeaders = { authorization: `Bearer ${senderTokens.accessToken}` };
+    const receiverHeaders = { authorization: `Bearer ${receiverTokens.accessToken}` };
+
+    const sendResponse = await request<{ id: string; status: string }>("/friendships/requests", {
+      body: JSON.stringify({ targetUserId: testUsers.empty.id }),
+      headers: senderHeaders,
+      method: "POST",
+    });
+
+    expect(sendResponse.response.status).toBe(201);
+    expect(sendResponse.body.status).toBe("PENDING");
+
+    const friendshipId = sendResponse.body.id;
+    const acceptResponse = await request<{ id: string; status: string }>(`/friendships/requests/${friendshipId}`, {
+      body: JSON.stringify({ status: "ACCEPTED" }),
+      headers: receiverHeaders,
+      method: "PATCH",
+    });
+
+    expect(acceptResponse.response.status).toBe(200);
+    expect(acceptResponse.body.status).toBe("ACCEPTED");
   });
 
   it("rejects edits and removals from non-authors", async () => {

@@ -29,10 +29,11 @@ describe("PostsController", () => {
       content: "Hello world",
       visibility: "PUBLIC" as const,
     };
+    const files: Express.Multer.File[] = [];
 
-    await controller.create(user, dto);
+    await controller.create(user, dto, files);
 
-    expect(postsService.create).toHaveBeenCalledWith("user-1", dto);
+    expect(postsService.create).toHaveBeenCalledWith("user-1", dto, files);
   });
 
   it("delegates post listing with query params for the authenticated user", async () => {
@@ -56,10 +57,11 @@ describe("PostsController", () => {
       content: "Updated",
       visibility: "FRIENDS" as const,
     };
+    const files: Express.Multer.File[] = [];
 
-    await controller.update(user, "post-1", dto);
+    await controller.update(user, "post-1", dto, files);
 
-    expect(postsService.update).toHaveBeenCalledWith("user-1", "post-1", dto);
+    expect(postsService.update).toHaveBeenCalledWith("user-1", "post-1", dto, files);
   });
 
   it("delegates deletion for the authenticated user", async () => {

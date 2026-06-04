@@ -48,7 +48,6 @@ export async function proxy(request: NextRequest) {
   const isRequestForAuthPage = isAuthPage(request.nextUrl.pathname);
   const accessToken = request.cookies.get(accessTokenCookieName)?.value ?? null;
   const refreshToken = request.cookies.get(refreshTokenCookieName)?.value ?? null;
-
   if (!refreshToken) {
     return isRequestForAuthPage ? NextResponse.next() : redirectToLogin(request);
   }

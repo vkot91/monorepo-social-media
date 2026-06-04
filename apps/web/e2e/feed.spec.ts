@@ -14,7 +14,7 @@ const buildPost = (post: (typeof testPosts.mayaFeedPage)[number]) => ({
   content: post.content,
   createdAt: post.createdAt,
   id: post.id,
-  imageUrl: null,
+  images: [],
   updatedAt: post.createdAt,
   visibility: "FRIENDS",
 });
@@ -124,6 +124,32 @@ test.describe("feed page", () => {
 
     await expect(page.getByRole("heading", { name: "No posts yet" })).toBeVisible();
     await expect(page.getByText("This placeholder is ready for the feed")).toBeVisible();
+  });
+
+  test("creates a new post and shows it at the top of the feed", async ({ context, page, baseURL }) => {
+    await authenticate(context, baseURL!, "posts");
+
+    await page.goto("/feed");
+
+    await page.getByLabel("Create post").fill("Brand new post from the e2e test.");
+    await page.getByRole("button", { name: "Post", exact: true }).click();
+
+    await expect(page.getByText("Brand new post from the e2e test.", { exact: true })).toBeVisible();
+    await expect(page.getByRole("list", { name: "top right notifications" }).getByRole("status")).toContainText(
+      "Post was successfully created",
+    );
+    await expect
+      .poll(async () => {
+        const post = await prisma.post.findFirst({
+          where: {
+            authorId: testUsers.login.id,
+            content: "Brand new post from the e2e test.",
+          },
+        });
+
+        return post?.content;
+      })
+      .toBe("Brand new post from the e2e test.");
   });
 
   test("shows an error toast when post creation fails", async ({ context, page, baseURL }) => {

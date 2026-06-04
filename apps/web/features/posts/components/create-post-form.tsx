@@ -10,21 +10,23 @@ import { ApiRequestError } from "#/shared/lib/api/utils/errors";
 import { Button } from "#/shared/ui/button";
 import { FieldError, FormCard, TextArea } from "#/shared/ui/form";
 
-import { createPost } from "../api/mutations";
+import { addPostToInfiniteData, type PostsInfiniteData } from "../api/helpers/cache";
+import { createPost, type CreatePostMutationInput } from "../api/mutations";
 import { postMutationKeys, postsKeys } from "../api/routes";
+import { type ManagedPostImage, PostImageManager } from "./post-images";
 
 const createPostDefaultValues: CreatePostInput = {
   content: "",
-  imageUrl: null,
   visibility: "PUBLIC",
 };
 
 export const CreatePostForm = () => {
+  const [images, setImages] = useState<ManagedPostImage[]>([]);
   const [isCreateRequestPending, setIsCreateRequestPending] = useState(false);
   const queryClient = useQueryClient();
 
   const {
-    formState: { errors },
+    formState: { errors, isDirty },
     handleSubmit,
     register,
     reset,
@@ -35,7 +37,7 @@ export const CreatePostForm = () => {
     resolver: zodResolver(createPostSchema),
   });
 
-  const createPostMutation = useMutation<PostDto, Error, CreatePostInput>({
+  const createPostMutation = useMutation<PostDto, Error, CreatePostMutationInput>({
     mutationKey: postMutationKeys.create,
     mutationFn: createPost,
     onMutate: () => {
@@ -43,7 +45,10 @@ export const CreatePostForm = () => {
     },
     onError: (error, values) => {
       setIsCreateRequestPending(false);
-      reset(values);
+      reset({
+        content: values.content,
+        visibility: values.visibility,
+      });
 
       if (error instanceof ApiRequestError) {
         const message = error.errors.content?.[0];
@@ -55,20 +60,31 @@ export const CreatePostForm = () => {
         }
       }
     },
-    onSuccess() {
+    onSuccess(createdPost) {
       setIsCreateRequestPending(false);
+      queryClient.setQueriesData<PostsInfiniteData>({ queryKey: postsKeys.infiniteFeedRoot }, (data) =>
+        addPostToInfiniteData(data, createdPost),
+      );
       reset(createPostDefaultValues);
+      setImages([]);
     },
-    onSettled() {
-      return queryClient.invalidateQueries({ queryKey: postsKeys.infiniteFeedRoot });
+    onSettled(_createdPost, error) {
+      void queryClient.invalidateQueries({
+        queryKey: postsKeys.infiniteFeedRoot,
+        refetchType: error ? "none" : "active",
+      });
     },
   });
 
   const contentError = errors.content?.message;
   const formError = createPostMutation.error instanceof ApiRequestError ? createPostMutation.error.message : undefined;
+  const hasImages = images.length > 0;
 
   const onSubmit = (values: CreatePostInput) => {
-    createPostMutation.mutate(values);
+    createPostMutation.mutate({
+      ...values,
+      images: images.filter((image) => image.kind === "local").map((image) => image.file),
+    });
   };
 
   return (
@@ -83,9 +99,10 @@ export const CreatePostForm = () => {
         {...register("content")}
       />
       <FieldError message={contentError} />
+      <PostImageManager disabled={isCreateRequestPending} images={images} onChange={setImages} />
       <FieldError message={formError} />
       <div className="text-right">
-        <Button loading={isCreateRequestPending} type="submit">
+        <Button disabled={!isDirty && !hasImages} loading={isCreateRequestPending} type="submit">
           Post
         </Button>
       </div>

@@ -11,7 +11,7 @@ import { catchError, timeout } from "rxjs/operators";
 
 import { REQUEST_TIMEOUT_KEY } from "#common/decorators/request-timeout.decorator";
 
-export const DEFAULT_REQUEST_TIMEOUT_MS = 5_000;
+export const DEFAULT_REQUEST_TIMEOUT_MS = 10_000;
 
 @Injectable()
 export class TimeoutInterceptor implements NestInterceptor {

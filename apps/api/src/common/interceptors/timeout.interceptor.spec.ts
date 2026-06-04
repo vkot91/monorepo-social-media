@@ -44,15 +44,15 @@ describe("TimeoutInterceptor", () => {
   });
 
   it("uses a route override when one exists", async () => {
-    reflector.get.mockReturnValue(5);
+    reflector.get.mockReturnValue(10);
     const next = {
-      handle: () => timer(6).pipe(map(() => "late")),
+      handle: () => timer(11).pipe(map(() => "late")),
     } as CallHandler;
 
     const result = expect(firstValueFrom(interceptor.intercept(createContext(handler), next))).rejects.toBeInstanceOf(
       GatewayTimeoutException,
     );
-    await jest.advanceTimersByTimeAsync(6);
+    await jest.advanceTimersByTimeAsync(11);
 
     await result;
   });
