@@ -85,4 +85,9 @@ describe("PresenceService", () => {
     expect(expireCalls).toContainEqual(["presence:u1", PRESENCE_TTL_SECONDS]);
     expect(expireCalls.filter(([key]) => key === "presence:u1")).toHaveLength(2);
   });
+
+  it("closes the Redis connection on module destroy", async () => {
+    const service = new PresenceService();
+    await expect(service.onModuleDestroy()).resolves.not.toThrow();
+  });
 });

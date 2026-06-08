@@ -54,4 +54,9 @@ describe("ConversationMembershipService", () => {
     await expect(service.getParticipantIds("missing")).resolves.toEqual([]);
     expect(redisSet).not.toHaveBeenCalled();
   });
+
+  it("closes the Redis connection on module destroy", async () => {
+    const service = new ConversationMembershipService();
+    await expect(service.onModuleDestroy()).resolves.not.toThrow();
+  });
 });
