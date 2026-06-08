@@ -8,7 +8,9 @@
       "#modules/*": ["./src/modules/*"],
       "#config/*": ["./src/config/*"],
       "#common/*": ["./src/common/*"],
-      "#test/*": ["./src/test/*"]
+      "#test/*": ["./src/test/*"],
+      "#e2e/*": ["./e2e/*"]
     }
-  }
+  },
+  "include": ["src", "e2e", "*.ts"]
 }

@@ -5,6 +5,7 @@ import { HttpExceptionFilter } from "./common/filters/http-exception.filter";
 import { RequestLoggingInterceptor } from "./common/interceptors/request-logging.interceptor";
 import { TimeoutInterceptor } from "./common/interceptors/timeout.interceptor";
 import { LoggingService } from "./common/logging/logging.service";
+import { RedisIoAdapter } from "./common/realtime/redis-io.adapter";
 import { env } from "./config/env";
 
 export async function bootstrap() {
@@ -20,6 +21,10 @@ export async function bootstrap() {
     credentials: true,
     origin: env.CORS_ORIGIN,
   });
+
+  const redisIoAdapter = new RedisIoAdapter(app);
+  await redisIoAdapter.connectToRedis();
+  app.useWebSocketAdapter(redisIoAdapter);
 
   await app.listen(env.PORT);
   return app;

@@ -76,9 +76,6 @@ jobs:
         if: github.event_name == 'pull_request'
         run: git fetch origin ${{ github.base_ref }}:refs/remotes/origin/${{ github.base_ref }}
 
-      - name: Generate Prisma client
-        run: pnpm --filter @social/database db:generate
-
       - name: Install Playwright browser
         run: pnpm --filter @social/web exec playwright install --with-deps chromium
 

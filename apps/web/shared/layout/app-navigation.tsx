@@ -1,6 +1,9 @@
 "use client";
 
+import { useQuery } from "@tanstack/react-query";
 import { Home, MessageCircle, Settings, User, Users } from "lucide-react";
+
+import { conversationsQueryOptions } from "#/features/messaging/api/queries";
 
 import { NavigationLink } from "./navigation-link";
 
@@ -37,6 +40,9 @@ type AppNavigationProps = {
 };
 
 export function AppNavigation({ layout }: AppNavigationProps) {
+  const { data: conversations } = useQuery(conversationsQueryOptions());
+  const totalUnread = conversations?.reduce((sum, conversation) => sum + conversation.unreadCount, 0) ?? 0;
+
   return (
     <nav
       aria-label="Primary navigation"
@@ -48,6 +54,7 @@ export function AppNavigation({ layout }: AppNavigationProps) {
     >
       {navigationItems.map((item) => (
         <NavigationLink
+          badge={item.href === "/messages" ? totalUnread : undefined}
           href={{ pathname: item.href }}
           icon={item.icon}
           key={item.href}

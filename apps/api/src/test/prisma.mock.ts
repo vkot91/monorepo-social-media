@@ -4,8 +4,11 @@ import { type DeepMockProxy, mockDeep } from "jest-mock-extended";
 export type PrismaMock = DeepMockProxy<PrismaClient>;
 
 const prismaMockImplementation = {
+  conversation: mockDeep<PrismaClient["conversation"]>(),
+  conversationParticipant: mockDeep<PrismaClient["conversationParticipant"]>(),
   friendship: mockDeep<PrismaClient["friendship"]>(),
   mediaAsset: mockDeep<PrismaClient["mediaAsset"]>(),
+  message: mockDeep<PrismaClient["message"]>(),
   post: mockDeep<PrismaClient["post"]>(),
   postImage: mockDeep<PrismaClient["postImage"]>(),
   refreshToken: mockDeep<PrismaClient["refreshToken"]>(),

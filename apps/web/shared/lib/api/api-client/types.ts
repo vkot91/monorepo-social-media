@@ -1,4 +1,5 @@
 import type { AuthBackendApiRoutes, AuthBffApiRoutes } from "#/features/auth/api/routes";
+import type { MessagingBackendApiRoutes, MessagingBffApiRoutes } from "#/features/messaging/api/routes";
 import type { PostsBackendApiRoutes, PostsBffApiRoutes } from "#/features/posts/api/routes";
 
 import type { ApiRoute } from "../types";
@@ -8,8 +9,8 @@ export type ApiMethod = "DELETE" | "GET" | "PATCH" | "POST" | "PUT";
 export type QueryValue = boolean | number | string | null | undefined;
 
 // Aggregate route maps — add new feature routes here as the app grows.
-export type BackendApiRoutes = AuthBackendApiRoutes & PostsBackendApiRoutes;
-export type BffApiRoutes = AuthBffApiRoutes & PostsBffApiRoutes;
+export type BackendApiRoutes = AuthBackendApiRoutes & MessagingBackendApiRoutes & PostsBackendApiRoutes;
+export type BffApiRoutes = AuthBffApiRoutes & MessagingBffApiRoutes & PostsBffApiRoutes;
 
 export type ApiRoutes = BffApiRoutes | BackendApiRoutes;
 
