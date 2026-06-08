@@ -8,7 +8,9 @@ import { FriendshipsModule } from "./modules/friendships/friendships.module";
 import { HealthModule } from "./modules/health/health.module";
 import { MaintenanceModule } from "./modules/maintenance/maintenance.module";
 import { MediaModule } from "./modules/media/media.module";
+import { MessagingModule } from "./modules/messaging/messaging.module";
 import { PostsModule } from "./modules/posts/posts.module";
+import { RealtimeModule } from "./modules/realtime/realtime.module";
 
 @Module({
   imports: [
@@ -18,7 +20,9 @@ import { PostsModule } from "./modules/posts/posts.module";
     HealthModule,
     MaintenanceModule,
     MediaModule,
+    MessagingModule,
     PostsModule,
+    RealtimeModule,
   ],
 })
 export class AppModule implements NestModule {

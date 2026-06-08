@@ -97,6 +97,29 @@
   body {
     @apply bg-background text-text antialiased;
   }
+
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--app-color-line) transparent;
+  }
+
+  *::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  *::-webkit-scrollbar-thumb {
+    background: var(--app-color-line);
+    border-radius: 9999px;
+  }
+
+  *::-webkit-scrollbar-thumb:hover {
+    background: var(--app-color-line-strong);
+  }
 }
 
 @layer utilities {
@@ -108,5 +131,23 @@
     to {
       transform: scaleX(0);
     }
+  }
+
+  @keyframes typing-dot {
+    0%,
+    60%,
+    100% {
+      transform: translateY(0);
+      opacity: 0.4;
+    }
+
+    30% {
+      transform: translateY(-5px);
+      opacity: 1;
+    }
+  }
+
+  .animate-typing-dot {
+    animation: typing-dot 1.2s ease-in-out infinite;
   }
 }

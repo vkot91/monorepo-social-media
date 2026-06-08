@@ -2,10 +2,14 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { PostVisibility, type PrismaClient } from "../generated/prisma/client";
 import { testPosts } from "./post.seed";
+import { testFriendships } from "./social.seed";
 import { testUsers } from "./user.seed";
 
 const prismaMock = vi.hoisted(() => ({
   $executeRawUnsafe: vi.fn(),
+  friendship: {
+    createMany: vi.fn(),
+  },
   post: {
     createMany: vi.fn(),
   },
@@ -21,6 +25,9 @@ vi.mock("../client", () => ({
 const createClientMock = () =>
   ({
     $executeRawUnsafe: vi.fn(),
+    friendship: {
+      createMany: vi.fn(),
+    },
     post: {
       createMany: vi.fn(),
     },
@@ -61,7 +68,7 @@ describe("resetTestDatabase", () => {
     await resetTestDatabase(client);
 
     expect(client.$executeRawUnsafe).toHaveBeenCalledWith(
-      'TRUNCATE TABLE "comments", "friendships", "post_likes", "posts", "refresh_tokens", "user_blocks", "users" RESTART IDENTITY CASCADE',
+      'TRUNCATE TABLE "comments", "conversation_participants", "conversations", "friendships", "messages", "post_likes", "posts", "refresh_tokens", "user_blocks", "users" RESTART IDENTITY CASCADE',
     );
   });
 
@@ -72,7 +79,7 @@ describe("resetTestDatabase", () => {
     await resetTestDatabase();
 
     expect(prismaMock.$executeRawUnsafe).toHaveBeenCalledWith(
-      'TRUNCATE TABLE "comments", "friendships", "post_likes", "posts", "refresh_tokens", "user_blocks", "users" RESTART IDENTITY CASCADE',
+      'TRUNCATE TABLE "comments", "conversation_participants", "conversations", "friendships", "messages", "post_likes", "posts", "refresh_tokens", "user_blocks", "users" RESTART IDENTITY CASCADE',
     );
   });
 });
@@ -105,6 +112,9 @@ describe("seedTestDatabase", () => {
         updatedAt: new Date(post.createdAt),
         visibility: PostVisibility.FRIENDS,
       })),
+    });
+    expect(client.friendship.createMany).toHaveBeenCalledWith({
+      data: testFriendships,
     });
   });
 });

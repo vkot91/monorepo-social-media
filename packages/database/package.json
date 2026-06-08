@@ -11,7 +11,8 @@
     }
   },
   "scripts": {
-    "build": "pnpm db:generate && tsc -p tsconfig.build.json",
+    "build": "tsc -p tsconfig.build.json",
+    "postinstall": "prisma generate",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:seed:dev": "dotenv -e ../../.env.development -- pnpm build && dotenv -e ../../.env.development -- node dist/scripts/seed-development-database.js",

@@ -1,10 +1,11 @@
-import { SectionPlaceholder } from "#/shared/layout/section-placeholder";
+export const metadata = {
+  title: "Messages",
+};
 
 export default function MessagesPage() {
   return (
-    <SectionPlaceholder
-      description="Conversations and message threads will appear here."
-      title="Messages"
-    />
+    <div className="hidden h-full items-center justify-center md:flex">
+      <p className="text-sm text-muted-text">Select a conversation to start messaging</p>
+    </div>
   );
 }

@@ -17,12 +17,15 @@ const developmentPostEntries = Object.values(developmentUsers).flatMap((user, us
   Array.from({ length: 10 }, (_item, postIndex) => {
     const postNumber = postIndex + 1;
     const sequence = userIndex * 10 + postNumber;
-    const monthDay = String(27 - Math.floor((sequence - 1) / 2)).padStart(2, "0");
-    const hour = String(12 - (sequence % 10)).padStart(2, "0");
+    const dayOffset = Math.floor((sequence - 1) / 2);
+    const hourOffset = 12 - (sequence % 10);
+    const base = new Date("2026-05-27T12:00:00.000Z");
+    base.setUTCDate(base.getUTCDate() - dayOffset);
+    base.setUTCHours(hourOffset);
     const post = {
       authorId: user.id,
       content: `${user.displayName} development post ${postNumber}: sharing a seeded feed update for local testing.`,
-      createdAt: `2026-05-${monthDay}T${hour}:00:00.000Z`,
+      createdAt: base.toISOString(),
       id: `30000000-0000-4000-8000-${String(sequence).padStart(12, "0")}`,
     };
 

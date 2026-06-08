@@ -29,6 +29,7 @@ type DropdownMenuProps = {
   className?: string;
   items: DropdownMenuItem[];
   label: string;
+  side?: "top" | "bottom";
   trigger: ReactNode;
   triggerClassName?: string;
 };
@@ -37,7 +38,15 @@ function isDropdownMenuLinkItem(item: DropdownMenuItem): item is DropdownMenuLin
   return "href" in item;
 }
 
-export function DropdownMenu({ align = "end", className, items, label, trigger, triggerClassName }: DropdownMenuProps) {
+export function DropdownMenu({
+  align = "end",
+  className,
+  items,
+  label,
+  side = "bottom",
+  trigger,
+  triggerClassName,
+}: DropdownMenuProps) {
   const [open, setOpen] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const itemRefs = useRef<Array<HTMLAnchorElement | HTMLButtonElement | null>>([]);
@@ -112,7 +121,8 @@ export function DropdownMenu({ align = "end", className, items, label, trigger, 
       {open ? (
         <div
           className={cn(
-            "absolute top-full z-30 mt-2 grid min-w-44 gap-1 rounded-xl border border-line bg-surface p-1 shadow-2xl shadow-text/10",
+            "absolute z-30 grid min-w-44 gap-1 rounded-xl border border-line bg-surface p-1 shadow-2xl shadow-text/10",
+            side === "top" ? "bottom-full mb-2" : "top-full mt-2",
             align === "end" ? "right-0" : "left-0",
           )}
           id={menuId}

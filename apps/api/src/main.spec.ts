@@ -18,6 +18,12 @@ jest.mock("./config/env", () => ({
   }),
 }));
 
+jest.mock("./common/realtime/redis-io.adapter", () => ({
+  RedisIoAdapter: jest.fn().mockImplementation(() => ({
+    connectToRedis: jest.fn().mockResolvedValue(undefined),
+  })),
+}));
+
 describe("bootstrap", () => {
   it("creates the Nest app, enables CORS, and listens on the configured port", async () => {
     const enableCors = jest.fn();
@@ -33,7 +39,8 @@ describe("bootstrap", () => {
     const listen = jest.fn().mockResolvedValue(undefined);
     const useGlobalFilters = jest.fn();
     const useGlobalInterceptors = jest.fn();
-    const app = { enableCors, get, listen, useGlobalFilters, useGlobalInterceptors };
+    const useWebSocketAdapter = jest.fn();
+    const app = { enableCors, get, listen, useGlobalFilters, useGlobalInterceptors, useWebSocketAdapter };
 
     jest.mocked(NestFactory.create).mockResolvedValue(app as never);
 
@@ -51,6 +58,7 @@ describe("bootstrap", () => {
       credentials: true,
       origin: "http://localhost:3000",
     });
+    expect(useWebSocketAdapter).toHaveBeenCalledTimes(1);
     expect(listen).toHaveBeenCalledWith(3001);
     expect(result).toBe(app);
   });

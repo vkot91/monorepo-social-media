@@ -1,8 +1,15 @@
 import { prisma } from "../client";
 import { PostVisibility, type PrismaClient } from "../generated/prisma/client";
 import { developmentPosts } from "./post.seed";
+import {
+  developmentBlocks,
+  developmentConversations,
+  developmentFriendships,
+  developmentMessages,
+} from "./social.seed";
 import { developmentUsers } from "./user.seed";
 
+// password123
 const passwordHash = "$2b$10$iUCaPH6R8EJ0O6.GzZmPEO93OjzZQtxBlMnlMXaJmuwfCqiADzSiS";
 
 export const assertDevelopmentDatabase = () => {
@@ -56,5 +63,38 @@ export const seedDevelopmentDatabase = async (client: PrismaClient = prisma) => 
         visibility: PostVisibility.PUBLIC,
       })),
     });
+
+    await tx.friendship.deleteMany({ where: { requesterId: { in: userIds } } });
+    await tx.friendship.createMany({ data: developmentFriendships });
+
+    await tx.userBlock.deleteMany({ where: { blockerId: { in: userIds } } });
+    await tx.userBlock.createMany({ data: developmentBlocks });
+
+    await tx.message.deleteMany({
+      where: { conversationId: { in: developmentConversations.map((c) => c.id) } },
+    });
+    await tx.conversationParticipant.deleteMany({
+      where: { conversationId: { in: developmentConversations.map((c) => c.id) } },
+    });
+    await tx.conversation.deleteMany({
+      where: { id: { in: developmentConversations.map((c) => c.id) } },
+    });
+
+    for (const conv of developmentConversations) {
+      await tx.conversation.create({
+        data: {
+          id: conv.id,
+          pairKey: conv.pairKey,
+          createdAt: conv.createdAt,
+          updatedAt: conv.lastMessageAt ?? conv.createdAt,
+          lastMessageAt: conv.lastMessageAt,
+          participants: {
+            create: conv.participants.map((userId) => ({ userId })),
+          },
+        },
+      });
+    }
+
+    await tx.message.createMany({ data: developmentMessages });
   });
 };

@@ -1,6 +1,7 @@
 import { prisma } from "../client";
 import { PostVisibility, type PrismaClient } from "../generated/prisma/client";
 import { testPosts } from "./post.seed";
+import { testFriendships } from "./social.seed";
 import { testUsers } from "./user.seed";
 
 const passwordHash = "$2b$10$iUCaPH6R8EJ0O6.GzZmPEO93OjzZQtxBlMnlMXaJmuwfCqiADzSiS";
@@ -15,7 +16,7 @@ export const resetTestDatabase = async (client: PrismaClient = prisma) => {
   assertTestDatabase();
 
   await client.$executeRawUnsafe(
-    'TRUNCATE TABLE "comments", "friendships", "post_likes", "posts", "refresh_tokens", "user_blocks", "users" RESTART IDENTITY CASCADE',
+    'TRUNCATE TABLE "comments", "conversation_participants", "conversations", "friendships", "messages", "post_likes", "posts", "refresh_tokens", "user_blocks", "users" RESTART IDENTITY CASCADE',
   );
 };
 
@@ -43,6 +44,8 @@ export const seedTestDatabase = async (client: PrismaClient = prisma) => {
       visibility: PostVisibility.FRIENDS,
     })),
   });
+
+  await client.friendship.createMany({ data: testFriendships });
 };
 
 export const resetAndSeedTestDatabase = async (client: PrismaClient = prisma) => {

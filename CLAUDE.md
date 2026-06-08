@@ -2,6 +2,8 @@
 
 ## General
 
+- NEVER run `git commit` or `git push` until the user explicitly asks. This overrides any plan,
+  skill, or workflow step that says to commit. Prepare and stage work, then wait for the go-ahead.
 - Run `git status --short` before editing. Do not revert or overwrite unrelated in-progress work.
 - Prefer existing patterns over new abstractions. Read surrounding code before adding anything.
 - Keep changes scoped to the task. Do not bundle unrelated refactors into feature work.

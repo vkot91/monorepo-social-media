@@ -26,6 +26,7 @@ export const navigationLinkVariants = cva(
 );
 
 type NavigationLinkProps = {
+  badge?: number;
   href: UrlObject;
   icon: LucideIcon;
   label: string;
@@ -33,13 +34,15 @@ type NavigationLinkProps = {
   path: string;
 } & VariantProps<typeof navigationLinkVariants>;
 
-export function NavigationLink({ href, icon: Icon, label, layout, path, variant }: NavigationLinkProps) {
+export function NavigationLink({ badge, href, icon: Icon, label, layout, path, variant }: NavigationLinkProps) {
   const pathname = usePathname();
   const isActive = pathname === path || pathname.startsWith(`${path}/`);
+  const hasBadge = typeof badge === "number" && badge > 0;
 
   return (
     <Link
       aria-current={isActive ? "page" : undefined}
+      aria-label={hasBadge ? `${label}, ${badge} unread` : undefined}
       className={cn(
         navigationLinkVariants({ variant: isActive ? "active" : variant }),
         layout === "sidebar" ? "min-h-11 w-full px-3.5" : "min-h-10 shrink-0 px-3",
@@ -48,6 +51,14 @@ export function NavigationLink({ href, icon: Icon, label, layout, path, variant 
     >
       <Icon aria-hidden className="h-5 w-5 shrink-0" />
       <span>{label}</span>
+      {hasBadge ? (
+        <span
+          aria-hidden
+          className="ml-auto rounded-full bg-danger px-1.5 text-xs font-bold text-on-danger"
+        >
+          {badge > 9 ? "9+" : badge}
+        </span>
+      ) : null}
     </Link>
   );
 }

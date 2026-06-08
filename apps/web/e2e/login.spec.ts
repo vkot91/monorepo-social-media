@@ -21,6 +21,10 @@ test.describe("login page", () => {
 
   test("shows client-side validation errors before submitting", async ({ page }) => {
     await page.goto("/login");
+    // Replace any pre-filled development credentials with invalid input so the
+    // client-side validation fires deterministically instead of signing in.
+    await page.getByLabel("Email").fill("not-an-email");
+    await page.getByLabel("Password").fill("123");
     await page.getByRole("button", { name: "Sign in" }).click();
 
     await expect(page.getByText(/invalid email/i)).toBeVisible();

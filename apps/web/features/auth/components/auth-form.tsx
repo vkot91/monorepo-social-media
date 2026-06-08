@@ -6,6 +6,7 @@ import { useMutation } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 
+import { getWebEnv } from "#/env";
 import { Logo } from "#/shared/ui";
 import { Button } from "#/shared/ui/button";
 import { Field, FormCard, Input } from "#/shared/ui/form";
@@ -67,6 +68,14 @@ const LoginAuthForm = () => {
     },
   });
 
+  const defaultFormValues =
+    getWebEnv().NODE_ENV === "development"
+      ? {
+          email: "maya@example.com",
+          password: "password123",
+        }
+      : {};
+
   const {
     formState: { errors, isSubmitting },
     handleSubmit,
@@ -74,6 +83,7 @@ const LoginAuthForm = () => {
   } = useForm<LoginInput>({
     resolver: zodResolver(loginSchema),
     mode: "onTouched",
+    defaultValues: defaultFormValues,
   });
 
   const onSubmit = (values: LoginInput) => {
