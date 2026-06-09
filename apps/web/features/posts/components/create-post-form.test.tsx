@@ -185,6 +185,25 @@ describe("CreatePostForm", () => {
     await waitFor(() => expect(submitButton).not.toHaveAttribute("aria-busy"));
   });
 
+  it("sends FRIENDS visibility when changed via the picker before submitting", async () => {
+    renderWithClient(<CreatePostForm />);
+
+    vi.mocked(bffClient).mockResolvedValueOnce(createdPost);
+
+    fireEvent.click(screen.getByRole("button", { name: /change post visibility/i }));
+    fireEvent.click(screen.getByRole("menuitem", { name: /friends/i }));
+    fireEvent.change(screen.getByLabelText(/create post/i), {
+      target: { value: "Created post content." },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /^post$/i }));
+
+    await waitFor(() => expect(bffClient).toHaveBeenCalled());
+
+    const body = (vi.mocked(bffClient).mock.calls[0]?.[2] as unknown as { body: FormData }).body;
+
+    expect(body.get("visibility")).toBe("FRIENDS");
+  });
+
   it("restores submitted content when creation fails", async () => {
     const { queryClient } = renderWithClient(<CreatePostForm />);
     const invalidateQueries = vi.spyOn(queryClient, "invalidateQueries");

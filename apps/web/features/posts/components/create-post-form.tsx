@@ -15,6 +15,7 @@ import { addPostToInfiniteData, type PostsInfiniteData } from "../api/helpers/ca
 import { createPost, type CreatePostMutationInput } from "../api/mutations";
 import { postMutationKeys, postsKeys } from "../api/routes";
 import { type ManagedPostImage, PostImageManager } from "./post-images";
+import { PostVisibilityPicker } from "./post-visibility-picker";
 
 const createPostDefaultValues: CreatePostInput = {
   content: "",
@@ -32,6 +33,8 @@ export const CreatePostForm = () => {
     register,
     reset,
     setError,
+    setValue,
+    watch,
   } = useForm<CreatePostInput>({
     defaultValues: createPostDefaultValues,
     mode: "onTouched",
@@ -68,6 +71,7 @@ export const CreatePostForm = () => {
     },
   });
 
+  const visibility = watch("visibility");
   const contentError = errors.content?.message;
   const formError = createPostMutation.error instanceof ApiRequestError ? createPostMutation.error.message : undefined;
 
@@ -92,7 +96,8 @@ export const CreatePostForm = () => {
       <FieldError message={contentError} />
       <PostImageManager disabled={createPostMutation.isPending} images={images} onChange={setImages} />
       <FieldError message={formError} />
-      <div className="text-right">
+      <div className="flex items-center justify-between">
+        <PostVisibilityPicker onChange={(v) => setValue("visibility", v)} value={visibility ?? "PUBLIC"} />
         <Button loading={createPostMutation.isPending} type="submit">
           Post
         </Button>
