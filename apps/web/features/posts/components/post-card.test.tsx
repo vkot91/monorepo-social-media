@@ -407,6 +407,55 @@ describe("PostCard", () => {
     ]);
   });
 
+  it("shows the post creation time for every viewer", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-05-07T12:00:00.000Z")); // 2h after the fixture post
+
+    renderWithClient(<PostCard post={post} />, otherUser);
+
+    expect(screen.getByText("2h ago")).toBeInTheDocument();
+
+    vi.useRealTimers();
+  });
+
+  it("shows the visibility label only for the author", () => {
+    const { unmount } = renderWithClient(<PostCard post={post} />, authorUser);
+
+    expect(screen.getByText("Public")).toBeInTheDocument();
+    unmount();
+
+    renderWithClient(<PostCard post={post} />, otherUser);
+
+    expect(screen.queryByText("Public")).not.toBeInTheDocument();
+  });
+
+  it("shows Friends label when the post visibility is FRIENDS", () => {
+    renderWithClient(<PostCard post={{ ...post, visibility: "FRIENDS" }} />, authorUser);
+
+    expect(screen.getByText("Friends")).toBeInTheDocument();
+  });
+
+  it("sends updated visibility when it is changed in the edit modal", async () => {
+    vi.mocked(bffClient).mockResolvedValueOnce({ ...post, visibility: "FRIENDS" });
+
+    renderWithClient(<PostCard post={post} />, authorUser);
+
+    fireEvent.click(screen.getByRole("button", { name: /open post actions/i }));
+    fireEvent.click(screen.getByRole("menuitem", { name: /edit/i }));
+
+    const editDialog = screen.getByRole("dialog", { name: /edit post/i });
+
+    fireEvent.click(within(editDialog).getByRole("button", { name: /change post visibility/i }));
+    fireEvent.click(within(editDialog).getByRole("menuitem", { name: /friends/i }));
+    fireEvent.click(within(editDialog).getByRole("button", { name: /save changes/i }));
+
+    await waitFor(() => expect(bffClient).toHaveBeenCalled());
+
+    const body = (vi.mocked(bffClient).mock.calls[0]?.[2] as unknown as { body: FormData }).body;
+
+    expect(body.get("visibility")).toBe("FRIENDS");
+  });
+
   it("optimistically removes cached infinite-feed posts", async () => {
     const { queryClient } = renderWithClient(<PostCard post={post} />, authorUser);
     let resolveDelete: (value: null) => void = () => undefined;

@@ -21,6 +21,7 @@ import {
   mapPostImagesToManaged,
   PostImageManager,
 } from "./post-images";
+import { PostVisibilityPicker } from "./post-visibility-picker";
 
 type EditPostModalProps = {
   addToast: (toast: AddToastOptions) => string;
@@ -49,9 +50,12 @@ export const EditPostModal = ({ addToast, onOpenChange, open, post }: EditPostMo
     handleSubmit,
     register,
     setError,
+    setValue,
+    watch,
   } = useForm<UpdatePostFormValues, unknown, UpdatePostInput>({
     defaultValues: {
       content: post.content,
+      visibility: post.visibility,
     },
     mode: "onTouched",
     resolver: zodResolver(updatePostSchema),
@@ -79,12 +83,14 @@ export const EditPostModal = ({ addToast, onOpenChange, open, post }: EditPostMo
     },
   });
 
+  const visibility = watch("visibility");
   const contentError = errors.content?.message;
   const formError = updatePostMutation.error;
 
   const onSubmit = (values: UpdatePostInput) => {
     const input: UpdatePostMutationInput = {
       content: values.content,
+      visibility: values.visibility,
     };
 
     if (haveManagedImagesChanged(post.images, images)) {
@@ -124,6 +130,10 @@ export const EditPostModal = ({ addToast, onOpenChange, open, post }: EditPostMo
           {...register("content")}
         />
         <PostImageManager disabled={updatePostMutation.isPending} images={images} onChange={setImages} />
+        <PostVisibilityPicker
+          onChange={(v) => setValue("visibility", v)}
+          value={visibility ?? post.visibility}
+        />
         <FieldError message={contentError || formError?.message} />
       </form>
     </Modal>
