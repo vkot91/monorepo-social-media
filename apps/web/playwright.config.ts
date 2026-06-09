@@ -22,8 +22,7 @@ export default defineConfig({
   workers: 1,
   webServer: [
     {
-      command:
-        "pnpm --filter @social/database build && pnpm --filter @social/api build && pnpm --filter @social/api start",
+      command: "pnpm --filter @social/api start",
       env: {
         NODE_ENV: "test",
         PORT: String(e2eConfig.apiPort),

@@ -35,13 +35,16 @@
       "outputs": []
     },
     "test:coverage": {
-      "dependsOn": ["^build", "^test:coverage"],
+      "dependsOn": ["^build"],
       "outputs": ["coverage/**"]
     },
+    "test:db:migrate": {
+      "dependsOn": ["build"],
+      "cache": false
+    },
     "test:e2e": {
-      "dependsOn": ["^build"],
+      "dependsOn": ["^build", "@social/database#test:db:migrate"],
       "cache": false,
-      "env": ["DATABASE_URL", "NODE_ENV"],
       "outputs": ["test-results/**", "playwright-report/**"]
     },
     "typecheck": {

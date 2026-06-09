@@ -13,7 +13,7 @@
     "lint": "turbo run lint",
     "prepare": "husky",
     "test": "turbo run test",
-    "test:db:migrate": "pnpm --filter @social/database test:db:migrate",
+    "test:db:migrate": "turbo run test:db:migrate --filter=@social/database",
     "test:db:reset": "pnpm --filter @social/database test:db:reset",
     "test:infra:down": "docker compose -f docker-compose.test.yml down",
     "test:infra:up": "docker compose -f docker-compose.test.yml up -d",
