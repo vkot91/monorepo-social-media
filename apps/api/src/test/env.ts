@@ -20,6 +20,14 @@ export const testApiEnv = {
   SMTP_SECURE: false,
   SMTP_USER: undefined,
   SMTP_PASSWORD: undefined,
+  RATE_LIMIT_DEFAULT_LIMIT: 100,
+  RATE_LIMIT_DEFAULT_WINDOW_MS: 60_000,
+  RATE_LIMIT_AUTH_LIMIT: 10,
+  RATE_LIMIT_AUTH_WINDOW_MS: 60_000,
+  RATE_LIMIT_WRITE_LIMIT: 30,
+  RATE_LIMIT_WRITE_WINDOW_MS: 60_000,
+  RATE_LIMIT_WS_TYPING_LIMIT: 10,
+  RATE_LIMIT_WS_TYPING_WINDOW_MS: 10_000,
 } satisfies ApiEnv;
 
 export const createTestApiEnv = (overrides: Partial<ApiEnv> = {}): ApiEnv => ({

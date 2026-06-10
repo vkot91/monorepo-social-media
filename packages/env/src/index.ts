@@ -18,6 +18,9 @@ const stringBoolean = z.preprocess((value) => {
 
 const requiredSecret = z.string().min(32, "Secret must be at least 32 characters long");
 
+const positiveIntWithDefault = (value: number) =>
+  z.preprocess(emptyStringToUndefined, z.coerce.number().int().positive().default(value));
+
 export const apiEnvSchema = z.object({
   NODE_ENV: nodeEnvSchema,
   PORT: z.preprocess(emptyStringToUndefined, z.coerce.number().int().positive().default(3001)),
@@ -38,6 +41,16 @@ export const apiEnvSchema = z.object({
   SMTP_SECURE: z.preprocess(emptyStringToUndefined, stringBoolean.default(false)),
   SMTP_USER: z.preprocess(emptyStringToUndefined, z.string().optional()),
   SMTP_PASSWORD: z.preprocess(emptyStringToUndefined, z.string().optional()),
+  // Rate limiting. Windows are in milliseconds. Defaults are generous so normal use is
+  // unaffected; lower them (e.g. in a local .env) to exercise blocking during manual tests.
+  RATE_LIMIT_DEFAULT_LIMIT: positiveIntWithDefault(100),
+  RATE_LIMIT_DEFAULT_WINDOW_MS: positiveIntWithDefault(60_000),
+  RATE_LIMIT_AUTH_LIMIT: positiveIntWithDefault(10),
+  RATE_LIMIT_AUTH_WINDOW_MS: positiveIntWithDefault(60_000),
+  RATE_LIMIT_WRITE_LIMIT: positiveIntWithDefault(30),
+  RATE_LIMIT_WRITE_WINDOW_MS: positiveIntWithDefault(60_000),
+  RATE_LIMIT_WS_TYPING_LIMIT: positiveIntWithDefault(10),
+  RATE_LIMIT_WS_TYPING_WINDOW_MS: positiveIntWithDefault(10_000),
 });
 
 export const webEnvSchema = z.object({

@@ -13,6 +13,7 @@ import {
   UseInterceptors,
 } from "@nestjs/common";
 import { FilesInterceptor } from "@nestjs/platform-express";
+import { Throttle } from "@nestjs/throttler";
 import {
   type CreatePostInput,
   createPostSchema,
@@ -31,6 +32,7 @@ import { CurrentUser } from "#modules/auth/decorators/current-user.decorator";
 import type { AuthTokenPayload } from "#modules/auth/types/auth-token-payload";
 import { maxPostImages } from "#modules/media/inputs/post-image-input.validator";
 import { PostImageFilesPipe } from "#modules/media/pipes/post-image-files.pipe";
+import { WRITE_THROTTLE } from "#modules/rate-limit/rate-limit.constants";
 
 import { PostsService } from "./posts.service";
 
@@ -38,6 +40,7 @@ import { PostsService } from "./posts.service";
 export class PostsController {
   constructor(private readonly postsService: PostsService) {}
 
+  @Throttle(WRITE_THROTTLE)
   @HttpPost()
   @UseInterceptors(FilesInterceptor("images", maxPostImages))
   @UseInterceptors(ZodResponseInterceptor(PostSchema))
@@ -67,6 +70,7 @@ export class PostsController {
     return this.postsService.findOne(user.sub, postId);
   }
 
+  @Throttle(WRITE_THROTTLE)
   @Patch(":id")
   @UseInterceptors(FilesInterceptor("images", maxPostImages))
   @UseInterceptors(ZodResponseInterceptor(PostSchema))

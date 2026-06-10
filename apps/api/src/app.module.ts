@@ -10,6 +10,7 @@ import { MaintenanceModule } from "./modules/maintenance/maintenance.module";
 import { MediaModule } from "./modules/media/media.module";
 import { MessagingModule } from "./modules/messaging/messaging.module";
 import { PostsModule } from "./modules/posts/posts.module";
+import { RateLimitModule } from "./modules/rate-limit/rate-limit.module";
 import { RealtimeModule } from "./modules/realtime/realtime.module";
 
 @Module({
@@ -22,6 +23,7 @@ import { RealtimeModule } from "./modules/realtime/realtime.module";
     MediaModule,
     MessagingModule,
     PostsModule,
+    RateLimitModule,
     RealtimeModule,
   ],
 })
