@@ -34,6 +34,13 @@ export default defineConfig({
         JWT_ACCESS_SECRET: process.env.JWT_ACCESS_SECRET ?? "test-access-secret-at-least-32-chars",
         JWT_REFRESH_SECRET: process.env.JWT_REFRESH_SECRET ?? "test-refresh-secret-at-least-32-chars",
         MAIL_FROM: "Social Media Test <no-reply@example.com>",
+        // The web e2e suite exercises UI flows, not rate limiting, but its many auth/API calls
+        // share one localhost IP and the Redis-backed counters outlive a DB reset. Raise the
+        // limits far beyond a single run so cumulative requests across specs can't trip them.
+        // Rate limiting itself is covered by the API e2e suite (apps/api/e2e/rate-limit).
+        RATE_LIMIT_DEFAULT_LIMIT: "1000000",
+        RATE_LIMIT_AUTH_LIMIT: "1000000",
+        RATE_LIMIT_WRITE_LIMIT: "1000000",
       },
       reuseExistingServer: false,
       timeout: 120_000,
