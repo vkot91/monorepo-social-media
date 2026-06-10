@@ -1,4 +1,5 @@
 import { Body, Controller, Get, HttpCode, HttpStatus, Post, UseInterceptors } from "@nestjs/common";
+import { Throttle } from "@nestjs/throttler";
 import {
   AuthResponseSchema,
   AuthUserSchema,
@@ -15,6 +16,7 @@ import {
 import { ZodResponseInterceptor } from "#common/interceptors/response.interceptor";
 import { ZodValidationPipe } from "#common/pipes/zod-validation.pipe";
 import { delay } from "#common/utils/delay";
+import { AUTH_THROTTLE } from "#modules/rate-limit/rate-limit.constants";
 
 import { AuthService } from "./auth.service";
 import { PublicRoute, RefreshTokenRoute } from "./decorators/auth-route-type.decorator";
@@ -25,6 +27,7 @@ import type { AuthTokenPayload } from "./types/auth-token-payload";
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
+  @Throttle(AUTH_THROTTLE)
   @PublicRoute()
   @Post("register")
   @UseInterceptors(ZodResponseInterceptor(AuthResponseSchema))
@@ -32,6 +35,7 @@ export class AuthController {
     return this.authService.register(input);
   }
 
+  @Throttle(AUTH_THROTTLE)
   @HttpCode(HttpStatus.OK)
   @PublicRoute()
   @Post("login")
@@ -48,6 +52,7 @@ export class AuthController {
     return this.authService.getCurrentUser(user.sub);
   }
 
+  @Throttle(AUTH_THROTTLE)
   @HttpCode(HttpStatus.OK)
   @RefreshTokenRoute()
   @Post("refresh")

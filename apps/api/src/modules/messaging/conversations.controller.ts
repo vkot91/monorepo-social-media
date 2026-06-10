@@ -10,6 +10,7 @@ import {
   Query,
   UseInterceptors,
 } from "@nestjs/common";
+import { Throttle } from "@nestjs/throttler";
 import {
   ConversationSchema,
   ConversationsSchema,
@@ -27,6 +28,7 @@ import { ZodResponseInterceptor } from "#common/interceptors/response.intercepto
 import { ZodValidationPipe } from "#common/pipes/zod-validation.pipe";
 import { CurrentUser } from "#modules/auth/decorators/current-user.decorator";
 import type { AuthTokenPayload } from "#modules/auth/types/auth-token-payload";
+import { WRITE_THROTTLE } from "#modules/rate-limit/rate-limit.constants";
 
 import { MessagingGateway } from "./messaging.gateway";
 import { MessagingService } from "./messaging.service";
@@ -44,6 +46,7 @@ export class ConversationsController {
     return this.messagingService.listConversations(user.sub);
   }
 
+  @Throttle(WRITE_THROTTLE)
   @Post("conversations")
   @UseInterceptors(ZodResponseInterceptor(ConversationSchema))
   startConversation(
@@ -63,6 +66,7 @@ export class ConversationsController {
     return this.messagingService.listMessages(user.sub, conversationId, query);
   }
 
+  @Throttle(WRITE_THROTTLE)
   @Post("conversations/:id/messages")
   @UseInterceptors(ZodResponseInterceptor(MessageSchema))
   async sendMessage(

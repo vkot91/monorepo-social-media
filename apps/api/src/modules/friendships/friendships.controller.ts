@@ -1,4 +1,5 @@
 import { Body, Controller, Delete, HttpCode, HttpStatus, Param, Patch, Post } from "@nestjs/common";
+import { Throttle } from "@nestjs/throttler";
 import {
   type FriendshipRequestStatusInput,
   friendshipRequestStatusSchema,
@@ -9,6 +10,7 @@ import {
 import { ZodValidationPipe } from "#common/pipes/zod-validation.pipe";
 import { CurrentUser } from "#modules/auth/decorators/current-user.decorator";
 import type { AuthTokenPayload } from "#modules/auth/types/auth-token-payload";
+import { WRITE_THROTTLE } from "#modules/rate-limit/rate-limit.constants";
 
 import { FriendshipsService } from "./friendships.service";
 
@@ -16,6 +18,7 @@ import { FriendshipsService } from "./friendships.service";
 export class FriendshipsController {
   constructor(private readonly friendshipsService: FriendshipsService) {}
 
+  @Throttle(WRITE_THROTTLE)
   @Post("requests")
   sendRequest(
     @CurrentUser() user: AuthTokenPayload,
@@ -39,6 +42,7 @@ export class FriendshipsController {
     return this.friendshipsService.removeFriendship(user.sub, friendshipId);
   }
 
+  @Throttle(WRITE_THROTTLE)
   @Post("blocks")
   blockUser(
     @CurrentUser() user: AuthTokenPayload,
